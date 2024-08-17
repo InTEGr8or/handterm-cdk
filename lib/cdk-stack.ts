@@ -18,11 +18,6 @@ import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations
 import { HttpLambdaAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import { IFunction } from 'aws-cdk-lib/aws-lambda';
 
-const githubSecrets = ssm.StringParameter.fromStringParameterAttributes(this, 'GitHubSecrets', {
-  parameterName: '/github/secrets',
-}).stringValue;
-
-const { clientId: githubClientId, clientSecret: githubClientSecret, issuerUrl: githubIssuerUrl } = JSON.parse(githubSecrets);
 
 const nodeRuntime = lambda.Runtime.NODEJS_16_X;
 
@@ -33,9 +28,15 @@ export class HandTermCdkStack extends Stack {
     props?: StackProps
   ) {
     super(scope, id, props);
-    console.log("Github Client Secret: " + githubClientSecret);
-    console.log("Github Client ID: " + githubClientId);
-    console.log("Github Issuer URL: " + githubIssuerUrl);
+    const githubSecrets = ssm.StringParameter.fromStringParameterAttributes(this, 'GitHubSecrets', {
+      parameterName: '/github/secrets',
+    }).stringValue;
+
+    const { clientId: githubClientId, clientSecret: githubClientSecret, issuerUrl: githubIssuerUrl } = JSON.parse(githubSecrets);
+
+    console.log("GitHub Client Secret: " + githubClientSecret);
+    console.log("GitHub Client ID: " + githubClientId);
+    console.log("GitHub Issuer URL: " + githubIssuerUrl);
     const allowHeaders = [
       'Content-Type',
       'X-Amz-Date',
