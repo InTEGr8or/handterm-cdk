@@ -1,5 +1,6 @@
 // cdk/lib/cdk-stack.ts
 import { ENDPOINTS } from '../lambda/cdkshared/endpoints';
+import * as ssm from 'aws-cdk-lib/aws-ssm';
 import {
   aws_cognito as cognito,
   aws_s3 as s3,
@@ -17,9 +18,11 @@ import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations
 import { HttpLambdaAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import { IFunction } from 'aws-cdk-lib/aws-lambda';
 
-const githubClientSecret = process.env.VITE_GITHUB_CLIENT_SECRET;
-const githubClientId = process.env.VITE_GITHUB_CLIENT_ID;
-const githubIssuerUrl = process.env.VITE_GITHUB_ISSUER_URL;
+const githubSecrets = ssm.StringParameter.fromStringParameterAttributes(this, 'GitHubSecrets', {
+  parameterName: '/github/secrets',
+}).stringValue;
+
+const { clientId: githubClientId, clientSecret: githubClientSecret, issuerUrl: githubIssuerUrl } = JSON.parse(githubSecrets);
 
 const nodeRuntime = lambda.Runtime.NODEJS_16_X;
 
