@@ -46,7 +46,7 @@ export class HandTermCdkStack extends Stack {
       githubClientSecret = parsedSecrets.clientSecret;
       githubIssuerUrl = parsedSecrets.issuerUrl;
     } catch (error: any) {
-      throw new Error("Failed to parse GitHub secrets JSON: " + (error as Error).message);
+      throw new Error(`Failed to parse GitHub secrets JSON: ` + githubSecrets + error);
     }
 
     console.log("GitHub Client Secret: " + githubClientSecret);
