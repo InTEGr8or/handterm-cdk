@@ -28,11 +28,26 @@ export class HandTermCdkStack extends Stack {
     props?: StackProps
   ) {
     super(scope, id, props);
-    const githubSecrets = ssm.StringParameter.fromStringParameterAttributes(this, 'GitHubSecrets', {
+    const githubSecretsParam = ssm.StringParameter.fromStringParameterAttributes(this, 'GitHubSecrets', {
       parameterName: '/github/secrets',
-    }).stringValue;
+    });
 
-    const { clientId: githubClientId, clientSecret: githubClientSecret, issuerUrl: githubIssuerUrl } = JSON.parse(githubSecrets);
+    const githubSecrets = githubSecretsParam.stringValue;
+    console.log("Fetched GitHub Secrets: " + githubSecrets);
+
+    if (!githubSecrets) {
+      throw new Error("GitHub secrets could not be retrieved from Parameter Store.");
+    }
+
+    let githubClientId, githubClientSecret, githubIssuerUrl;
+    try {
+      const parsedSecrets = JSON.parse(githubSecrets);
+      githubClientId = parsedSecrets.clientId;
+      githubClientSecret = parsedSecrets.clientSecret;
+      githubIssuerUrl = parsedSecrets.issuerUrl;
+    } catch (error) {
+      throw new Error("Failed to parse GitHub secrets JSON: " + error.message);
+    }
 
     console.log("GitHub Client Secret: " + githubClientSecret);
     console.log("GitHub Client ID: " + githubClientId);
