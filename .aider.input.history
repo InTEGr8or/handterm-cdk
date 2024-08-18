@@ -1,0 +1,90 @@
+
+# 2024-08-17 09:15:03.651057
++/add lib\cdk-stack.ts
+
+# 2024-08-17 09:22:27.690205
++When I `cdk deploy` this project I get this error: ```HandTermCdkStack | 0/4 | 9:00:30 AM | CREATE_FAILED        | AWS::Cognito::UserPoolIdentityProvider | GitHubIdentityProvider clientId, authorizeScopes, oidcIssuer and attributesRequestMethod are all required idp details. (Service: AWSCognitoIdentityProviderService; Status Code: 400; Error Code: InvalidParameterException; Request ID: 49ab4373-05f4-4d5c-b84d-6debb70a026f; Proxy: null)```. I think that the GitHub secrets are not being fetched from the `.env` file that exists in the root directory. This is probably a good time for me to move those secrets into the AWS Parameter Store. I can store all three GitHub values in a single Parameter Store JSON object. Can you help me convert the `cdk-stack.ts` to use values from the Parameter Store and help me execute the AWS CLI commands to push the values into a Parameter Store object? I already have the AWS CLI installed and configured and working with my acount. 
+
+# 2024-08-17 09:45:08.794922
++You are putting too many `=======` in your search-replace statements. That's why you keep getting those errors when trying to update the code. Can you try that solution again but making sure to only use one single `=======` per search-replace block? If not, you can just send me the code and I will make the change.
+
+# 2024-08-17 09:52:30.586025
++/undo
+
+# 2024-08-17 09:57:02.952547
++/add lib\cdk-stack.ts
+
+# 2024-08-17 09:57:24.830839
++When I `cdk deploy` this project I get this error: ```HandTermCdkStack | 0/4 | 9:00:30 AM | CREATE_FAILED        | AWS::Cognito::UserPoolIdentityProvider | GitHubIdentityProvider clientId, authorizeScopes, oidcIssuer and attributesRequestMethod are all required idp details. (Service: AWSCognitoIdentityProviderService; Status Code: 400; Error Code: InvalidParameterException; Request ID: 49ab4373-05f4-4d5c-b84d-6debb70a026f; Proxy: null)```. I think that the GitHub secrets are not being fetched from the `.env` file that exists in the root directory. This is probably a good time for me to move those secrets into the AWS Parameter Store. I can store all three GitHub values in a single Parameter Store JSON object. Can you help me convert the `cdk-stack.ts` to use values from the Parameter Store and help me execute the AWS CLI commands to push the values into a Parameter Store object? I already have the AWS CLI installed and configured and working with my acount. 
+
+# 2024-08-17 10:56:03.674011
++I am getting this linting error in the `lib\cdk-stack.ts`: ```[{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2345",
++"severity": 8,
++"message": "Argument of type 'undefined' is not assignable to parameter of type 'Construct'.",
++"source": "ts",
++"startLineNumber": 21,
++"startColumn": 73,
++"endLineNumber": 21,
++"endColumn": 77
++}]```
+
+# 2024-08-17 11:08:14.130919
++I have pushed the secrets up to Parameter Store but I am still getting this error when I do `cdk deploy`: ```HandTermCdkStack: creating CloudFormation changeset...
++HandTermCdkStack | 0/4 | 9:00:29 AM | UPDATE_IN_PROGRESS   | AWS::CDK::Metadata                     | CDKMetadata/Default (CDKMetadata) 
++HandTermCdkStack | 0/4 | 9:00:24 AM | UPDATE_IN_PROGRESS   | AWS::CloudFormation::Stack             | HandTermCdkStack User Initiated
++oolIdentityProvider | GitHubIdentityProvider clientId, authorizeScopes, oidcIssuer and attributesRequestMethod are all required idp details. (Service: AWSCognitoIdentityProviderService; Status Code: 400; Error Code: InvalidParameterException; Request ID: 49ab4373-05f4-4d5c-b84d-6debb70a026f; Proxy: null)```, oh, and I just noticed this earlier output in the `cdk deploy` log: ```Debugger attached.
++Github Client Secret: undefined
++Github Client ID: undefined
++Github Issuer URL: undefined
++Github Client Secret: undefined
++Github Client ID: undefined
++Github Issuer URL: undefined```
+
+# 2024-08-17 11:13:20.938490
++I am getting this linting error: ```[{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "18046",
++"severity": 8,
++"message": "'error' is of type 'unknown'.",
++"source": "ts",
++"startLineNumber": 49,
++"startColumn": 65,
++"endLineNumber": 49,
++"endColumn": 70
++}]```
+
+# 2024-08-17 11:26:11.251508
++Ok, I am getting this error when I try to deploy now: ```Debugger attached.
++Fetched GitHub Secrets: ${Token[TOKEN.10]}
++C:\Users\xgenx\source\repos\handterm-cdk\lib\cdk-stack.ts:49
++      throw new Error(`Failed to parse GitHub secrets JSON: ` + githubSecrets + error);
++            ^
++Error: Failed to parse GitHub secrets JSON: ${Token[TOKEN.10]}SyntaxError: Unexpected token '$', "${Token[TOKEN.10]}" is not valid JSON```
+
+# 2024-08-17 11:29:48.622840
++I think you've got the CDK wrong. It wasn't retreiving the GitHub credentials to use them in a lambda which is defined in another file. It retreived them to use them here in the CDK itself: ```    // Define GitHub as an identity provider
++    new cognito.CfnUserPoolIdentityProvider(this, 'GitHubIdentityProvider', {
++      providerName: 'GitHub', // This is the name you assign to your provider
++      providerType: 'OIDC', // For GitHub, use 'OIDC' or 'SAML' as appropriate
++      userPoolId: userPool.userPoolId,
++      providerDetails: {
++        // These will be specific to the OAuth provider
++        // For GitHub, use the OAuth 2.0 endpoint information and credentials
++        authorize_scopes: 'openid,profile,email',
++        client_id: githubClientId,
++        client_secret: githubClientSecret,
++        attributes_request_method: 'GET',
++        oidc_issuer: githubIssuerUrl, // This is not directly applicable to GitHub as GitHub doesn't directly support OIDC
++        // You will need to adjust the above details for GitHub's OAuth flow
++      },
++
++      attributeMapping: {
++        // Map GitHub user attributes to Cognito user pool attributes
++        email: 'email',
++        // Add other attribute mappings as needed
++      },
++    });```

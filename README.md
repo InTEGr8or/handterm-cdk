@@ -42,4 +42,10 @@ Given your setup, here’s how you can work with HttpOnly cookies for session ma
 Implementing HttpOnly cookies in a browser-based TUI application for secure session management is indeed a good practice. Ensure you follow best practices for security and privacy to protect user data and sessions effectively.
 
 
+## Secrets In Parameter Store
 
+```sh
+aws ssm put-parameter --name "/github/secrets" --type "String" --value
+ '{"clientId":"your_client_id","clientSecret":"your_client_secret","issuerUrl":"your 
+ ssuer_url"}' --overwrite
+ ```
