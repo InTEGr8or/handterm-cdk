@@ -117,7 +117,40 @@ export class HandTermCdkStack extends Stack {
     // Ensure the client is created after the identity provider
     userPoolClient.node.addDependency(userPool);
 
-    const signUpLambda = new lambda.Function(this, 'SignUpFunction', {
+    // Define the Lambda Execution Role
+    const lambdaExecutionRole = new iam.Role(this, 'LambdaExecutionRole', {
+      assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
+      managedPolicies: [
+        iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')
+      ]
+    });
+
+    // Define the Lambda Authorizer
+    const lambdaAuthorizer = new HttpLambdaAuthorizer('LambdaAuthorizer', {
+      handler: new lambda.Function(this, 'AuthorizerFunction', {
+        runtime: nodeRuntime,
+        handler: 'authorizer.handler',
+        role: lambdaExecutionRole,
+        code: lambda.Code.fromAsset('lambda/authentication'),
+      }),
+    });
+
+    // Define the Identity Pool
+    const identityPool = new cognito.CfnIdentityPool(this, 'IdentityPool', {
+      allowUnauthenticatedIdentities: false,
+      cognitoIdentityProviders: [
+        {
+          clientId: userPoolClient.userPoolClientId,
+          providerName: userPool.userPoolProviderName,
+        },
+      ],
+    });
+
+    // Define the Logs Bucket
+    const logsBucket = new s3.Bucket(this, 'LogsBucket', {
+      removalPolicy: s3.RemovalPolicy.DESTROY,
+      autoDeleteObjects: true,
+    });
       runtime: nodeRuntime,
       handler: 'signUp.handler',
       role: lambdaExecutionRole,
