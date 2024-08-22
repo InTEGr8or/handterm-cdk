@@ -67,19 +67,25 @@ export class HandTermCdkStack extends Stack {
     });
 
     new cognito.CfnUserPoolIdentityProvider(this, 'GitHubIdentityProvider', {
+      userPoolId: userPool.userPoolId,
       providerName: 'GitHub',
       providerType: 'OIDC',
-      userPoolId: userPool.userPoolId,
       providerDetails: {
-        authorize_scopes: 'openid,profile,email',
         client_id: clientId,
         client_secret: clientSecret,
         attributes_request_method: 'GET',
-        oidc_issuer: issuerUrl,
+        oidc_issuer: 'https://github.com',
+        authorize_scopes: 'openid user:email',
+        authorize_url: 'https://github.com/login/oauth/authorize',
+        token_url: 'https://github.com/login/oauth/access_token',
+        attributes_url: 'https://api.github.com/user',
+        jwks_uri: 'https://token.actions.githubusercontent.com/.well-known/jwks'
       },
       attributeMapping: {
         email: 'email',
-      },
+        preferredUsername: 'login',
+        name: 'name'
+      }
     });
 
     // Cognito User Pool Client

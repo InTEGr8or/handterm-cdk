@@ -434,3 +434,94 @@
 
 # 2024-08-22 08:20:29.787945
 +Can I use reword as the first commit then, and squash for all subsequent commits?
+
+# 2024-08-22 08:37:58.767782
++I get an error when I run `yarn deploy`. This is a partial response with a little surrounding context. If you need more information pleast tell me: ```HandTermCdkStack |  7/29 | 8:31:59 AM | CREATE_COMPLETE      | AWS::Lambda::Function                  | OAuthCallbackFunction (OAuthCallbackFunction09B806B4)
++HandTermCdkStack |  8/29 | 8:31:59 AM | UPDATE_COMPLETE      | AWS::Lambda::Function                  | PreSignupLambda (PreSignupLambda04C51F3C)
++HandTermCdkStack |  8/29 | 8:32:00 AM | CREATE_IN_PROGRESS   | AWS::Cognito::UserPoolIdentityProvider | GitHubIdentityProvider      
++HandTermCdkStack |  8/29 | 8:32:01 AM | UPDATE_IN_PROGRESS   | AWS::Lambda::Function                  | RefreshTokenFunction (RefreshTokenFunction37E34807)
++HandTermCdkStack |  8/29 | 8:32:01 AM | UPDATE_IN_PROGRESS   | AWS::Lambda::Function                  | SignInFunction (SignInFunctionC4D5EA9B)
++HandTermCdkStack |  8/29 | 8:32:01 AM | UPDATE_IN_PROGRESS   | AWS::Lambda::Function                  | ChangePasswordFunction (ChangePasswordFunction51DA0296)
++HandTermCdkStack |  8/29 | 8:32:01 AM | UPDATE_IN_PROGRESS   | AWS::Lambda::Function                  | SignUpFunction (SignUpFunctionCFE784C5)
++HandTermCdkStack |  8/29 | 8:32:01 AM | UPDATE_IN_PROGRESS   | AWS::Lambda::Function                  | AuthorizerFunction (AuthorizerFunctionB4DBAA43)
++HandTermCdkStack |  8/29 | 8:32:01 AM | CREATE_FAILED        | AWS::Cognito::UserPoolIdentityProvider | GitHubIdentityProvider Unable to contact well-known endpoint (Service: AWSCognitoIdentityProviderService; Status Code: 400; Error Code: InvalidParameterException; Request ID: b75277ce-6db2-4343-9735-e25cdaec8de0; Proxy: null) 
++HandTermCdkStack |  8/29 | 8:32:01 AM | UPDATE_FAILED        | AWS::Lambda::Function                  | AuthorizerFunction (AuthorizerFunctionB4DBAA43) Resource update cancelled
++HandTermCdkStack |  8/29 | 8:32:02 AM | UPDATE_FAILED        | AWS::Lambda::Function                  | RefreshTokenFunction (RefreshTokenFunction37E34807) Resource update cancelled
++HandTermCdkStack |  8/29 | 8:32:02 AM | UPDATE_FAILED        | AWS::Lambda::Function                  | SignUpFunction (SignUpFunctionCFE784C5) Resource update cancelled
++HandTermCdkStack |  8/29 | 8:32:02 AM | UPDATE_FAILED        | AWS::Lambda::Function                  | SignInFunction (SignInFunctionC4D5EA9B) Resource update cancelled
++HandTermCdkStack |  8/29 | 8:32:02 AM | UPDATE_FAILED        | AWS::Lambda::Function                  | ChangePasswordFunction (ChangePasswordFunction51DA0296) Resource update cancelled
++HandTermCdkStack |  8/29 | 8:32:02 AM | UPDATE_ROLLBACK_IN_P | AWS::CloudFormation::Stack             | HandTermCdkStack The following resource(s) failed to create: [GitHubIdentityProvider]. The following resource(s) failed to update: [RefreshTokenFunction37E34807, SignUpFunctionCFE784C5, AuthorizerFunctionB4DBAA43, ChangePasswordFunction51DA0296, SignInFunctionC4D5EA9B].```
+
+# 2024-08-22 08:44:50.097529
++I think GitHub's OAuth documentation is here: `https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps`. I think it is indicating that the `oidc_issuer` would be here: `https://github.com/login/oauth/authorize`?
+
+# 2024-08-22 09:33:59.578274
++I am getting this error: ```HandTermCdkStack |  5/29 | 9:23:55 AM | CREATE_COMPLETE      | AWS::ApiGatewayV2::Route               | HandTermApi/POST--oauth_callback (HandTermApiPOSToauthcallback4C451B67)
++HandTermCdkStack |  6/29 | 9:23:55 AM | CREATE_COMPLETE      | AWS::ApiGatewayV2::Route               | HandTermApi/GET--oauth_callback (HandTermApiGEToauthcallbackCC26BF5E)
++HandTermCdkStack |  7/29 | 9:23:56 AM | CREATE_COMPLETE      | AWS::Lambda::Function                  | OAuthCallbackFunction (OAuthCallbackFunction09B806B4)
++HandTermCdkStack |  8/29 | 9:23:56 AM | UPDATE_COMPLETE      | AWS::Lambda::Function                  | PreSignupLambda (PreSignupLambda04C51F3C)
++HandTermCdkStack |  8/29 | 9:23:58 AM | CREATE_IN_PROGRESS   | AWS::Cognito::UserPoolIdentityProvider | GitHubIdentityProvider      
++HandTermCdkStack |  8/29 | 9:23:58 AM | UPDATE_IN_PROGRESS   | AWS::Lambda::Function                  | RefreshTokenFunction (RefreshTokenFunction37E34807)
++HandTermCdkStack |  8/29 | 9:23:58 AM | UPDATE_IN_PROGRESS   | AWS::Lambda::Function                  | SignInFunction (SignInFunctionC4D5EA9B)
++HandTermCdkStack |  8/29 | 9:23:58 AM | UPDATE_IN_PROGRESS   | AWS::Lambda::Function                  | ChangePasswordFunction (ChangePasswordFunction51DA0296)
++HandTermCdkStack |  8/29 | 9:23:58 AM | UPDATE_IN_PROGRESS   | AWS::Lambda::Function                  | SignUpFunction (SignUpFunctionCFE784C5)
++HandTermCdkStack |  8/29 | 9:23:59 AM | UPDATE_IN_PROGRESS   | AWS::Lambda::Function                  | AuthorizerFunction (AuthorizerFunctionB4DBAA43)
++HandTermCdkStack |  8/29 | 9:23:59 AM | CREATE_FAILED        | AWS::Cognito::UserPoolIdentityProvider | GitHubIdentityProvider Unable to contact well-known endpoint (Service: AWSCognitoIdentityProviderService; Status Code: 400; Error Code: InvalidParameterException; Request ID: 77669b75-3ec3-4ac1-b453-6879f8042435; Proxy: null) 
++HandTermCdkStack |  8/29 | 9:23:59 AM | UPDATE_FAILED        | AWS::Lambda::Function                  | RefreshTokenFunction (RefreshTokenFunction37E34807) Resource update cancelled
++HandTermCdkStack |  8/29 | 9:23:59 AM | UPDATE_FAILED        | AWS::Lambda::Function                  | SignInFunction (SignInFunctionC4D5EA9B) Resource update cancelled
++HandTermCdkStack |  8/29 | 9:24:00 AM | UPDATE_FAILED        | AWS::Lambda::Function                  | SignUpFunction (SignUpFunctionCFE784C5) Resource update cancelled
++HandTermCdkStack |  8/29 | 9:24:00 AM | UPDATE_FAILED        | AWS::Lambda::Function                  | ChangePasswordFunction (ChangePasswordFunction51DA0296) Resource update cancelled
++HandTermCdkStack |  8/29 | 9:24:00 AM | UPDATE_FAILED        | AWS::Lambda::Function                  | AuthorizerFunction (AuthorizerFunctionB4DBAA43) Resource update cancelled```. Is the problem still just the `issuer_url`? Is there any way to validate the URL before trying to deploy?
+
+# 2024-08-22 09:36:56.082742
++What curl command or `.http` file syntax can I use to validate the response from a prospective OIDC issuer url?
+
+# 2024-08-22 10:25:23.156837
++Does that mean that the `oidc_issuer` just provides a list of other urls used in the authentication process? There are some online repos that seem to produce such a list for Cognito-GitHub-oidc: `https://github.com/lesnitsky/cognito-github-oidc/blob/master/handler.ts`
+
+# 2024-08-22 11:05:21.415658
++This repo seems to provide scripts which I could include in my CDK, or that I could deploy as a separate project. It is about 4 years old, so I don't know if that is recent enough. I think there was also an earlier message in this conversation that we are using a depricated AWS library. `https://github.com/lesnitsky/cognito-github-oidc/blob/master/README.md`
+
+# 2024-08-22 11:39:11.380113
++There is a more recently updated repo that might provide a better solution. Can you review this and advise on it's suitability? `https://github.com/TimothyJones/github-cognito-openid-wrapper`
+
+# 2024-08-22 11:50:19.638841
++Another service is suggesting that I implement it like this: ```import * as cognito from 'aws-cdk-lib/aws-cognito';
++
++// In your stack definition:
++const userPool = new cognito.UserPool(this, 'MyUserPool', {
++  // ... other user pool configurations
++});
++
++const githubProvider = new cognito.CfnUserPoolIdentityProvider(this, 'GitHubIdentityProvider', {
++  userPoolId: userPool.userPoolId,
++  providerName: 'GitHub',
++  providerType: 'OIDC',
++  providerDetails: {
++    client_id: process.env.GITHUB_CLIENT_ID,
++    client_secret: process.env.GITHUB_CLIENT_SECRET,
++    attributes_request_method: 'GET',
++    oidc_issuer: 'https://github.com',
++    authorize_scopes: 'openid user:email',
++    authorize_url: 'https://github.com/login/oauth/authorize',
++    token_url: 'https://github.com/login/oauth/access_token',
++    attributes_url: 'https://api.github.com/user',
++    jwks_uri: 'https://token.actions.githubusercontent.com/.well-known/jwks'
++  },
++  attributeMapping: {
++    email: 'email',
++    username: 'login',
++    name: 'name'
++  }
++});```. Does that look like it might work?
+
+# 2024-08-22 12:01:12.148349
++Now I am getting this error: ```HandTermCdkStack |  8/29 | 11:55:42 AM | UPDATE_IN_PROGRESS   | AWS::Lambda::Function                  | ChangePasswordFunction (ChangePasswordFunction51DA0296)
++HandTermCdkStack |  8/29 | 11:55:42 AM | UPDATE_IN_PROGRESS   | AWS::Lambda::Function                  | AuthorizerFunction (AuthorizerFunctionB4DBAA43)
++HandTermCdkStack |  8/29 | 11:55:42 AM | CREATE_FAILED        | AWS::Cognito::UserPoolIdentityProvider | GitHubIdentityProvider Invalid attribute mapping. login cannot be mapped to username (Service: AWSCognitoIdentityProviderService; Status Code: 400; Error Code: InvalidParameterException; Request ID: a662a220-8b22-45f5-9b24-05fb0a2b4b51; Proxy: null)
++HandTermCdkStack |  8/29 | 11:55:43 AM | UPDATE_FAILED        | AWS::Lambda::Function                  | SignInFunction (SignInFunctionC4D5EA9B) Resource update cancelled
++HandTermCdkStack |  8/29 | 11:55:43 AM | UPDATE_FAILED        | AWS::Lambda::Function                  | RefreshTokenFunction (RefreshTokenFunction37E34807) Resource update cancelled
++HandTermCdkStack |  8/29 | 11:55:43 AM | UPDATE_FAILED        | AWS::Lambda::Function                  | ChangePasswordFunction (ChangePasswordFunction51DA0296) Resource update cancelled
++HandTermCdkStack |  8/29 | 11:55:43 AM | UPDATE_FAILED        | AWS::Lambda::Function                  | SignUpFunction (SignUpFunctionCFE784C5) Resource update cancelled
++HandTermCdkStack |  8/29 | 11:55:43 AM | UPDATE_FAILED        | AWS::Lambda::Function                  | AuthorizerFunction (AuthorizerFunctionB4DBAA43) Resource update cancelled
++HandTermCdkStack |  8/29 | 11:55:43 AM | UPDATE_ROLLBACK_IN_P | AWS::CloudFormation::Stack             | HandTermCdkStack The following resource(s) failed to create: [GitHubIdentityProvider]. The following resource(s) failed to update: [RefreshTokenFunction37E34807, SignUpFunctionCFE784C5, AuthorizerFunctionB4DBAA43, ChangePasswordFunction51DA0296, SignInFunctionC4D5EA9B].```. That looks much like the previous errors. Is there any improvement or anything new we have learned?
