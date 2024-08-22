@@ -134,9 +134,7 @@ export class HandTermCdkStack extends Stack {
       code: lambda.Code.fromAsset('lambda/authentication'),
     });
 
-    const lambdaAuthorizer = new HttpLambdaAuthorizer('LambdaAuthorizer', {
-      handler: authorizerFunction,
-    });
+    const lambdaAuthorizer = new HttpLambdaAuthorizer('LambdaAuthorizer', authorizerFunction);
 
     // Define the Identity Pool
     const identityPool = new cognito.CfnIdentityPool(this, 'IdentityPool', {
