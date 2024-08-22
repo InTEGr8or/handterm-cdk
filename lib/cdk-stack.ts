@@ -88,6 +88,19 @@ export class HandTermCdkStack extends Stack {
       }
     });
 
+    // Define the HTTP API
+    const httpApi = new HttpApi(this, 'HandTermApi', {
+      apiName: 'HandTermService',
+      description: 'This service serves authentication requests.',
+      // CORS configuration if needed
+      corsPreflight: {
+        allowOrigins: ['http://localhost:5173', 'https://handterm.com'],
+        allowMethods: [CorsHttpMethod.GET, CorsHttpMethod.POST, CorsHttpMethod.OPTIONS],
+        allowHeaders: ['Content-Type', 'Authorization'],
+        allowCredentials: true,
+      },
+    });
+
     // Cognito User Pool Client
     const userPoolClient = new cognito.UserPoolClient(this, 'UserPoolClient', {
       userPool,
@@ -102,74 +115,7 @@ export class HandTermCdkStack extends Stack {
     });
 
     // Ensure the client is created after the identity provider
-    userPoolClient.node.addDependency(githubProvider);
-
-    // Cognito Identity Pool
-    const identityPool = new cognito.CfnIdentityPool(this, 'HandTermIdentityPool', {
-      identityPoolName: 'HandTermIdentityPool',
-      allowUnauthenticatedIdentities: false,
-      cognitoIdentityProviders: [{
-        clientId: userPoolClient.userPoolClientId,
-        providerName: userPool.userPoolProviderName,
-      }],
-    });
-
-    // TODO: Remove this before production. This is only to make signup easier during development
-    const preSignupLambda = new lambda.Function(this, 'PreSignupLambda', {
-      runtime: nodeRuntime,
-      handler: 'preSignup.handler',
-      code: lambda.Code.fromAsset('lambda/authentication'),
-    });
-    userPool.addTrigger(cognito.UserPoolOperation.PRE_SIGN_UP, preSignupLambda);
-    // S3 Bucket for User Logs
-    const logsBucket = new s3.Bucket(this, 'HandTermHistoryBucket', {
-      bucketName: ENDPOINTS.aws.s3.bucketName,
-      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
-      encryption: s3.BucketEncryption.S3_MANAGED,
-    });
-
-    // Lambda Execution Role
-    const lambdaExecutionRole = new iam.Role(this, 'LambdaExecutionRole', {
-      assumedBy: new iam.CompositePrincipal(
-        new iam.ServicePrincipal('lambda.amazonaws.com'),
-        new iam.ServicePrincipal('edgelambda.amazonaws.com')
-      ),
-      managedPolicies: [
-        iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole'),
-        iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonS3FullAccess'),
-      ],
-    });
-
-    const cognitoUserPoolEnvVar = {
-      COGNITO_USER_POOL_ID: userPool.userPoolId
-    };
-
-    const authorizerLambda: IFunction = new lambda.Function(this, 'AuthorizerFunction', {
-      runtime: nodeRuntime,
-      handler: 'authorizer.handler',
-      code: lambda.Code.fromAsset('lambda/authentication'),
-      environment: {
-        COGNITO_USER_POOL_ID: userPool.userPoolId
-      }
-    });
-
-    // Define the authorizer with the correct constructor arguments
-    const lambdaAuthorizer = new HttpLambdaAuthorizer('CustomAuthorizer', authorizerLambda, {
-      identitySource: ['$request.header.Authorization']
-    });
-
-    // Define the HTTP API
-    const httpApi = new HttpApi(this, 'HandTermApi', {
-      apiName: 'HandTermService',
-      description: 'This service serves authentication requests.',
-      // CORS configuration if needed
-      corsPreflight: {
-        allowOrigins: ['http://localhost:5173', 'https://handterm.com'],
-        allowMethods: [CorsHttpMethod.GET, CorsHttpMethod.POST, CorsHttpMethod.OPTIONS],
-        allowHeaders: ['Content-Type', 'Authorization'],
-        allowCredentials: true,
-      },
-    });
+    userPoolClient.node.addDependency(userPool);
 
     const signUpLambda = new lambda.Function(this, 'SignUpFunction', {
       runtime: nodeRuntime,
