@@ -6,6 +6,7 @@ import {
   aws_cognito as cognito,
   aws_s3 as s3,
   aws_lambda as lambda,
+  RemovalPolicy,
   aws_iam as iam,
   App,
   CfnOutput,
@@ -126,13 +127,15 @@ export class HandTermCdkStack extends Stack {
     });
 
     // Define the Lambda Authorizer
+    const authorizerFunction = new lambda.Function(this, 'AuthorizerFunction', {
+      runtime: nodeRuntime,
+      handler: 'authorizer.handler',
+      role: lambdaExecutionRole,
+      code: lambda.Code.fromAsset('lambda/authentication'),
+    });
+
     const lambdaAuthorizer = new HttpLambdaAuthorizer('LambdaAuthorizer', {
-      handler: new lambda.Function(this, 'AuthorizerFunction', {
-        runtime: nodeRuntime,
-        handler: 'authorizer.handler',
-        role: lambdaExecutionRole,
-        code: lambda.Code.fromAsset('lambda/authentication'),
-      }),
+      handler: authorizerFunction,
     });
 
     // Define the Identity Pool
@@ -148,7 +151,7 @@ export class HandTermCdkStack extends Stack {
 
     // Define the Logs Bucket
     const logsBucket = new s3.Bucket(this, 'LogsBucket', {
-      removalPolicy: s3.RemovalPolicy.DESTROY,
+      removalPolicy: RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
     });
 
