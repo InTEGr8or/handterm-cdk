@@ -88,3 +88,349 @@
 +        // Add other attribute mappings as needed
 +      },
 +    });```
+
+# 2024-08-21 22:07:42.691869
++/add lib\cdk-stack.ts
+
+# 2024-08-21 22:09:59.188968
++I have these values stored in the AWS SSM Parmeter Store: ``` aws ssm get-parameter --name "/github/secrets" --output json
++{
++    "Parameter": {
++        "Name": "/github/secrets",
++        "Type": "String",
++        "Value": "{\"clientId\":\"Iv23li7gy43wuuUgck9v\",\"clientSecret\":\"46c2cd6b690043acca71f113f6383e9cb56b82fc\",\"issuerUrl\":\"https://github.com/apps/handterm\"}",
++        "Version": 1,
++        "LastModifiedDate": "2024-08-17T10:47:09.042000-07:00",
++        "ARN": "arn:aws:ssm:us-east-1:318364255844:parameter/github/secrets",
++        "DataType": "text"
++    }```, but when I deploy the `cdk-stack.ts` I get this error: ```Debugger listening on ws://127.0.0.1:59203/e6a12a90-d7e4-45d0-8c8d-332ae84b2396
++For help, see: https://nodejs.org/en/docs/inspector
++Debugger attached.
++Fetched GitHub Secrets: HandTermCdkStack/GitHubSecrets
++C:\Users\xgenx\source\repos\handterm-cdk\lib\cdk-stack.ts:49
++      throw new Error(`Failed to parse GitHub secrets JSON: ` + githubSecrets + error);     
++            ^
++Error: Failed to parse GitHub secrets JSON: ${Token[TOKEN.17]}SyntaxError: Unexpected token '$', "${Token[TOKEN.17]}" is not valid JSON```
+
+# 2024-08-22 05:27:50.960749
++Now I get this error: ```Debugger listening on ws://127.0.0.1:60689/5e840115-4bd9-49fa-8c5e-fcc523bcf6e1
++For help, see: https://nodejs.org/en/docs/inspector
++Debugger attached.
++Fetched GitHub Secrets: [object Object]
++C:\Users\xgenx\source\repos\handterm-cdk\lib\cdk-stack.ts:49
++      throw new Error(`Failed to parse GitHub secrets JSON: ` + githubSecrets + error);  
++            ^
++Error: Failed to parse GitHub secrets JSON: [object Object]SyntaxError: "[object Object]" is not valid JSON
++    at new HandTermCdkStack (C:\Users\xgenx\source\repos\handterm-cdk\lib\cdk-stack.ts:49:13)
++    at Object.<anonymous> (C:\Users\xgenx\source\repos\handterm-cdk\lib\cdk-stack.ts:389:1)
++    at Module._compile (node:internal/modules/cjs/loader:1369:14)
++    at Module.m._compile (C:\Users\xgenx\source\repos\handterm-cdk\node_modules\ts-node\src\index.ts:1618:23)
++    at Module._extensions..js (node:internal/modules/cjs/loader:1427:10)
++    at Object.require.extensions.<computed> [as .ts] (C:\Users\xgenx\source\repos\handterm-cdk\node_modules\ts-node\src\index.ts:1621:12)
++    at Module.load (node:internal/modules/cjs/loader:1206:32)
++    at Function.Module._load (node:internal/modules/cjs/loader:1022:12)
++    at Module.require (node:internal/modules/cjs/loader:1231:19)
++    at require (node:internal/modules/helpers:179:18)```
+
+# 2024-08-22 05:56:51.129035
++I think we are now back to the code that I started this question with, and the error that I started this chat with: ```yarn deploy
++yarn run v1.22.22
++$ yarn cpCdk && yarn build && cdk deploy --region=us-east-1 --profile mark
++$ cp ../handterm/src/shared/endpoints.ts lambda/cdkshared/
++$ tsc
++Debugger listening on ws://127.0.0.1:53141/99fab025-cc03-4659-8256-23edf64be27d
++For help, see: https://nodejs.org/en/docs/inspector
++Debugger attached.
++Fetched GitHub Secrets: ${Token[TOKEN.16]}
++C:\Users\xgenx\source\repos\handterm-cdk\lib\cdk-stack.ts:49
++      throw new Error(`Failed to parse GitHub secrets JSON: ` + githubSecrets + error);  
++            ^
++Error: Failed to parse GitHub secrets JSON: ${Token[TOKEN.16]}SyntaxError: Unexpected token '$', "${Token[TOKEN.16]}" is not valid JSON
++    at new HandTermCdkStack (C:\Users\xgenx\source\repos\handterm-cdk\lib\cdk-stack.ts:49:13)```
+
+# 2024-08-22 06:09:00.455715
++Now I am getting this error: ```yarn deploy
++yarn run v1.22.22
++$ yarn cpCdk && yarn build && cdk deploy --region=us-east-1 --profile mark
++$ cp ../handterm/src/shared/endpoints.ts lambda/cdkshared/
++$ tsc
++Debugger listening on ws://127.0.0.1:61070/4951a685-9815-44fe-9e47-cf916c389280
++For help, see: https://nodejs.org/en/docs/inspector
++Debugger attached.
++GitHub Client Secret: undefined
++GitHub Client ID: undefined
++GitHub Issuer URL: undefined
++GitHub Client Secret: undefined
++GitHub Client ID: undefined
++GitHub Issuer URL: undefined
++(node:32132) NOTE: The AWS SDK for JavaScript (v2) will enter maintenance mode
++on September 8, 2024 and reach end-of-support on September 8, 2025.
++
++Please migrate your code to use AWS SDK for JavaScript (v3).
++For more information, check blog post at https://a.co/cUPnyil
++(Use `node --trace-warnings ...` to show where the warning was created)
++Fetched GitHub Secrets: {"clientId":"Iv23li7gy43wuuUgck9v","clientSecret":"46c2cd6b690043acca71f113f6383e9cb56b82fc","issuerUrl":"https://github.com/apps/handterm"}
++Fetched GitHub Secrets: {"clientId":"Iv23li7gy43wuuUgck9v","clientSecret":"46c2cd6b690043acca71f113f6383e9cb56b82fc","issuerUrl":"https://github.com/apps/handterm"}
++Waiting for the debugger to disconnect...
++
++  Synthesis time: 45.86s
++
++HandTermCdkStack: deploying... [1/1]
++HandTermCdkStack: creating CloudFormation changeset...
++HandTermCdkStack | 0/4 | 6:04:54 AM | CREATE_FAILED        | AWS::Cognito::UserPoolIdentityProvider | GitHubIdentityProvider clientId, authorizeScopes, oidcIssuer and attributesRequestMethod are all required idp details. (Service: AWSCognitoIdentityProviderService; Status Code: 400; Error Code: InvalidParameterException; Request ID: 3dcec10b-3b8d-40c2-aaaf-ee9eb136bfc3; Proxy: null)
++HandTermCdkStack | 1/4 | 6:04:54 AM | UPDATE_COMPLETE      | AWS::CDK::Metadata          
++           | CDKMetadata/Default (CDKMetadata)
++HandTermCdkStack | 1/4 | 6:04:54 AM | UPDATE_ROLLBACK_IN_P | AWS::CloudFormation::Stack             | HandTermCdkStack The following resource(s) failed to create: [GitHubIdentityProvider].```. Please move the `getParameters` to an utility function file, or whatever is most common in CDK projects, if that's a good idea.
+
+# 2024-08-22 06:12:06.682160
++I am getting these errors: ```[{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "18046",
++"severity": 8,
++"message": "'secrets' is of type 'unknown'.",
++"source": "ts",
++"startLineNumber": 35,
++"startColumn": 24,
++"endLineNumber": 35,
++"endColumn": 31
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "18046",
++"severity": 8,
++"message": "'secrets' is of type 'unknown'.",
++"source": "ts",
++"startLineNumber": 36,
++"startColumn": 28,
++"endLineNumber": 36,
++"endColumn": 35
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "18046",
++"severity": 8,
++"message": "'secrets' is of type 'unknown'.",
++"source": "ts",
++"startLineNumber": 37,
++"startColumn": 25,
++"endLineNumber": 37,
++"endColumn": 32
++}]```
+
+# 2024-08-22 06:12:43.174288
++Now I am just getting this one error: ```[{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'GitHubSecrets'.",
++"source": "ts",
++"startLineNumber": 34,
++"startColumn": 39,
++"endLineNumber": 34,
++"endColumn": 52
++}]```
+
+# 2024-08-22 06:18:26.467808
++Now I am getting this error when I run it: ``` yarn deploy
++yarn run v1.22.22
++$ yarn cpCdk && yarn build && cdk deploy --region=us-east-1 --profile mark
++$ cp ../handterm/src/shared/endpoints.ts lambda/cdkshared/
++$ tsc
++lib/utils/githubSecrets.ts:25:42 - error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
++  Type 'undefined' is not assignable to type 'string'.
++
++25         const parsedSecrets = JSON.parse(githubSecrets);
++```
+
+# 2024-08-22 07:00:50.156686
++Now, when I deploy, I get this error: ```yarn deploy
++yarn run v1.22.22
++$ yarn cpCdk && yarn build && cdk deploy --region=us-east-1 --profile mark
++$ cp ../handterm/src/shared/endpoints.ts lambda/cdkshared/
++$ tsc
++Debugger listening on ws://127.0.0.1:56870/3bc48e76-06b7-4446-8f83-78a29a09463f
++For help, see: https://nodejs.org/en/docs/inspector
++Debugger attached.
++(node:36608) NOTE: The AWS SDK for JavaScript (v2) will enter maintenance mode
++on September 8, 2024 and reach end-of-support on September 8, 2025.
++
++Please migrate your code to use AWS SDK for JavaScript (v3).
++For more information, check blog post at https://a.co/cUPnyil
++(Use `node --trace-warnings ...` to show where the warning was created)
++Fetched GitHub Secrets: {"clientId":"Iv23li7gy43wuuUgck9v","clientSecret":"46c2cd6b690043acca71f113f6383e9cb56b82fc","issuerUrl":"https://github.com/apps/handterm"}
++GitHub Client Secret: 46c2cd6b690043acca71f113f6383e9cb56b82fc
++GitHub Client ID: Iv23li7gy43wuuUgck9v
++GitHub Issuer URL: https://github.com/apps/handterm
++Fetched GitHub Secrets: {"clientId":"Iv23li7gy43wuuUgck9v","clientSecret":"46c2cd6b690043acca71f113f6383e9cb56b82fc","issuerUrl":"https://github.com/apps/handterm"}
++GitHub Client Secret: 46c2cd6b690043acca71f113f6383e9cb56b82fc
++GitHub Client ID: Iv23li7gy43wuuUgck9v
++GitHub Issuer URL: https://github.com/apps/handterm
++Waiting for the debugger to disconnect...
++
++  Synthesis time: 31.92s
++
++HandTermCdkStack: deploying... [1/1]
++HandTermCdkStack: creating CloudFormation changeset...
++HandTermCdkStack | 1/4 | 6:59:35 AM | UPDATE_COMPLETE      | AWS::CDK::Metadata          
++           | CDKMetadata/Default (CDKMetadata)
++HandTermCdkStack | 1/4 | 6:59:36 AM | CREATE_FAILED        | AWS::Cognito::UserPoolIdentityProvider | GitHubIdentityProvider clientId, authorizeScopes, oidcIssuer and attributesRequestMethod are all required idp details. (Service: AWSCognitoIdentityProviderService; Status Code: 400; Error Code: InvalidParameterException; Request ID: e7461dfa-664a-4431-b211-59fc8fb248ca; Proxy: null)```
+
+# 2024-08-22 07:06:02.927950
++That gives me this error: ```yarn deploy
++yarn run v1.22.22
++$ yarn cpCdk && yarn build && cdk deploy --region=us-east-1 --profile mark
++$ cp ../handterm/src/shared/endpoints.ts lambda/cdkshared/
++$ tsc
++lib/cdk-stack.ts:48:11 - error TS2451: Cannot redeclare block-scoped variable 'userPool'.
++
++48     const userPool = new cognito.UserPool(this, 'HandTermUserPool', {
++             ~~~~~~~~
++
++lib/cdk-stack.ts:69:11 - error TS2451: Cannot redeclare block-scoped variable 'userPool'.
++
++69     const userPool = new cognito.UserPool(this, 'HandTermUserPool', {
++             ~~~~~~~~
++
++
++Found 2 errors in the same file, starting at: lib/cdk-stack.ts:48
++```
+
+# 2024-08-22 07:14:26.677056
++I am now getting this error: ```yarn deploy
++yarn run v1.22.22
++$ yarn cpCdk && yarn build && cdk deploy --region=us-east-1 --profile mark
++$ cp ../handterm/src/shared/endpoints.ts lambda/cdkshared/
++$ tsc
++Debugger listening on ws://127.0.0.1:52845/ace303ee-354a-4eaf-a130-cce0859da528
++For help, see: https://nodejs.org/en/docs/inspector
++Debugger attached.
++(node:1996) NOTE: The AWS SDK for JavaScript (v2) will enter maintenance mode
++on September 8, 2024 and reach end-of-support on September 8, 2025.
++
++Please migrate your code to use AWS SDK for JavaScript (v3).
++For more information, check blog post at https://a.co/cUPnyil
++(Use `node --trace-warnings ...` to show where the warning was created)
++Fetched GitHub Secrets: {"clientId":"Iv23li7gy43wuuUgck9v","clientSecret":"46c2cd6b690043acca71f113f6383e9cb56b82fc","issuerUrl":"https://github.com/apps/handterm"}
++GitHub Client Secret: 46c2cd6b690043acca71f113f6383e9cb56b82fc
++GitHub Client ID: Iv23li7gy43wuuUgck9v
++GitHub Issuer URL: https://github.com/apps/handterm
++Fetched GitHub Secrets: {"clientId":"Iv23li7gy43wuuUgck9v","clientSecret":"46c2cd6b690043acca71f113f6383e9cb56b82fc","issuerUrl":"https://github.com/apps/handterm"}
++GitHub Client Secret: 46c2cd6b690043acca71f113f6383e9cb56b82fc
++GitHub Client ID: Iv23li7gy43wuuUgck9v
++GitHub Issuer URL: https://github.com/apps/handterm
++Waiting for the debugger to disconnect...
++
++  Synthesis time: 17.22s
++
++HandTermCdkStack: deploying... [1/1]
++HandTermCdkStack: creating CloudFormation changeset...
++HandTermCdkStack | 0/4 | 7:11:57 AM | CREATE_FAILED        | AWS::Cognito::UserPoolIdentityProvider | GitHubIdentityProvider Unable to contact well-known endpoint (Service: AWSCognitoIdentityProviderService; Status Code: 400; Error Code: InvalidParameterException; Request ID: 0e6961c9-0c17-475a-ad3b-a24dab64d4c3; Proxy: null)```
+
+# 2024-08-22 07:20:33.272910
++Is the issuer supposed to be GitHub's oauth url? You're change didn't actually change the `issuerUrl`: ``` yarn deploy
++yarn run v1.22.22
++$ yarn cpCdk && yarn build && cdk deploy --region=us-east-1 --profile mark
++$ cp ../handterm/src/shared/endpoints.ts lambda/cdkshared/
++$ tsc
++Debugger listening on ws://127.0.0.1:58250/f99239df-109c-4747-8164-58f5f7ce766c
++For help, see: https://nodejs.org/en/docs/inspector
++Debugger attached.
++(node:41728) NOTE: The AWS SDK for JavaScript (v2) will enter maintenance mode
++on September 8, 2024 and reach end-of-support on September 8, 2025.
++
++Please migrate your code to use AWS SDK for JavaScript (v3).
++For more information, check blog post at https://a.co/cUPnyil
++(Use `node --trace-warnings ...` to show where the warning was created)
++Fetched GitHub Secrets: {"clientId":"Iv23li7gy43wuuUgck9v","clientSecret":"46c2cd6b690043acca71f113f6383e9cb56b82fc","issuerUrl":"https://github.com/apps/handterm"}
++GitHub Client Secret: 46c2cd6b690043acca71f113f6383e9cb56b82fc
++GitHub Client ID: Iv23li7gy43wuuUgck9v
++GitHub Issuer URL: https://github.com/apps/handterm
++Fetched GitHub Secrets: {"clientId":"Iv23li7gy43wuuUgck9v","clientSecret":"46c2cd6b690043acca71f113f6383e9cb56b82fc","issuerUrl":"https://github.com/apps/handterm"}
++GitHub Client Secret: 46c2cd6b690043acca71f113f6383e9cb56b82fc
++GitHub Client ID: Iv23li7gy43wuuUgck9v
++GitHub Issuer URL: https://github.com/apps/handterm
++Waiting for the debugger to disconnect...
++
++  Synthesis time: 24.89s
++
++HandTermCdkStack: deploying... [1/1]
++HandTermCdkStack: creating CloudFormation changeset...
++HandTermCdkStack | 0/4 | 7:19:02 AM | UPDATE_IN_PROGRESS   | AWS::CloudFormation::Stack             | HandTermCdkStack User Initiated
++HandTermCdkStack | 1/4 | 7:19:14 AM | UPDATE_COMPLETE      | AWS::CDK::Metadata          
++           | CDKMetadata/Default (CDKMetadata)
++HandTermCdkStack | 2/4 | 7:19:15 AM | UPDATE_ROLLBACK_COMP | AWS::CloudFormation::Stack             | HandTermCdkStack
++HandTermCdkStack | 2/4 | 7:19:08 AM | CREATE_IN_PROGRESS   | AWS::Cognito::UserPoolIdentityProvider | GitHubIdentityProvider
++HandTermCdkStack | 2/4 | 7:19:09 AM | UPDATE_IN_PROGRESS   | AWS::CDK::Metadata          
++           | CDKMetadata/Default (CDKMetadata)
++HandTermCdkStack | 1/4 | 7:19:10 AM | UPDATE_COMPLETE      | AWS::CDK::Metadata          
++           | CDKMetadata/Default (CDKMetadata)
++HandTermCdkStack | 1/4 | 7:19:10 AM | CREATE_FAILED        | AWS::Cognito::UserPoolIdentityProvider | GitHubIdentityProvider Unable to contact well-known endpoint (Service: AWSCognitoIdentityProviderService; Status Code: 400; Error Code: InvalidParameterException; Request ID: 98e99407-aceb-48c7-bd50-49bbfd2ef577; Proxy: null)```
+
+# 2024-08-22 07:32:11.652279
++Ok, now I am getting this error: ```yarn deploy
++yarn run v1.22.22
++$ yarn cpCdk && yarn build && cdk deploy --region=us-east-1 --profile mark
++$ cp ../handterm/src/shared/endpoints.ts lambda/cdkshared/
++$ tsc
++Debugger listening on ws://127.0.0.1:61493/61d611e2-95a7-4913-ba29-f84bb263e92e
++For help, see: https://nodejs.org/en/docs/inspector
++Debugger attached.
++(node:29608) NOTE: The AWS SDK for JavaScript (v2) will enter maintenance mode
++on September 8, 2024 and reach end-of-support on September 8, 2025.
++
++Please migrate your code to use AWS SDK for JavaScript (v3).
++For more information, check blog post at https://a.co/cUPnyil
++(Use `node --trace-warnings ...` to show where the warning was created)
++Fetched GitHub Secrets: {"clientId":"Iv23li7gy43wuuUgck9v","clientSecret":"46c2cd6b690043acca71f113f6383e9cb56b82fc","issuerUrl":"https://github.com/apps/handterm"}
++GitHub Client Secret: 46c2cd6b690043acca71f113f6383e9cb56b82fc
++GitHub Client ID: Iv23li7gy43wuuUgck9v
++GitHub Issuer URL: https://github.com/login/oauth
++Fetched GitHub Secrets: {"clientId":"Iv23li7gy43wuuUgck9v","clientSecret":"46c2cd6b690043acca71f113f6383e9cb56b82fc","issuerUrl":"https://github.com/apps/handterm"}
++GitHub Client Secret: 46c2cd6b690043acca71f113f6383e9cb56b82fc
++GitHub Client ID: Iv23li7gy43wuuUgck9v
++GitHub Issuer URL: https://github.com/login/oauth
++Waiting for the debugger to disconnect...
++
++  Synthesis time: 25.12s
++
++HandTermCdkStack:  start: Building c89947d2bf4f24869b3c2887aee0fb45d10da2808df3cd96357a5485c639b807:current_account-current_region
++HandTermCdkStack:  success: Built c89947d2bf4f24869b3c2887aee0fb45d10da2808df3cd96357a5485c639b807:current_account-current_region
++HandTermCdkStack:  start: Publishing c89947d2bf4f24869b3c2887aee0fb45d10da2808df3cd96357a5485c639b807:current_account-current_region
++HandTermCdkStack:  success: Published c89947d2bf4f24869b3c2887aee0fb45d10da2808df3cd96357a5485c639b807:current_account-current_region
++HandTermCdkStack: deploying... [1/1]
++HandTermCdkStack: creating CloudFormation changeset...
++HandTermCdkStack | 0/4 | 7:23:13 AM | UPDATE_IN_PROGRESS   | AWS::CDK::Metadata          
++           | CDKMetadata/Default (CDKMetadata)
++HandTermCdkStack | 0/4 | 7:23:07 AM | UPDATE_IN_PROGRESS   | AWS::CloudFormation::Stack             | HandTermCdkStack User Initiated
++HandTermCdkStack | 0/4 | 7:23:12 AM | CREATE_IN_PROGRESS   | AWS::Cognito::UserPoolIdentityProvider | GitHubIdentityProvider
++HandTermCdkStack | 1/4 | 7:23:20 AM | DELETE_COMPLETE      | AWS::Cognito::UserPoolIdentityProvider | GitHubIdentityProvider
++HandTermCdkStack | 2/4 | 7:23:20 AM | UPDATE_ROLLBACK_COMP | AWS::CloudFormation::Stack             | HandTermCdkStack
++HandTermCdkStack | 2/4 | 7:23:14 AM | CREATE_FAILED        | AWS::Cognito::UserPoolIdentityProvider | GitHubIdentityProvider Unable to contact well-known endpoint (Service: AWSCognitoIdentityProviderService; Status Code: 400; Error Code: InvalidParameterException; Request ID: 7785c7a4-effe-42fb-9f45-b1fb6f622831; Proxy: null)
++HandTermCdkStack | 2/4 | 7:23:14 AM | UPDATE_FAILED        | AWS::CDK::Metadata          
++           | CDKMetadata/Default (CDKMetadata) Resource update cancelled
++HandTermCdkStack | 2/4 | 7:23:14 AM | UPDATE_ROLLBACK_IN_P | AWS::CloudFormation::Stack             | HandTermCdkStack The following resource(s) failed to create: [GitHubIdentityProvider]. The following resource(s) failed to update: [CDKMetadata]. 
++HandTermCdkStack | 2/4 | 7:23:17 AM | UPDATE_IN_PROGRESS   | AWS::CDK::Metadata          
++           | CDKMetadata/Default (CDKMetadata)
++HandTermCdkStack | 3/4 | 7:23:18 AM | UPDATE_COMPLETE      | AWS::CDK::Metadata          
++           | CDKMetadata/Default (CDKMetadata)
++HandTermCdkStack | 4/4 | 7:23:19 AM | UPDATE_ROLLBACK_COMP | AWS::CloudFormation::Stack             | HandTermCdkStack
++
++Failed resources:
++HandTermCdkStack | 7:23:14 AM | CREATE_FAILED        | AWS::Cognito::UserPoolIdentityProvider | GitHubIdentityProvider Unable to contact well-known endpoint (Service: AWSCognitoIdentityProviderService; Status Code: 400; Error Code: InvalidParameterException; Request ID: 7785c7a4-effe-42fb-9f45-b1fb6f622831; Proxy: null)
++
++   HandTermCdkStack failed: Error: The stack named HandTermCdkStack failed to deploy: UPDATE_ROLLBACK_COMPLETE: Unable to contact well-known endpoint (Service: AWSCognitoIdentityProviderService; Status Code: 400; Error Code: InvalidParameterException; Request ID: 7785c7a4-effe-42fb-9f45-b1fb6f622831; Proxy: null)
++    at FullCloudFormationDeployment.monitorDeployment (C:\Users\xgenx\source\repos\handterm-cdk\node_modules\aws-cdk\lib\index.js:451:10568)
++    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)        
++    at async Object.deployStack2 [as deployStack] (C:\Users\xgenx\source\repos\handterm-cdk\node_modules\aws-cdk\lib\index.js:454:199716)
++    at async C:\Users\xgenx\source\repos\handterm-cdk\node_modules\aws-cdk\lib\index.js:454:181438```. I have also reviewed the code in `lambda/authentication/` and there is no lambda function that would handle `https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/oauth_callback`. We probably need to create an `oauth_callback.ts` in that folder and add it to the `cdk-stack.ts`.
+
+# 2024-08-22 07:45:10.502567
++Ok, the client-side validation worked but I got an error when trying to deploy the new function on the server. Before I paste that error into this chat, I've noticed that our commits on this task have a few code reversals contained in separate commits. I would like to sqauch our current commits including this commit, `ef81a9ac9f6ede6a06a04a85e7d3682758bfd947`, and all the commits after it. How can I do that from the git command line?
+
+# 2024-08-22 08:18:30.078796
++What is the difference between changing pick to sqaush, reword, edit, or fixup?
+
+# 2024-08-22 08:20:29.787945
++Can I use reword as the first commit then, and squash for all subsequent commits?

@@ -1,6 +1,7 @@
 // cdk/lib/cdk-stack.ts
 import { ENDPOINTS } from '../lambda/cdkshared/endpoints';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
+import { getGitHubSecrets, GitHubSecrets } from './utils/githubSecrets';
 import {
   aws_cognito as cognito,
   aws_s3 as s3,
@@ -22,36 +23,17 @@ import { IFunction } from 'aws-cdk-lib/aws-lambda';
 const nodeRuntime = lambda.Runtime.NODEJS_16_X;
 
 export class HandTermCdkStack extends Stack {
-  constructor(
-    scope: Construct,
-    id: string,
-    props?: StackProps
-  ) {
+  constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
-    const githubSecretsParam = ssm.StringParameter.fromStringParameterAttributes(this, 'GitHubSecrets', {
-      parameterName: '/github/secrets',
-    });
+    this.initializeStack();
+  }
 
-    const githubSecrets = githubSecretsParam.stringValue;
-    console.log("Fetched GitHub Secrets: " + githubSecrets);
+  private async initializeStack() {
+    const { clientId, clientSecret, issuerUrl } = await getGitHubSecrets();
 
-    if (!githubSecrets) {
-      throw new Error("GitHub secrets could not be retrieved from Parameter Store.");
-    }
-
-    let githubClientId, githubClientSecret, githubIssuerUrl;
-    try {
-      const parsedSecrets = JSON.parse(githubSecrets);
-      githubClientId = parsedSecrets.clientId;
-      githubClientSecret = parsedSecrets.clientSecret;
-      githubIssuerUrl = parsedSecrets.issuerUrl;
-    } catch (error: any) {
-      throw new Error(`Failed to parse GitHub secrets JSON: ` + githubSecrets + error);
-    }
-
-    console.log("GitHub Client Secret: " + githubClientSecret);
-    console.log("GitHub Client ID: " + githubClientId);
-    console.log("GitHub Issuer URL: " + githubIssuerUrl);
+    console.log("GitHub Client Secret: " + clientSecret);
+    console.log("GitHub Client ID: " + clientId);
+    console.log("GitHub Issuer URL: " + issuerUrl);
     const allowHeaders = [
       'Content-Type',
       'X-Amz-Date',
@@ -84,26 +66,19 @@ export class HandTermCdkStack extends Stack {
       autoVerify: { email: true }
     });
 
-    // Define GitHub as an identity provider
     new cognito.CfnUserPoolIdentityProvider(this, 'GitHubIdentityProvider', {
-      providerName: 'GitHub', // This is the name you assign to your provider
-      providerType: 'OIDC', // For GitHub, use 'OIDC' or 'SAML' as appropriate
+      providerName: 'GitHub',
+      providerType: 'OIDC',
       userPoolId: userPool.userPoolId,
       providerDetails: {
-        // These will be specific to the OAuth provider
-        // For GitHub, use the OAuth 2.0 endpoint information and credentials
         authorize_scopes: 'openid,profile,email',
-        client_id: githubClientId,
-        client_secret: githubClientSecret,
+        client_id: clientId,
+        client_secret: clientSecret,
         attributes_request_method: 'GET',
-        oidc_issuer: githubIssuerUrl, // This is not directly applicable to GitHub as GitHub doesn't directly support OIDC
-        // You will need to adjust the above details for GitHub's OAuth flow
+        oidc_issuer: issuerUrl,
       },
-
       attributeMapping: {
-        // Map GitHub user attributes to Cognito user pool attributes
         email: 'email',
-        // Add other attribute mappings as needed
       },
     });
 
@@ -376,7 +351,19 @@ export class HandTermCdkStack extends Stack {
       integration: putFileIntegration,
     })
 
-    // Outputs
+    const oauthCallbackLambda = new lambda.Function(this, 'OAuthCallbackFunction', {
+      runtime: nodeRuntime,
+      handler: 'oauth_callback.handler',
+      role: lambdaExecutionRole,
+      code: lambda.Code.fromAsset('lambda/authentication'),
+    });
+
+    const oauthCallbackIntegration = new HttpLambdaIntegration('oauth-callback-integration', oauthCallbackLambda);
+    httpApi.addRoutes({
+      path: '/oauth_callback',
+      methods: [HttpMethod.GET, HttpMethod.POST],
+      integration: oauthCallbackIntegration,
+    });
     new CfnOutput(this, 'UserPoolId', { value: userPool.userPoolId });
     new CfnOutput(this, 'UserPoolClientId', { value: userPoolClient.userPoolClientId });
     new CfnOutput(this, 'IdentityPoolId', { value: identityPool.ref });
