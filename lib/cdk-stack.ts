@@ -375,7 +375,6 @@ export class HandTermCdkStack extends Stack {
     new CfnOutput(this, 'UserPoolClientId', { value: userPoolClient.userPoolClientId });
     new CfnOutput(this, 'IdentityPoolId', { value: identityPool.ref });
     new CfnOutput(this, 'BucketName', { value: logsBucket.bucketName });
-    new CfnOutput(this, 'ApiEndpoint', { value: httpApi.url || '' });
   }
 }
 
