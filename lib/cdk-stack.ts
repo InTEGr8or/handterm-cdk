@@ -344,18 +344,18 @@ export class HandTermCdkStack extends Stack {
       integration: putFileIntegration,
     })
 
-    const logoutLambda = new lambda.Function(this, 'LogoutFunction', {
+    const signOutLambda = new lambda.Function(this, 'SignOutFunction', {
       runtime: nodeRuntime,
-      handler: 'logout.handler',
+      handler: 'signOut.handler',
       role: lambdaExecutionRole,
       code: lambda.Code.fromAsset('lambda/authentication'),
     });
 
-    const logoutIntegration = new HttpLambdaIntegration('logout-integration', logoutLambda);
+    const signOutIntegration = new HttpLambdaIntegration('signout-integration', signOutLambda);
     httpApi.addRoutes({
-      path: '/logout',
+      path: '/signout',
       methods: [HttpMethod.GET, HttpMethod.POST],
-      integration: logoutIntegration,
+      integration: signOutIntegration,
     });
 
     const oauthCallbackLambda = new lambda.Function(this, 'OAuthCallbackFunction', {
