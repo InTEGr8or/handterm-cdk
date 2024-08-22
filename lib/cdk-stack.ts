@@ -135,7 +135,7 @@ export class HandTermCdkStack extends Stack {
     });
 
     const lambdaAuthorizer = new HttpLambdaAuthorizer('LambdaAuthorizer', {
-      handler: authorizerFunction,
+      handler: authorizerFunction as IFunction,
     });
 
     // Define the Identity Pool
