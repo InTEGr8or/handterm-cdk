@@ -150,6 +150,8 @@ export class HandTermCdkStack extends Stack {
     const logsBucket = new s3.Bucket(this, 'LogsBucket', {
       removalPolicy: s3.RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
+    });
+
     const signUpLambda = new lambda.Function(this, 'SignUpFunction', {
       runtime: nodeRuntime,
       handler: 'signUp.handler',
