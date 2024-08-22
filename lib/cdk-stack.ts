@@ -89,15 +89,20 @@ export class HandTermCdkStack extends Stack {
     });
 
     // Cognito User Pool Client
-    const userPoolClient = userPool.addClient('AppClient', {
-      authFlows: {
-        userSrp: true,
-        userPassword: true // Enable USER_PASSWORD_AUTH flow
-      },
-      generateSecret: false,
-      refreshTokenValidity: Duration.days(90),
-      // Add your API Gateway endpoint URL to the list of callback URLs
+    const userPoolClient = new cognito.UserPoolClient(this, 'UserPoolClient', {
+      userPool,
+      supportedIdentityProviders: [
+        cognito.UserPoolClientIdentityProvider.COGNITO,
+        cognito.UserPoolClientIdentityProvider.custom('GitHub')
+      ],
+      oAuth: {
+        callbackUrls: ['https://your-app-domain.com/callback'],
+        logoutUrls: ['https://your-app-domain.com/logout']
+      }
     });
+
+    // Ensure the client is created after the identity provider
+    userPoolClient.node.addDependency(githubProvider);
 
     // Cognito Identity Pool
     const identityPool = new cognito.CfnIdentityPool(this, 'HandTermIdentityPool', {
