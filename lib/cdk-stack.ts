@@ -96,8 +96,8 @@ export class HandTermCdkStack extends Stack {
         cognito.UserPoolClientIdentityProvider.custom('GitHub')
       ],
       oAuth: {
-        callbackUrls: ['https://your-app-domain.com/callback'],
-        logoutUrls: ['https://your-app-domain.com/logout']
+        callbackUrls: ['https://your-actual-domain.com/oauth_callback'],
+        logoutUrls: ['https://your-actual-domain.com/logout']
       }
     });
 
