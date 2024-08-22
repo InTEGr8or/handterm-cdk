@@ -375,6 +375,8 @@ export class HandTermCdkStack extends Stack {
       methods: [HttpMethod.GET, HttpMethod.POST],
       integration: logoutIntegration,
     });
+
+    const oauthCallbackLambda = new lambda.Function(this, 'OAuthCallbackFunction', {
       runtime: nodeRuntime,
       handler: 'oauth_callback.handler',
       role: lambdaExecutionRole,
