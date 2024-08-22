@@ -370,6 +370,7 @@ export class HandTermCdkStack extends Stack {
       methods: [HttpMethod.GET, HttpMethod.POST],
       integration: oauthCallbackIntegration,
     });
+    new CfnOutput(this, 'ApiEndpoint', { value: httpApi.url || '' });
     new CfnOutput(this, 'UserPoolId', { value: userPool.userPoolId });
     new CfnOutput(this, 'UserPoolClientId', { value: userPoolClient.userPoolClientId });
     new CfnOutput(this, 'IdentityPoolId', { value: identityPool.ref });
