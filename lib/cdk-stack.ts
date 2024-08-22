@@ -96,8 +96,8 @@ export class HandTermCdkStack extends Stack {
         cognito.UserPoolClientIdentityProvider.custom('GitHub')
       ],
       oAuth: {
-        callbackUrls: ['https://your-actual-domain.com/oauth_callback'],
-        logoutUrls: ['https://your-actual-domain.com/logout']
+        callbackUrls: [`${httpApi.url}oauth_callback`],
+        logoutUrls: [`${httpApi.url}logout`]
       }
     });
 
@@ -362,7 +362,19 @@ export class HandTermCdkStack extends Stack {
       integration: putFileIntegration,
     })
 
-    const oauthCallbackLambda = new lambda.Function(this, 'OAuthCallbackFunction', {
+    const logoutLambda = new lambda.Function(this, 'LogoutFunction', {
+      runtime: nodeRuntime,
+      handler: 'logout.handler',
+      role: lambdaExecutionRole,
+      code: lambda.Code.fromAsset('lambda/authentication'),
+    });
+
+    const logoutIntegration = new HttpLambdaIntegration('logout-integration', logoutLambda);
+    httpApi.addRoutes({
+      path: '/logout',
+      methods: [HttpMethod.GET, HttpMethod.POST],
+      integration: logoutIntegration,
+    });
       runtime: nodeRuntime,
       handler: 'oauth_callback.handler',
       role: lambdaExecutionRole,
