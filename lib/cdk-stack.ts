@@ -164,7 +164,6 @@ export class HandTermCdkStack extends Stack {
         COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
       }
     });
-    });
     const signUpIntegration = new HttpLambdaIntegration('signup-integration', signUpLambda);
     httpApi.addRoutes({
       path: ENDPOINTS.api.SignUp,
