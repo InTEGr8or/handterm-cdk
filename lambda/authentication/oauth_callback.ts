@@ -1,6 +1,11 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import fetch from 'node-fetch';
 
+interface TokenData {
+  access_token?: string;
+  error?: string;
+}
+
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   console.log('OAuth callback received:', event);
 
@@ -41,7 +46,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       }),
     });
 
-    const tokenData = await tokenResponse.json();
+    const tokenData: TokenData = await tokenResponse.json();
 
     if (tokenData.error) {
       return {
