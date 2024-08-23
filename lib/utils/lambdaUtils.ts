@@ -1,8 +1,9 @@
 import { HttpApi, HttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
-import { IFunction, Runtime, Function as LambdaFunction, Code } from 'aws-cdk-lib/aws-lambda';
+import { Runtime, Function as LambdaFunction, Code } from 'aws-cdk-lib/aws-lambda';
 import { Role } from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
+import { HttpLambdaAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 
 interface LambdaIntegrationProps {
   scope: Construct;

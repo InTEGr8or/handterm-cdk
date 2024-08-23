@@ -525,3 +525,1768 @@
 +HandTermCdkStack |  8/29 | 11:55:43 AM | UPDATE_FAILED        | AWS::Lambda::Function                  | SignUpFunction (SignUpFunctionCFE784C5) Resource update cancelled
 +HandTermCdkStack |  8/29 | 11:55:43 AM | UPDATE_FAILED        | AWS::Lambda::Function                  | AuthorizerFunction (AuthorizerFunctionB4DBAA43) Resource update cancelled
 +HandTermCdkStack |  8/29 | 11:55:43 AM | UPDATE_ROLLBACK_IN_P | AWS::CloudFormation::Stack             | HandTermCdkStack The following resource(s) failed to create: [GitHubIdentityProvider]. The following resource(s) failed to update: [RefreshTokenFunction37E34807, SignUpFunctionCFE784C5, AuthorizerFunctionB4DBAA43, ChangePasswordFunction51DA0296, SignInFunctionC4D5EA9B].```. That looks much like the previous errors. Is there any improvement or anything new we have learned?
+
+# 2024-08-22 12:25:03.572053
++Ok, that seems to have worked. It deployed completely. How can I test if it worked? Should I output one of the endpoints? ```HandTermCdkStack | 14/29 | 12:07:30 PM | UPDATE_COMPLETE      | AWS::Lambda::Function                  | AuthorizerFunction (AuthorizerFunctionB4DBAA43)
++HandTermCdkStack | 15/29 | 12:07:33 PM | UPDATE_COMPLETE_CLEA | AWS::CloudFormation::Stack             | HandTermCdkStack
++HandTermCdkStack | 16/29 | 12:07:34 PM | UPDATE_COMPLETE      | AWS::CloudFormation::Stack             | HandTermCdkStack
++
++   HandTermCdkStack
++
++  Deployment time: 49.58s
++
++Outputs:
++HandTermCdkStack.ApiEndpoint = https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/
++HandTermCdkStack.BucketName = handterm
++HandTermCdkStack.IdentityPoolId = us-east-1:2dd42735-0e86-40f0-9298-e7c1f9b18dfb
++HandTermCdkStack.UserPoolClientId = 1li1aa0558h1ugshooc4l69r6n    
++HandTermCdkStack.UserPoolId = us-east-1_TL47OLcyI
++Stack ARN:
++arn:aws:cloudformation:us-east-1:318364255844:stack/HandTermCdkStack/1a2f07b0-37db-11ef-a715-0e1174f1a257
++
++  Total time: 67.52s```
+
+# 2024-08-22 13:27:13.224798
++That change raises this error: ``` yarn deploy                                         
++yarn run v1.22.22
++$ yarn cpCdk && yarn build && cdk deploy --region=us-east-1 --profile mark
++$ cp ../handterm/src/shared/endpoints.ts lambda/cdkshared/        
++$ tsc
++Debugger listening on ws://127.0.0.1:56671/ea113ae1-7f14-41ae-8cb1-a2e510b27f34
++For help, see: https://nodejs.org/en/docs/inspector
++Debugger attached.
++(node:39124) NOTE: The AWS SDK for JavaScript (v2) will enter maintenance mode
++on September 8, 2024 and reach end-of-support on September 8, 2025.
++
++Please migrate your code to use AWS SDK for JavaScript (v3).      
++For more information, check blog post at https://a.co/cUPnyil     
++(Use `node --trace-warnings ...` to show where the warning was created)
++Fetched GitHub Secrets: {"clientId":"Iv23li7gy43wuuUgck9v","clientSecret":"46c2cd6b690043acca71f113f6383e9cb56b82fc","issuerUrl":"https://github.com/apps/handterm"}
++GitHub Client Secret: 46c2cd6b690043acca71f113f6383e9cb56b82fc    
++GitHub Client ID: Iv23li7gy43wuuUgck9v
++GitHub Issuer URL: https://github.com/login/oauth
++C:\Users\xgenx\source\repos\handterm-cdk\node_modules\constructs\src\construct.ts:447
++      throw new Error(`There is already a Construct with name '${childName}' in ${typeName}${name.length > 0 ? ' [' + name + ']' : ''}`);
++            ^
++Error: There is already a Construct with name 'ApiEndpoint' in HandTermCdkStack [HandTermCdkStack]
++    at Node.addChild (C:\Users\xgenx\source\repos\handterm-cdk\node_modules\constructs\src\construct.ts:447:13)
++    at new Node (C:\Users\xgenx\source\repos\handterm-cdk\node_modules\constructs\src\construct.ts:71:17)
++    at new Construct (C:\Users\xgenx\source\repos\handterm-cdk\node_modules\constructs\src\construct.ts:499:17)
++    at new CfnElement (C:\Users\xgenx\source\repos\handterm-cdk\node_modules\aws-cdk-lib\core\lib\cfn-element.js:1:743)
++    at new CfnOutput (C:\Users\xgenx\source\repos\handterm-cdk\node_modules\aws-cdk-lib\core\lib\cfn-output.js:1:439)
++    at HandTermCdkStack.initializeStack (C:\Users\xgenx\source\repos\handterm-cdk\lib\cdk-stack.ts:378:5)```. 
+
+# 2024-08-22 13:37:37.134196
++The same source that recommended the additional `providerDetails` also recommended creating the `userPoolClient` like this, which is a bit different than how we are currently creating the `userPoolClient`: ```const userPoolClient = new cognito.UserPoolClient(this, 'UserPoolClient', {
++  userPool,
++  supportedIdentityProviders: [
++    cognito.UserPoolClientIdentityProvider.COGNITO,
++    cognito.UserPoolClientIdentityProvider.custom('GitHub')
++  ],
++  oAuth: {
++    callbackUrls: ['https://your-app-domain.com/callback'],
++    logoutUrls: ['https://your-app-domain.com/logout']
++  }
++});
++
++// Ensure the client is created after the identity provider
++userPoolClient.node.addDependency(githubProvider);```
+
+# 2024-08-22 13:39:47.367753
++The `callbackUrls` and `logoutUrls` were just examples. We would have to replace them with the appropriate urls based on our current CDK.
+
+# 2024-08-22 13:44:15.667060
++The current CDK outputs these endpoints and IDs. Can we derive the `callbackUrls` and `logoutUrls` from this: ```Outputs:
++HandTermCdkStack.ApiEndpoint = https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/
++HandTermCdkStack.BucketName = handterm
++HandTermCdkStack.IdentityPoolId = us-east-1:2dd42735-0e86-40f0-9298-e7c1f9b18dfb
++HandTermCdkStack.UserPoolClientId = 1li1aa0558h1ugshooc4l69r6n    
++HandTermCdkStack.UserPoolId = us-east-1_TL47OLcyI```. When I look in the `lambda/authentication/` I don't see a `logout` or `signout` so we might have to create that.
+
+# 2024-08-22 13:46:34.464511
++I am getting these errors: ```[{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2448",
++"severity": 8,
++"message": "Block-scoped variable 'httpApi' used before its declaration.",
++"source": "ts",
++"startLineNumber": 99,
++"startColumn": 27,
++"endLineNumber": 99,
++"endColumn": 34,
++"relatedInformation": [
++{
++"startLineNumber": 162,
++"startColumn": 11,
++"endLineNumber": 162,
++"endColumn": 18,
++"message": "'httpApi' is declared here.",
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts"
++}
++]
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2454",
++"severity": 8,
++"message": "Variable 'httpApi' is used before being assigned.",
++"source": "ts",
++"startLineNumber": 99,
++"startColumn": 27,
++"endLineNumber": 99,
++"endColumn": 34
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2448",
++"severity": 8,
++"message": "Block-scoped variable 'httpApi' used before its declaration.",
++"source": "ts",
++"startLineNumber": 100,
++"startColumn": 25,
++"endLineNumber": 100,
++"endColumn": 32,
++"relatedInformation": [
++{
++"startLineNumber": 162,
++"startColumn": 11,
++"endLineNumber": 162,
++"endColumn": 18,
++"message": "'httpApi' is declared here.",
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts"
++}
++]
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2454",
++"severity": 8,
++"message": "Variable 'httpApi' is used before being assigned.",
++"source": "ts",
++"startLineNumber": 100,
++"startColumn": 25,
++"endLineNumber": 100,
++"endColumn": 32
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'githubProvider'.",
++"source": "ts",
++"startLineNumber": 105,
++"startColumn": 39,
++"endLineNumber": 105,
++"endColumn": 53
++}]```
+
+# 2024-08-22 13:47:35.505700
++Now I am getting these errors: ```[{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaExecutionRole'.",
++"source": "ts",
++"startLineNumber": 123,
++"startColumn": 13,
++"endLineNumber": 123,
++"endColumn": 32
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaExecutionRole'.",
++"source": "ts",
++"startLineNumber": 139,
++"startColumn": 13,
++"endLineNumber": 139,
++"endColumn": 32
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaExecutionRole'.",
++"source": "ts",
++"startLineNumber": 158,
++"startColumn": 13,
++"endLineNumber": 158,
++"endColumn": 32
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaExecutionRole'.",
++"source": "ts",
++"startLineNumber": 177,
++"startColumn": 13,
++"endLineNumber": 177,
++"endColumn": 32
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2552",
++"severity": 8,
++"message": "Cannot find name 'lambdaAuthorizer'. Did you mean 'HttpLambdaAuthorizer'?",
++"source": "ts",
++"startLineNumber": 187,
++"startColumn": 19,
++"endLineNumber": 187,
++"endColumn": 35
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaExecutionRole'.",
++"source": "ts",
++"startLineNumber": 195,
++"startColumn": 13,
++"endLineNumber": 195,
++"endColumn": 32
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2552",
++"severity": 8,
++"message": "Cannot find name 'lambdaAuthorizer'. Did you mean 'HttpLambdaAuthorizer'?",
++"source": "ts",
++"startLineNumber": 204,
++"startColumn": 19,
++"endLineNumber": 204,
++"endColumn": 35
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaExecutionRole'.",
++"source": "ts",
++"startLineNumber": 212,
++"startColumn": 13,
++"endLineNumber": 212,
++"endColumn": 32
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2552",
++"severity": 8,
++"message": "Cannot find name 'lambdaAuthorizer'. Did you mean 'HttpLambdaAuthorizer'?",
++"source": "ts",
++"startLineNumber": 221,
++"startColumn": 19,
++"endLineNumber": 221,
++"endColumn": 35
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaExecutionRole'.",
++"source": "ts",
++"startLineNumber": 229,
++"startColumn": 13,
++"endLineNumber": 229,
++"endColumn": 32
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaAuthorizer'.",
++"source": "ts",
++"startLineNumber": 238,
++"startColumn": 19,
++"endLineNumber": 238,
++"endColumn": 35
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaExecutionRole'.",
++"source": "ts",
++"startLineNumber": 246,
++"startColumn": 13,
++"endLineNumber": 246,
++"endColumn": 32
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaAuthorizer'.",
++"source": "ts",
++"startLineNumber": 255,
++"startColumn": 19,
++"endLineNumber": 255,
++"endColumn": 35
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaExecutionRole'.",
++"source": "ts",
++"startLineNumber": 263,
++"startColumn": 13,
++"endLineNumber": 263,
++"endColumn": 32
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaAuthorizer'.",
++"source": "ts",
++"startLineNumber": 272,
++"startColumn": 19,
++"endLineNumber": 272,
++"endColumn": 35
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaExecutionRole'.",
++"source": "ts",
++"startLineNumber": 280,
++"startColumn": 13,
++"endLineNumber": 280,
++"endColumn": 32
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaAuthorizer'.",
++"source": "ts",
++"startLineNumber": 289,
++"startColumn": 19,
++"endLineNumber": 289,
++"endColumn": 35
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaExecutionRole'.",
++"source": "ts",
++"startLineNumber": 297,
++"startColumn": 13,
++"endLineNumber": 297,
++"endColumn": 32
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaAuthorizer'.",
++"source": "ts",
++"startLineNumber": 306,
++"startColumn": 19,
++"endLineNumber": 306,
++"endColumn": 35
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaExecutionRole'.",
++"source": "ts",
++"startLineNumber": 314,
++"startColumn": 13,
++"endLineNumber": 314,
++"endColumn": 32
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaExecutionRole'.",
++"source": "ts",
++"startLineNumber": 328,
++"startColumn": 13,
++"endLineNumber": 328,
++"endColumn": 32
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'identityPool'.",
++"source": "ts",
++"startLineNumber": 341,
++"startColumn": 52,
++"endLineNumber": 341,
++"endColumn": 64
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'logsBucket'.",
++"source": "ts",
++"startLineNumber": 342,
++"startColumn": 48,
++"endLineNumber": 342,
++"endColumn": 58
++}]```
+
+# 2024-08-22 13:49:10.753123
++Now I am getting these erros: ```[{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2353",
++"severity": 8,
++"message": "Object literal may only specify known properties, and 'handler' does not exist in type 'IFunction'.",
++"source": "ts",
++"startLineNumber": 130,
++"startColumn": 7,
++"endLineNumber": 130,
++"endColumn": 14
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2339",
++"severity": 8,
++"message": "Property 'RemovalPolicy' does not exist on type 'typeof import(\"c:/Users/xgenx/source/repos/handterm-cdk/node_modules/aws-cdk-lib/aws-s3/index\")'.",
++"source": "ts",
++"startLineNumber": 151,
++"startColumn": 25,
++"endLineNumber": 151,
++"endColumn": 38
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "1068",
++"severity": 8,
++"message": "Unexpected token. A constructor, method, accessor, or property was expected.",
++"source": "ts",
++"startLineNumber": 164,
++"startColumn": 6,
++"endLineNumber": 164,
++"endColumn": 7
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'signUpLambda'.",
++"source": "ts",
++"startLineNumber": 165,
++"startColumn": 79,
++"endLineNumber": 165,
++"endColumn": 91
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "1434",
++"severity": 8,
++"message": "Unexpected keyword or identifier.",
++"source": "ts",
++"startLineNumber": 166,
++"startColumn": 5,
++"endLineNumber": 166,
++"endColumn": 12
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "7008",
++"severity": 8,
++"message": "Member 'httpApi' implicitly has an 'any' type.",
++"source": "ts",
++"startLineNumber": 166,
++"startColumn": 5,
++"endLineNumber": 166,
++"endColumn": 12
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "1068",
++"severity": 8,
++"message": "Unexpected token. A constructor, method, accessor, or property was expected.",
++"source": "ts",
++"startLineNumber": 166,
++"startColumn": 12,
++"endLineNumber": 166,
++"endColumn": 13
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2391",
++"severity": 8,
++"message": "Function implementation is missing or not immediately following the declaration.",
++"source": "ts",
++"startLineNumber": 166,
++"startColumn": 13,
++"endLineNumber": 166,
++"endColumn": 22
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "7010",
++"severity": 8,
++"message": "'addRoutes', which lacks return-type annotation, implicitly has an 'any' return type.",
++"source": "ts",
++"startLineNumber": 166,
++"startColumn": 13,
++"endLineNumber": 166,
++"endColumn": 22
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2842",
++"severity": 8,
++"message": "'ENDPOINTS' is an unused renaming of 'path'. Did you intend to use it as a type annotation?",
++"source": "ts",
++"startLineNumber": 167,
++"startColumn": 13,
++"endLineNumber": 167,
++"endColumn": 22,
++"relatedInformation": [
++{
++"startLineNumber": 170,
++"startColumn": 6,
++"endLineNumber": 170,
++"endColumn": 6,
++"message": "We can only write a type for 'path' by adding a type for the entire parameter here.",
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts"
++}
++]
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "7031",
++"severity": 8,
++"message": "Binding element 'ENDPOINTS' implicitly has an 'any' type.",
++"source": "ts",
++"startLineNumber": 167,
++"startColumn": 13,
++"endLineNumber": 167,
++"endColumn": 22
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "1005",
++"severity": 8,
++"message": "',' expected.",
++"source": "ts",
++"startLineNumber": 167,
++"startColumn": 22,
++"endLineNumber": 167,
++"endColumn": 23
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "7031",
++"severity": 8,
++"message": "Binding element 'api' implicitly has an 'any' type.",
++"source": "ts",
++"startLineNumber": 167,
++"startColumn": 23,
++"endLineNumber": 167,
++"endColumn": 26
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "1005",
++"severity": 8,
++"message": "',' expected.",
++"source": "ts",
++"startLineNumber": 167,
++"startColumn": 26,
++"endLineNumber": 167,
++"endColumn": 27
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "7031",
++"severity": 8,
++"message": "Binding element 'SignUp' implicitly has an 'any' type.",
++"source": "ts",
++"startLineNumber": 167,
++"startColumn": 27,
++"endLineNumber": 167,
++"endColumn": 33
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "7031",
++"severity": 8,
++"message": "Binding element 'HttpMethod' implicitly has an 'any' type.",
++"source": "ts",
++"startLineNumber": 168,
++"startColumn": 17,
++"endLineNumber": 168,
++"endColumn": 27
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "1005",
++"severity": 8,
++"message": "',' expected.",
++"source": "ts",
++"startLineNumber": 168,
++"startColumn": 27,
++"endLineNumber": 168,
++"endColumn": 28
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "7031",
++"severity": 8,
++"message": "Binding element 'POST' implicitly has an 'any' type.",
++"source": "ts",
++"startLineNumber": 168,
++"startColumn": 28,
++"endLineNumber": 168,
++"endColumn": 32
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2842",
++"severity": 8,
++"message": "'signUpIntegration' is an unused renaming of 'integration'. Did you intend to use it as a type annotation?",
++"source": "ts",
++"startLineNumber": 169,
++"startColumn": 20,
++"endLineNumber": 169,
++"endColumn": 37,
++"relatedInformation": [
++{
++"startLineNumber": 170,
++"startColumn": 6,
++"endLineNumber": 170,
++"endColumn": 6,
++"message": "We can only write a type for 'integration' by adding a type for the entire parameter here.",
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts"
++}
++]
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "7031",
++"severity": 8,
++"message": "Binding element 'signUpIntegration' implicitly has an 'any' type.",
++"source": "ts",
++"startLineNumber": 169,
++"startColumn": 20,
++"endLineNumber": 169,
++"endColumn": 37
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaExecutionRole'.",
++"source": "ts",
++"startLineNumber": 175,
++"startColumn": 13,
++"endLineNumber": 175,
++"endColumn": 32
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'userPoolClient'.",
++"source": "ts",
++"startLineNumber": 178,
++"startColumn": 32,
++"endLineNumber": 178,
++"endColumn": 46
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "1434",
++"severity": 8,
++"message": "Unexpected keyword or identifier.",
++"source": "ts",
++"startLineNumber": 182,
++"startColumn": 5,
++"endLineNumber": 182,
++"endColumn": 12
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2300",
++"severity": 8,
++"message": "Duplicate identifier 'httpApi'.",
++"source": "ts",
++"startLineNumber": 182,
++"startColumn": 5,
++"endLineNumber": 182,
++"endColumn": 12
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "1068",
++"severity": 8,
++"message": "Unexpected token. A constructor, method, accessor, or property was expected.",
++"source": "ts",
++"startLineNumber": 182,
++"startColumn": 12,
++"endLineNumber": 182,
++"endColumn": 13
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "7010",
++"severity": 8,
++"message": "'addRoutes', which lacks return-type annotation, implicitly has an 'any' return type.",
++"source": "ts",
++"startLineNumber": 182,
++"startColumn": 13,
++"endLineNumber": 182,
++"endColumn": 22
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2842",
++"severity": 8,
++"message": "'ENDPOINTS' is an unused renaming of 'path'. Did you intend to use it as a type annotation?",
++"source": "ts",
++"startLineNumber": 183,
++"startColumn": 13,
++"endLineNumber": 183,
++"endColumn": 22,
++"relatedInformation": [
++{
++"startLineNumber": 185,
++"startColumn": 45,
++"endLineNumber": 185,
++"endColumn": 45,
++"message": "We can only write a type for 'path' by adding a type for the entire parameter here.",
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts"
++}
++]
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "7031",
++"severity": 8,
++"message": "Binding element 'ENDPOINTS' implicitly has an 'any' type.",
++"source": "ts",
++"startLineNumber": 183,
++"startColumn": 13,
++"endLineNumber": 183,
++"endColumn": 22
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "1005",
++"severity": 8,
++"message": "',' expected.",
++"source": "ts",
++"startLineNumber": 183,
++"startColumn": 22,
++"endLineNumber": 183,
++"endColumn": 23
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "7031",
++"severity": 8,
++"message": "Binding element 'api' implicitly has an 'any' type.",
++"source": "ts",
++"startLineNumber": 183,
++"startColumn": 23,
++"endLineNumber": 183,
++"endColumn": 26
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "1005",
++"severity": 8,
++"message": "',' expected.",
++"source": "ts",
++"startLineNumber": 183,
++"startColumn": 26,
++"endLineNumber": 183,
++"endColumn": 27
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "7031",
++"severity": 8,
++"message": "Binding element 'SignIn' implicitly has an 'any' type.",
++"source": "ts",
++"startLineNumber": 183,
++"startColumn": 27,
++"endLineNumber": 183,
++"endColumn": 33
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "7031",
++"severity": 8,
++"message": "Binding element 'HttpMethod' implicitly has an 'any' type.",
++"source": "ts",
++"startLineNumber": 184,
++"startColumn": 17,
++"endLineNumber": 184,
++"endColumn": 27
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "1005",
++"severity": 8,
++"message": "',' expected.",
++"source": "ts",
++"startLineNumber": 184,
++"startColumn": 27,
++"endLineNumber": 184,
++"endColumn": 28
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "7031",
++"severity": 8,
++"message": "Binding element 'POST' implicitly has an 'any' type.",
++"source": "ts",
++"startLineNumber": 184,
++"startColumn": 28,
++"endLineNumber": 184,
++"endColumn": 32
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2842",
++"severity": 8,
++"message": "'(Missing)' is an unused renaming of 'integration'. Did you intend to use it as a type annotation?",
++"source": "ts",
++"startLineNumber": 185,
++"startColumn": 19,
++"endLineNumber": 185,
++"endColumn": 19,
++"relatedInformation": [
++{
++"startLineNumber": 185,
++"startColumn": 45,
++"endLineNumber": 185,
++"endColumn": 45,
++"message": "We can only write a type for 'integration' by adding a type for the entire parameter here.",
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts"
++}
++]
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "7031",
++"severity": 8,
++"message": "Binding element '(Missing)' implicitly has an 'any' type.",
++"source": "ts",
++"startLineNumber": 185,
++"startColumn": 19,
++"endLineNumber": 185,
++"endColumn": 19
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "1359",
++"severity": 8,
++"message": "Identifier expected. 'new' is a reserved word that cannot be used here.",
++"source": "ts",
++"startLineNumber": 185,
++"startColumn": 20,
++"endLineNumber": 185,
++"endColumn": 23
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "1005",
++"severity": 8,
++"message": "':' expected.",
++"source": "ts",
++"startLineNumber": 185,
++"startColumn": 24,
++"endLineNumber": 185,
++"endColumn": 45
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2842",
++"severity": 8,
++"message": "'HttpLambdaIntegration' is an unused renaming of 'new'. Did you intend to use it as a type annotation?",
++"source": "ts",
++"startLineNumber": 185,
++"startColumn": 24,
++"endLineNumber": 185,
++"endColumn": 45,
++"relatedInformation": [
++{
++"startLineNumber": 185,
++"startColumn": 45,
++"endLineNumber": 185,
++"endColumn": 45,
++"message": "We can only write a type for 'new' by adding a type for the entire parameter here.",
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts"
++}
++]
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "7031",
++"severity": 8,
++"message": "Binding element 'HttpLambdaIntegration' implicitly has an 'any' type.",
++"source": "ts",
++"startLineNumber": 185,
++"startColumn": 24,
++"endLineNumber": 185,
++"endColumn": 45
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "1005",
++"severity": 8,
++"message": "',' expected.",
++"source": "ts",
++"startLineNumber": 185,
++"startColumn": 45,
++"endLineNumber": 185,
++"endColumn": 46
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2695",
++"severity": 8,
++"message": "Left side of comma operator is unused and has no side effects.",
++"source": "ts",
++"startLineNumber": 185,
++"startColumn": 45,
++"endLineNumber": 188,
++"endColumn": 8,
++"tags": [
++1
++]
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2695",
++"severity": 8,
++"message": "Left side of comma operator is unused and has no side effects.",
++"source": "ts",
++"startLineNumber": 186,
++"startColumn": 9,
++"endLineNumber": 186,
++"endColumn": 27,
++"tags": [
++1
++]
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'signInLambda'.",
++"source": "ts",
++"startLineNumber": 187,
++"startColumn": 9,
++"endLineNumber": 187,
++"endColumn": 21
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "1109",
++"severity": 8,
++"message": "Expression expected.",
++"source": "ts",
++"startLineNumber": 189,
++"startColumn": 5,
++"endLineNumber": 189,
++"endColumn": 6
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "1128",
++"severity": 8,
++"message": "Declaration or statement expected.",
++"source": "ts",
++"startLineNumber": 189,
++"startColumn": 6,
++"endLineNumber": 189,
++"endColumn": 7
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2345",
++"severity": 8,
++"message": "Argument of type 'undefined' is not assignable to parameter of type 'Construct'.",
++"source": "ts",
++"startLineNumber": 191,
++"startColumn": 52,
++"endLineNumber": 191,
++"endColumn": 56
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaExecutionRole'.",
++"source": "ts",
++"startLineNumber": 194,
++"startColumn": 13,
++"endLineNumber": 194,
++"endColumn": 32
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'userPoolClient'.",
++"source": "ts",
++"startLineNumber": 197,
++"startColumn": 32,
++"endLineNumber": 197,
++"endColumn": 46
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2552",
++"severity": 8,
++"message": "Cannot find name 'httpApi'. Did you mean 'HttpApi'?",
++"source": "ts",
++"startLineNumber": 201,
++"startColumn": 5,
++"endLineNumber": 201,
++"endColumn": 12
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2345",
++"severity": 8,
++"message": "Argument of type 'undefined' is not assignable to parameter of type 'Construct'.",
++"source": "ts",
++"startLineNumber": 210,
++"startColumn": 54,
++"endLineNumber": 210,
++"endColumn": 58
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaExecutionRole'.",
++"source": "ts",
++"startLineNumber": 213,
++"startColumn": 13,
++"endLineNumber": 213,
++"endColumn": 32
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'userPoolClient'.",
++"source": "ts",
++"startLineNumber": 216,
++"startColumn": 32,
++"endLineNumber": 216,
++"endColumn": 46
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2552",
++"severity": 8,
++"message": "Cannot find name 'httpApi'. Did you mean 'HttpApi'?",
++"source": "ts",
++"startLineNumber": 221,
++"startColumn": 5,
++"endLineNumber": 221,
++"endColumn": 12
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2552",
++"severity": 8,
++"message": "Cannot find name 'lambdaAuthorizer'. Did you mean 'HttpLambdaAuthorizer'?",
++"source": "ts",
++"startLineNumber": 223,
++"startColumn": 19,
++"endLineNumber": 223,
++"endColumn": 35
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2345",
++"severity": 8,
++"message": "Argument of type 'undefined' is not assignable to parameter of type 'Construct'.",
++"source": "ts",
++"startLineNumber": 228,
++"startColumn": 47,
++"endLineNumber": 228,
++"endColumn": 51
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaExecutionRole'.",
++"source": "ts",
++"startLineNumber": 231,
++"startColumn": 13,
++"endLineNumber": 231,
++"endColumn": 32
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'userPoolClient'.",
++"source": "ts",
++"startLineNumber": 234,
++"startColumn": 32,
++"endLineNumber": 234,
++"endColumn": 46
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2552",
++"severity": 8,
++"message": "Cannot find name 'httpApi'. Did you mean 'HttpApi'?",
++"source": "ts",
++"startLineNumber": 238,
++"startColumn": 5,
++"endLineNumber": 238,
++"endColumn": 12
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2552",
++"severity": 8,
++"message": "Cannot find name 'lambdaAuthorizer'. Did you mean 'HttpLambdaAuthorizer'?",
++"source": "ts",
++"startLineNumber": 240,
++"startColumn": 19,
++"endLineNumber": 240,
++"endColumn": 35
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2345",
++"severity": 8,
++"message": "Argument of type 'undefined' is not assignable to parameter of type 'Construct'.",
++"source": "ts",
++"startLineNumber": 245,
++"startColumn": 47,
++"endLineNumber": 245,
++"endColumn": 51
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaExecutionRole'.",
++"source": "ts",
++"startLineNumber": 248,
++"startColumn": 13,
++"endLineNumber": 248,
++"endColumn": 32
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'userPoolClient'.",
++"source": "ts",
++"startLineNumber": 251,
++"startColumn": 32,
++"endLineNumber": 251,
++"endColumn": 46
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2552",
++"severity": 8,
++"message": "Cannot find name 'httpApi'. Did you mean 'HttpApi'?",
++"source": "ts",
++"startLineNumber": 255,
++"startColumn": 5,
++"endLineNumber": 255,
++"endColumn": 12
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaAuthorizer'.",
++"source": "ts",
++"startLineNumber": 257,
++"startColumn": 19,
++"endLineNumber": 257,
++"endColumn": 35
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2345",
++"severity": 8,
++"message": "Argument of type 'undefined' is not assignable to parameter of type 'Construct'.",
++"source": "ts",
++"startLineNumber": 262,
++"startColumn": 47,
++"endLineNumber": 262,
++"endColumn": 51
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaExecutionRole'.",
++"source": "ts",
++"startLineNumber": 265,
++"startColumn": 13,
++"endLineNumber": 265,
++"endColumn": 32
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'userPoolClient'.",
++"source": "ts",
++"startLineNumber": 268,
++"startColumn": 32,
++"endLineNumber": 268,
++"endColumn": 46
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'httpApi'.",
++"source": "ts",
++"startLineNumber": 272,
++"startColumn": 5,
++"endLineNumber": 272,
++"endColumn": 12
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaAuthorizer'.",
++"source": "ts",
++"startLineNumber": 274,
++"startColumn": 19,
++"endLineNumber": 274,
++"endColumn": 35
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2345",
++"severity": 8,
++"message": "Argument of type 'undefined' is not assignable to parameter of type 'Construct'.",
++"source": "ts",
++"startLineNumber": 279,
++"startColumn": 46,
++"endLineNumber": 279,
++"endColumn": 50
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaExecutionRole'.",
++"source": "ts",
++"startLineNumber": 282,
++"startColumn": 13,
++"endLineNumber": 282,
++"endColumn": 32
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'userPoolClient'.",
++"source": "ts",
++"startLineNumber": 285,
++"startColumn": 32,
++"endLineNumber": 285,
++"endColumn": 46
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'httpApi'.",
++"source": "ts",
++"startLineNumber": 289,
++"startColumn": 5,
++"endLineNumber": 289,
++"endColumn": 12
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaAuthorizer'.",
++"source": "ts",
++"startLineNumber": 291,
++"startColumn": 19,
++"endLineNumber": 291,
++"endColumn": 35
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2345",
++"severity": 8,
++"message": "Argument of type 'undefined' is not assignable to parameter of type 'Construct'.",
++"source": "ts",
++"startLineNumber": 296,
++"startColumn": 47,
++"endLineNumber": 296,
++"endColumn": 51
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaExecutionRole'.",
++"source": "ts",
++"startLineNumber": 299,
++"startColumn": 13,
++"endLineNumber": 299,
++"endColumn": 32
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'userPoolClient'.",
++"source": "ts",
++"startLineNumber": 302,
++"startColumn": 32,
++"endLineNumber": 302,
++"endColumn": 46
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'httpApi'.",
++"source": "ts",
++"startLineNumber": 306,
++"startColumn": 5,
++"endLineNumber": 306,
++"endColumn": 12
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaAuthorizer'.",
++"source": "ts",
++"startLineNumber": 308,
++"startColumn": 19,
++"endLineNumber": 308,
++"endColumn": 35
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2345",
++"severity": 8,
++"message": "Argument of type 'undefined' is not assignable to parameter of type 'Construct'.",
++"source": "ts",
++"startLineNumber": 313,
++"startColumn": 47,
++"endLineNumber": 313,
++"endColumn": 51
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaExecutionRole'.",
++"source": "ts",
++"startLineNumber": 316,
++"startColumn": 13,
++"endLineNumber": 316,
++"endColumn": 32
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'userPoolClient'.",
++"source": "ts",
++"startLineNumber": 319,
++"startColumn": 32,
++"endLineNumber": 319,
++"endColumn": 46
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'httpApi'.",
++"source": "ts",
++"startLineNumber": 323,
++"startColumn": 5,
++"endLineNumber": 323,
++"endColumn": 12
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaAuthorizer'.",
++"source": "ts",
++"startLineNumber": 325,
++"startColumn": 19,
++"endLineNumber": 325,
++"endColumn": 35
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2345",
++"severity": 8,
++"message": "Argument of type 'undefined' is not assignable to parameter of type 'Construct'.",
++"source": "ts",
++"startLineNumber": 330,
++"startColumn": 47,
++"endLineNumber": 330,
++"endColumn": 51
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaExecutionRole'.",
++"source": "ts",
++"startLineNumber": 333,
++"startColumn": 13,
++"endLineNumber": 333,
++"endColumn": 32
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'userPoolClient'.",
++"source": "ts",
++"startLineNumber": 336,
++"startColumn": 32,
++"endLineNumber": 336,
++"endColumn": 46
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'httpApi'.",
++"source": "ts",
++"startLineNumber": 340,
++"startColumn": 5,
++"endLineNumber": 340,
++"endColumn": 12
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaAuthorizer'.",
++"source": "ts",
++"startLineNumber": 342,
++"startColumn": 19,
++"endLineNumber": 342,
++"endColumn": 35
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2345",
++"severity": 8,
++"message": "Argument of type 'undefined' is not assignable to parameter of type 'Construct'.",
++"source": "ts",
++"startLineNumber": 347,
++"startColumn": 46,
++"endLineNumber": 347,
++"endColumn": 50
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaExecutionRole'.",
++"source": "ts",
++"startLineNumber": 350,
++"startColumn": 13,
++"endLineNumber": 350,
++"endColumn": 32
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'httpApi'.",
++"source": "ts",
++"startLineNumber": 355,
++"startColumn": 5,
++"endLineNumber": 355,
++"endColumn": 12
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2345",
++"severity": 8,
++"message": "Argument of type 'undefined' is not assignable to parameter of type 'Construct'.",
++"source": "ts",
++"startLineNumber": 361,
++"startColumn": 53,
++"endLineNumber": 361,
++"endColumn": 57
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'lambdaExecutionRole'.",
++"source": "ts",
++"startLineNumber": 364,
++"startColumn": 13,
++"endLineNumber": 364,
++"endColumn": 32
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'httpApi'.",
++"source": "ts",
++"startLineNumber": 369,
++"startColumn": 5,
++"endLineNumber": 369,
++"endColumn": 12
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2345",
++"severity": 8,
++"message": "Argument of type 'undefined' is not assignable to parameter of type 'Construct'.",
++"source": "ts",
++"startLineNumber": 374,
++"startColumn": 19,
++"endLineNumber": 374,
++"endColumn": 23
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'httpApi'.",
++"source": "ts",
++"startLineNumber": 374,
++"startColumn": 49,
++"endLineNumber": 374,
++"endColumn": 56
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2345",
++"severity": 8,
++"message": "Argument of type 'undefined' is not assignable to parameter of type 'Construct'.",
++"source": "ts",
++"startLineNumber": 375,
++"startColumn": 19,
++"endLineNumber": 375,
++"endColumn": 23
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'userPool'.",
++"source": "ts",
++"startLineNumber": 375,
++"startColumn": 48,
++"endLineNumber": 375,
++"endColumn": 56
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2345",
++"severity": 8,
++"message": "Argument of type 'undefined' is not assignable to parameter of type 'Construct'.",
++"source": "ts",
++"startLineNumber": 376,
++"startColumn": 19,
++"endLineNumber": 376,
++"endColumn": 23
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'userPoolClient'.",
++"source": "ts",
++"startLineNumber": 376,
++"startColumn": 54,
++"endLineNumber": 376,
++"endColumn": 68
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2345",
++"severity": 8,
++"message": "Argument of type 'undefined' is not assignable to parameter of type 'Construct'.",
++"source": "ts",
++"startLineNumber": 377,
++"startColumn": 19,
++"endLineNumber": 377,
++"endColumn": 23
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'identityPool'.",
++"source": "ts",
++"startLineNumber": 377,
++"startColumn": 52,
++"endLineNumber": 377,
++"endColumn": 64
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2345",
++"severity": 8,
++"message": "Argument of type 'undefined' is not assignable to parameter of type 'Construct'.",
++"source": "ts",
++"startLineNumber": 378,
++"startColumn": 19,
++"endLineNumber": 378,
++"endColumn": 23
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'logsBucket'.",
++"source": "ts",
++"startLineNumber": 378,
++"startColumn": 48,
++"endLineNumber": 378,
++"endColumn": 58
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "1128",
++"severity": 8,
++"message": "Declaration or statement expected.",
++"source": "ts",
++"startLineNumber": 379,
++"startColumn": 3,
++"endLineNumber": 379,
++"endColumn": 4
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "1128",
++"severity": 8,
++"message": "Declaration or statement expected.",
++"source": "ts",
++"startLineNumber": 380,
++"startColumn": 1,
++"endLineNumber": 380,
++"endColumn": 2
++}]```
+
+# 2024-08-22 13:54:31.679192
++Now I am just getting this one error: ```[{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2353",
++"severity": 8,
++"message": "Object literal may only specify known properties, and 'handler' does not exist in type 'IFunction'.",
++"source": "ts",
++"startLineNumber": 138,
++"startColumn": 7,
++"endLineNumber": 138,
++"endColumn": 14
++}]```
+
+# 2024-08-22 13:55:44.268849
++I am still getting this error: ```[{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2353",
++"severity": 8,
++"message": "Object literal may only specify known properties, and 'handler' does not exist in type 'IFunction'.",
++"source": "ts",
++"startLineNumber": 138,
++"startColumn": 7,
++"endLineNumber": 138,
++"endColumn": 14
++}]```
+
+# 2024-08-22 13:57:04.006882
++Now I am getting this again: ```[{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2353",
++"severity": 8,
++"message": "Object literal may only specify known properties, and 'handler' does not exist in type 'IFunction'.",
++"source": "ts",
++"startLineNumber": 138,
++"startColumn": 7,
++"endLineNumber": 138,
++"endColumn": 14
++}]```
+
+# 2024-08-22 13:59:13.541716
++To make `logout.ts` more consistent with our `signIn.ts` and `signUp.ts`, I think we should rename it.
+
+# 2024-08-22 18:20:24.220114
++/drop lambda\authentication\logout.ts
+
+# 2024-08-22 18:23:15.890140
++I think we still have to update this reference to `logout`: ```      oAuth: {
++        callbackUrls: [`${httpApi.url}oauth_callback`],
++        logoutUrls: [`${httpApi.url}logout`]
++      }```
+
+# 2024-08-22 18:26:23.485798
++My CDK has many code block pairs like this: ```    const getUserLambda = new lambda.Function(this, 'GetUserFunction', {
++      runtime: nodeRuntime,
++      handler: 'getUser.handler',
++      role: lambdaExecutionRole,
++      code: lambda.Code.fromAsset('lambda/userStorage'),
++      environment: {
++        COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
++      }
++    });
++    const getUserIntegration = new HttpLambdaIntegration('get-user-integration', getUserLambda);
++    httpApi.addRoutes({
++      path: ENDPOINTS.api.GetUser,
++      authorizer: lambdaAuthorizer,
++      methods: [HttpMethod.GET],
++      integration: getUserIntegration,
++    })```. Should those be abstracted out?
+
+# 2024-08-22 18:27:56.177344
++I am getting this error: ```[{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2740",
++"severity": 8,
++"message": "Type 'HttpLambdaAuthorizer' is missing the following properties from type 'IFunction': functionName, functionArn, isBoundToVpc, latestVersion, and 23 more.",
++"source": "ts",
++"startLineNumber": 241,
++"startColumn": 7,
++"endLineNumber": 241,
++"endColumn": 17,
++"relatedInformation": [
++{
++"startLineNumber": 17,
++"startColumn": 3,
++"endLineNumber": 17,
++"endColumn": 13,
++"message": "The expected type comes from property 'authorizer' which is declared here on type 'LambdaIntegrationProps'",
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/utils/lambdaUtils.ts"
++}
++]
++}]```
