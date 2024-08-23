@@ -1,7 +1,6 @@
 // cdk/lib/cdk-stack.ts
 import { ENDPOINTS } from '../lambda/cdkshared/endpoints';
-import * as ssm from 'aws-cdk-lib/aws-ssm';
-import { getGitHubSecrets, GitHubSecrets } from './utils/githubSecrets';
+import { getGitHubSecrets } from './utils/githubSecrets';
 import { createLambdaIntegration } from './utils/lambdaUtils';
 import {
   aws_cognito as cognito,
@@ -13,13 +12,10 @@ import {
   CfnOutput,
   Stack,
   StackProps,
-  Duration
 } from "aws-cdk-lib";
 import { Construct } from 'constructs';
 import { HttpMethod, HttpApi, CorsHttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
-import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations'; // This path is illustrative and likely incorrect
 import { HttpLambdaAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
-import { IFunction } from 'aws-cdk-lib/aws-lambda';
 
 
 const nodeRuntime = lambda.Runtime.NODEJS_16_X;
