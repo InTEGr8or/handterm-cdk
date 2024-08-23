@@ -301,22 +301,20 @@ export class HandTermCdkStack extends Stack {
       authorizer: lambdaAuthorizer,
     });
 
-    const getFileLambda = new lambda.Function(this, 'GetFileFunction', {
-      runtime: nodeRuntime,
+    createLambdaIntegration({
+      scope: this,
+      id: 'GetFileFunction',
       handler: 'getFile.handler',
       role: lambdaExecutionRole,
-      code: lambda.Code.fromAsset('lambda/userStorage'),
+      codePath: 'lambda/userStorage',
       environment: {
         COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
-      }
-    });
-    const getFileIntegration = new HttpLambdaIntegration('get-file-integration', getFileLambda);
-    httpApi.addRoutes({
+      },
+      httpApi: httpApi,
       path: ENDPOINTS.api.GetFile,
-      authorizer: lambdaAuthorizer,
       methods: [HttpMethod.GET],
-      integration: getFileIntegration,
-    })
+      authorizer: lambdaAuthorizer,
+    });
 
     const putFileLambda = new lambda.Function(this, 'PutFileFunction', {
       runtime: nodeRuntime,
