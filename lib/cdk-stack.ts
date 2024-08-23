@@ -354,6 +354,7 @@ export class HandTermCdkStack extends Stack {
       path: '/oauth_callback',
       methods: [HttpMethod.GET, HttpMethod.POST],
     });
+
     new CfnOutput(this, 'ApiEndpoint', { value: httpApi.url || '' });
     new CfnOutput(this, 'UserPoolId', { value: userPool.userPoolId });
     new CfnOutput(this, 'UserPoolClientId', { value: userPoolClient.userPoolClientId });
