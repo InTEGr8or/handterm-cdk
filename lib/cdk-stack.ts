@@ -61,7 +61,7 @@ export class HandTermCdkStack extends Stack {
         requireDigits: true,
         requireSymbols: true,
       },
-      autoVerify: { email: true }
+      autoVerify: { email: true },
     });
 
     new cognito.CfnUserPoolIdentityProvider(this, 'GitHubIdentityProvider', {
@@ -123,12 +123,20 @@ export class HandTermCdkStack extends Stack {
       ]
     });
 
+    // Define the Lambda Layer
+    const nodeModulesLayer = new lambda.LayerVersion(this, 'NodeModulesLayer', {
+      code: lambda.Code.fromAsset('layer/node_modules'),
+      compatibleRuntimes: [nodeRuntime],
+      description: 'A layer containing node-fetch',
+    });
+
     // Define the Lambda Authorizer
     const authorizerFunction = new lambda.Function(this, 'AuthorizerFunction', {
       runtime: nodeRuntime,
       handler: 'authorizer.handler',
       role: lambdaExecutionRole,
       code: lambda.Code.fromAsset('lambda/authentication'),
+      layers: [nodeModulesLayer],
     });
 
     const lambdaAuthorizer = new HttpLambdaAuthorizer('LambdaAuthorizer', authorizerFunction);
@@ -156,6 +164,7 @@ export class HandTermCdkStack extends Stack {
       handler: 'signUp.handler',
       role: lambdaExecutionRole,
       codePath: 'lambda/authentication',
+      layers: [nodeModulesLayer],
       environment: {
         COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
       },
@@ -344,6 +353,7 @@ export class HandTermCdkStack extends Stack {
       id: 'OAuthCallbackFunction',
       handler: 'oauth_callback.handler',
       role: lambdaExecutionRole,
+      layers: [nodeModulesLayer],
       codePath: 'lambda/authentication',
       environment: {
         GITHUB_CLIENT_ID: clientId,

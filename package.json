@@ -8,7 +8,7 @@
   "scripts": {
     "cpCdk": "cp ../handterm/src/shared/endpoints.ts lambda/cdkshared/",
     "build": "tsc",
-    "deploy": "yarn cpCdk && yarn build && cdk deploy --region=us-east-1 --profile mark",
+    "deploy": "yarn cpCdk && echo 'Starting TypeScript compilation' && yarn build && echo 'TypeScript compilation completed' && cdk deploy --region=us-east-1 --profile mark",
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk"
