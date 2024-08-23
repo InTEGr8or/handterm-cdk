@@ -343,18 +343,16 @@ export class HandTermCdkStack extends Stack {
       methods: [HttpMethod.GET, HttpMethod.POST],
     });
 
-    const oauthCallbackLambda = new lambda.Function(this, 'OAuthCallbackFunction', {
-      runtime: nodeRuntime,
+    createLambdaIntegration({
+      scope: this,
+      id: 'OAuthCallbackFunction',
       handler: 'oauth_callback.handler',
       role: lambdaExecutionRole,
-      code: lambda.Code.fromAsset('lambda/authentication'),
-    });
-
-    const oauthCallbackIntegration = new HttpLambdaIntegration('oauth-callback-integration', oauthCallbackLambda);
-    httpApi.addRoutes({
+      codePath: 'lambda/authentication',
+      environment: {},
+      httpApi: httpApi,
       path: '/oauth_callback',
       methods: [HttpMethod.GET, HttpMethod.POST],
-      integration: oauthCallbackIntegration,
     });
     new CfnOutput(this, 'ApiEndpoint', { value: httpApi.url || '' });
     new CfnOutput(this, 'UserPoolId', { value: userPool.userPoolId });
