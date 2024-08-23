@@ -2,7 +2,7 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   const clientId = process.env.GITHUB_CLIENT_ID;
-  const redirectUri = `${process.env.REDIRECT_URI}/oauth_callback`;
+  const redirectUri = process.env.REDIRECT_URI;
 
   if (!clientId || !redirectUri) {
     return {
