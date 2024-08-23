@@ -332,7 +332,7 @@ export class HandTermCdkStack extends Stack {
       codePath: 'lambda/authentication',
       environment: {
         GITHUB_CLIENT_ID: clientId,
-        REDIRECT_URI: httpApi.url || '',
+        REDIRECT_URI: `${httpApi.url}oauth_callback`,
       },
       httpApi: httpApi,
       path: '/github_auth',
