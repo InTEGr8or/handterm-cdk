@@ -46,7 +46,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       }),
     });
 
-    const tokenData: TokenData = await tokenResponse.json();
+    const tokenData = await tokenResponse.json() as TokenData;
 
     if (tokenData.error) {
       return {
