@@ -59,12 +59,12 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         accessToken: tokenData.access_token,
       }),
     };
-  } catch (error) {
+  } catch (error: unknown) {
     return {
       statusCode: 500,
       body: JSON.stringify({
         message: 'An error occurred while handling the OAuth callback.',
-        error: error.message,
+        error: (error as Error).message,
       }),
     };
   }
