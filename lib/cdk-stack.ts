@@ -286,22 +286,20 @@ export class HandTermCdkStack extends Stack {
       authorizer: lambdaAuthorizer,
     });
 
-    const listLogLambda = new lambda.Function(this, 'ListLogFunction', {
-      runtime: nodeRuntime,
+    createLambdaIntegration({
+      scope: this,
+      id: 'ListLogFunction',
       handler: 'listLog.handler',
       role: lambdaExecutionRole,
-      code: lambda.Code.fromAsset('lambda/userStorage'),
+      codePath: 'lambda/userStorage',
       environment: {
         COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
-      }
-    });
-    const listLogIntegration = new HttpLambdaIntegration('list-log-integration', listLogLambda);
-    httpApi.addRoutes({
+      },
+      httpApi: httpApi,
       path: ENDPOINTS.api.ListLog,
-      authorizer: lambdaAuthorizer,
       methods: [HttpMethod.POST, HttpMethod.GET],
-      integration: listLogIntegration,
-    })
+      authorizer: lambdaAuthorizer,
+    });
 
     const getFileLambda = new lambda.Function(this, 'GetFileFunction', {
       runtime: nodeRuntime,
