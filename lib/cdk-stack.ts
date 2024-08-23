@@ -2,6 +2,7 @@
 import { ENDPOINTS } from '../lambda/cdkshared/endpoints';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
 import { getGitHubSecrets, GitHubSecrets } from './utils/githubSecrets';
+import { createLambdaIntegration } from './utils/lambdaUtils';
 import {
   aws_cognito as cognito,
   aws_s3 as s3,
@@ -225,22 +226,20 @@ export class HandTermCdkStack extends Stack {
       integration: changePasswordIntegration,
     })
 
-    const getUserLambda = new lambda.Function(this, 'GetUserFunction', {
-      runtime: nodeRuntime,
+    createLambdaIntegration({
+      scope: this,
+      id: 'GetUserFunction',
       handler: 'getUser.handler',
       role: lambdaExecutionRole,
-      code: lambda.Code.fromAsset('lambda/userStorage'),
+      codePath: 'lambda/userStorage',
       environment: {
         COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
-      }
-    });
-    const getUserIntegration = new HttpLambdaIntegration('get-user-integration', getUserLambda);
-    httpApi.addRoutes({
+      },
+      httpApi: httpApi,
       path: ENDPOINTS.api.GetUser,
-      authorizer: lambdaAuthorizer,
       methods: [HttpMethod.GET],
-      integration: getUserIntegration,
-    })
+      authorizer: lambdaAuthorizer,
+    });
 
     const setUserLambda = new lambda.Function(this, 'SetUserFunction', {
       runtime: nodeRuntime,
