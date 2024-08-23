@@ -316,35 +316,31 @@ export class HandTermCdkStack extends Stack {
       authorizer: lambdaAuthorizer,
     });
 
-    const putFileLambda = new lambda.Function(this, 'PutFileFunction', {
-      runtime: nodeRuntime,
+    createLambdaIntegration({
+      scope: this,
+      id: 'PutFileFunction',
       handler: 'putFile.handler',
       role: lambdaExecutionRole,
-      code: lambda.Code.fromAsset('lambda/userStorage'),
+      codePath: 'lambda/userStorage',
       environment: {
         COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
-      }
-    });
-    const putFileIntegration = new HttpLambdaIntegration('put-file-integration', putFileLambda);
-    httpApi.addRoutes({
+      },
+      httpApi: httpApi,
       path: ENDPOINTS.api.PutFile,
-      authorizer: lambdaAuthorizer,
       methods: [HttpMethod.POST],
-      integration: putFileIntegration,
-    })
+      authorizer: lambdaAuthorizer,
+    });
 
-    const signOutLambda = new lambda.Function(this, 'SignOutFunction', {
-      runtime: nodeRuntime,
+    createLambdaIntegration({
+      scope: this,
+      id: 'SignOutFunction',
       handler: 'signOut.handler',
       role: lambdaExecutionRole,
-      code: lambda.Code.fromAsset('lambda/authentication'),
-    });
-
-    const signOutIntegration = new HttpLambdaIntegration('signout-integration', signOutLambda);
-    httpApi.addRoutes({
+      codePath: 'lambda/authentication',
+      environment: {},
+      httpApi: httpApi,
       path: '/signout',
       methods: [HttpMethod.GET, HttpMethod.POST],
-      integration: signOutIntegration,
     });
 
     const oauthCallbackLambda = new lambda.Function(this, 'OAuthCallbackFunction', {
