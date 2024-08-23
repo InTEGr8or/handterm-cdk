@@ -154,77 +154,62 @@ export class HandTermCdkStack extends Stack {
       autoDeleteObjects: true,
     });
 
-    const signUpLambda = new lambda.Function(this, 'SignUpFunction', {
-      runtime: nodeRuntime,
+    createLambdaIntegration({
+      scope: this,
+      id: 'SignUpFunction',
       handler: 'signUp.handler',
       role: lambdaExecutionRole,
-      code: lambda.Code.fromAsset('lambda/authentication'),
+      codePath: 'lambda/authentication',
       environment: {
         COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
-      }
-    });
-    const signUpIntegration = new HttpLambdaIntegration('signup-integration', signUpLambda);
-    httpApi.addRoutes({
+      },
+      httpApi: httpApi,
       path: ENDPOINTS.api.SignUp,
       methods: [HttpMethod.POST],
-      integration: signUpIntegration,
-    })
+    });
 
-    const signInLambda = new lambda.Function(this, 'SignInFunction', {
-      runtime: nodeRuntime,
+    createLambdaIntegration({
+      scope: this,
+      id: 'SignInFunction',
       handler: 'signIn.handler',
       role: lambdaExecutionRole,
-      code: lambda.Code.fromAsset('lambda/authentication'),
+      codePath: 'lambda/authentication',
       environment: {
         COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
-      }
-    });
-
-    httpApi.addRoutes({
+      },
+      httpApi: httpApi,
       path: ENDPOINTS.api.SignIn,
       methods: [HttpMethod.POST],
-      integration: new HttpLambdaIntegration(
-        'post-user-signin',
-        signInLambda
-      ),
-    })
+    });
 
-    const refreshTokenLambda = new lambda.Function(this, 'RefreshTokenFunction', {
-      runtime: nodeRuntime,
+    createLambdaIntegration({
+      scope: this,
+      id: 'RefreshTokenFunction',
       handler: 'refreshToken.handler',
       role: lambdaExecutionRole,
-      code: lambda.Code.fromAsset('lambda/authentication'),
+      codePath: 'lambda/authentication',
       environment: {
         COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
-      }
-    });
-
-    httpApi.addRoutes({
+      },
+      httpApi: httpApi,
       path: ENDPOINTS.api.RefreshToken,
       methods: [HttpMethod.POST],
-      integration: new HttpLambdaIntegration(
-        'post-user-signin',
-        refreshTokenLambda
-      ),
-    })
+    });
 
-    const changePasswordLambda = new lambda.Function(this, 'ChangePasswordFunction', {
-      runtime: nodeRuntime,
+    createLambdaIntegration({
+      scope: this,
+      id: 'ChangePasswordFunction',
       handler: 'changePassword.handler',
       role: lambdaExecutionRole,
-      code: lambda.Code.fromAsset('lambda/authentication'),
+      codePath: 'lambda/authentication',
       environment: {
         COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
-      }
-    });
-    const changePasswordIntegration = new HttpLambdaIntegration('change-password-integration', changePasswordLambda);
-
-    httpApi.addRoutes({
+      },
+      httpApi: httpApi,
       path: ENDPOINTS.api.ChangePassword,
-      authorizer: lambdaAuthorizer,
       methods: [HttpMethod.POST],
-      integration: changePasswordIntegration,
-    })
+      authorizer: lambdaAuthorizer,
+    });
 
     createLambdaIntegration({
       scope: this,
