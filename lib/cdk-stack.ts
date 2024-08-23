@@ -330,11 +330,29 @@ export class HandTermCdkStack extends Stack {
 
     createLambdaIntegration({
       scope: this,
+      id: 'GitHubAuthRedirectFunction',
+      handler: 'githubAuthRedirect.handler',
+      role: lambdaExecutionRole,
+      codePath: 'lambda/authentication',
+      environment: {
+        GITHUB_CLIENT_ID: clientId,
+        REDIRECT_URI: httpApi.url || '',
+      },
+      httpApi: httpApi,
+      path: '/github_auth',
+      methods: [HttpMethod.GET],
+    });
+
+    createLambdaIntegration({
+      scope: this,
       id: 'OAuthCallbackFunction',
       handler: 'oauth_callback.handler',
       role: lambdaExecutionRole,
       codePath: 'lambda/authentication',
-      environment: {},
+      environment: {
+        GITHUB_CLIENT_ID: clientId,
+        GITHUB_CLIENT_SECRET: clientSecret,
+      },
       httpApi: httpApi,
       path: '/oauth_callback',
       methods: [HttpMethod.GET, HttpMethod.POST],
