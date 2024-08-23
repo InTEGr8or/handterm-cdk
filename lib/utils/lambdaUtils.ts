@@ -14,7 +14,7 @@ interface LambdaIntegrationProps {
   httpApi: HttpApi;
   path: string;
   methods: HttpMethod[];
-  authorizer?: IFunction;
+  authorizer?: HttpLambdaAuthorizer;
 }
 
 export function createLambdaIntegration(props: LambdaIntegrationProps) {
