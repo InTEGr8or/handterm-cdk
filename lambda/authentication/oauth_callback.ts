@@ -7,6 +7,12 @@ interface TokenData {
   error?: string;
 }
 
+interface GitHubUser {
+  id: string;
+  login: string;
+  email: string;
+}
+
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   console.log('OAuth callback received:', event);
 
@@ -34,41 +40,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
   }
 
   try {
-    const tokenData = await new Promise<TokenData>((resolve, reject) => {
-      const data = JSON.stringify({
-        client_id: clientId,
-        client_secret: clientSecret,
-        code: code,
-      });
-
-      const options = {
-        hostname: 'github.com',
-        path: '/login/oauth/access_token',
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Content-Length': data.length,
-        },
-      };
-
-      const req = request(options, (res) => {
-        let body = '';
-        res.on('data', (chunk) => {
-          body += chunk;
-        });
-        res.on('end', () => {
-          resolve(JSON.parse(body) as TokenData);
-        });
-      });
-
-      req.on('error', (e) => {
-        reject(e);
-      });
-
-      req.write(data);
-      req.end();
-    });
+    const tokenData = await getGitHubToken(code, clientId, clientSecret);
 
     if (tokenData.error) {
       return {
@@ -80,36 +52,45 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       };
     }
 
-    // Exchange the GitHub access token for Cognito tokens
-    const cognito = new CognitoIdentityServiceProvider();
-    const userSub = event.requestContext.authorizer?.claims.sub;
+    const githubUser = await getGitHubUser(tokenData.access_token!);
 
-    if (!userSub) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({
-          message: 'User is not authenticated.',
-        }),
-      };
+    // Create or update Cognito user
+    const cognito = new CognitoIdentityServiceProvider();
+    const userPoolId = process.env.COGNITO_USER_POOL_ID!;
+
+    let cognitoUser;
+    try {
+      cognitoUser = await cognito.adminGetUser({
+        UserPoolId: userPoolId,
+        Username: githubUser.id,
+      }).promise();
+    } catch (error) {
+      // User doesn't exist, create a new one
+      cognitoUser = await cognito.adminCreateUser({
+        UserPoolId: userPoolId,
+        Username: githubUser.id,
+        UserAttributes: [
+          { Name: 'email', Value: githubUser.email },
+          { Name: 'preferred_username', Value: githubUser.login },
+          { Name: 'custom:github_token', Value: tokenData.access_token },
+        ],
+      }).promise();
     }
 
-    const updateParams = {
+    // Update GitHub token
+    await cognito.adminUpdateUserAttributes({
+      UserPoolId: userPoolId,
+      Username: githubUser.id,
       UserAttributes: [
-        {
-          Name: 'custom:github_token',
-          Value: tokenData.access_token,
-        },
+        { Name: 'custom:github_token', Value: tokenData.access_token },
       ],
-      UserPoolId: process.env.COGNITO_USER_POOL_ID!,
-      Username: userSub,
-    };
-
-    await cognito.adminUpdateUserAttributes(updateParams).promise();
+    }).promise();
 
     return {
       statusCode: 200,
       body: JSON.stringify({
-        message: 'GitHub token stored successfully',
+        message: 'GitHub account linked successfully',
+        userId: githubUser.id,
       }),
     };
   } catch (error: unknown) {
@@ -122,3 +103,76 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     };
   }
 };
+
+async function getGitHubToken(code: string, clientId: string, clientSecret: string): Promise<TokenData> {
+  return new Promise((resolve, reject) => {
+    const data = JSON.stringify({
+      client_id: clientId,
+      client_secret: clientSecret,
+      code: code,
+    });
+
+    const options = {
+      hostname: 'github.com',
+      path: '/login/oauth/access_token',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Content-Length': data.length,
+      },
+    };
+
+    const req = request(options, (res) => {
+      let body = '';
+      res.on('data', (chunk) => {
+        body += chunk;
+      });
+      res.on('end', () => {
+        resolve(JSON.parse(body) as TokenData);
+      });
+    });
+
+    req.on('error', (e) => {
+      reject(e);
+    });
+
+    req.write(data);
+    req.end();
+  });
+}
+
+async function getGitHubUser(accessToken: string): Promise<GitHubUser> {
+  return new Promise((resolve, reject) => {
+    const options = {
+      hostname: 'api.github.com',
+      path: '/user',
+      method: 'GET',
+      headers: {
+        'Authorization': `token ${accessToken}`,
+        'User-Agent': 'AWS Lambda',
+      },
+    };
+
+    const req = request(options, (res) => {
+      let body = '';
+      res.on('data', (chunk) => {
+        body += chunk;
+      });
+      res.on('end', () => {
+        const user = JSON.parse(body);
+        resolve({
+          id: user.id.toString(),
+          login: user.login,
+          email: user.email,
+        });
+      });
+    });
+
+    req.on('error', (e) => {
+      reject(e);
+    });
+
+    req.end();
+  });
+}
