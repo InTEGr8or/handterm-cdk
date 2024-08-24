@@ -353,8 +353,8 @@ export class HandTermCdkStack extends Stack {
       id: 'OAuthCallbackFunction',
       handler: 'oauth_callback.handler',
       role: lambdaExecutionRole,
-      layers: [nodeModulesLayer],
       codePath: 'lambda/authentication',
+      layers: [nodeModulesLayer],
       environment: {
         GITHUB_CLIENT_ID: clientId,
         GITHUB_CLIENT_SECRET: clientSecret,
