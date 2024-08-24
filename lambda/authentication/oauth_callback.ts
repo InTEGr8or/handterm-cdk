@@ -1,9 +1,5 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import type { RequestInit } from 'node-fetch';
-const fetch = async (url: string, init?: RequestInit) => {
-  const { default: fetch } = await import('node-fetch');
-  return fetch(url, init);
-};
+import { request } from 'https';
 
 interface TokenData {
   access_token?: string;
@@ -37,20 +33,41 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
   }
 
   try {
-    const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify({
+    const tokenData = await new Promise<TokenData>((resolve, reject) => {
+      const data = JSON.stringify({
         client_id: clientId,
         client_secret: clientSecret,
         code: code,
-      }),
-    });
+      });
 
-    const tokenData = await tokenResponse.json() as TokenData;
+      const options = {
+        hostname: 'github.com',
+        path: '/login/oauth/access_token',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Content-Length': data.length,
+        },
+      };
+
+      const req = request(options, (res) => {
+        let body = '';
+        res.on('data', (chunk) => {
+          body += chunk;
+        });
+        res.on('end', () => {
+          resolve(JSON.parse(body) as TokenData);
+        });
+      });
+
+      req.on('error', (e) => {
+        reject(e);
+      });
+
+      req.write(data);
+      req.end();
+    });
 
     if (tokenData.error) {
       return {
