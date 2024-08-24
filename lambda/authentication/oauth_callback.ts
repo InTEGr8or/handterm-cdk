@@ -1,5 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { request } from 'https';
+import { CognitoIdentityServiceProvider } from 'aws-sdk';
 
 interface TokenData {
   access_token?: string;
@@ -85,16 +86,40 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     // For demonstration, let's assume we store the access token in a user attribute
     // You would replace this with actual Cognito interaction logic
 
-    // Placeholder for Cognito interaction
+    // Update Cognito user attributes with the GitHub token
+    const cognito = new CognitoIdentityServiceProvider();
+    const userSub = event.requestContext.authorizer?.claims.sub; // Assuming the user is authenticated and the sub is available
+
+    if (!userSub) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          message: 'User is not authenticated.',
+        }),
+      };
+    }
+
+    const updateParams = {
+      UserAttributes: [
+        {
+          Name: 'custom:github_token',
+          Value: tokenData.access_token,
+        },
+      ],
+      UserPoolId: process.env.COGNITO_USER_POOL_ID!,
+      Username: userSub,
+    };
+
+    await cognito.adminUpdateUserAttributes(updateParams).promise();
+
     const cognitoResponse = {
-      message: 'Cognito interaction successful',
-      // Add any relevant data from Cognito interaction
+      message: 'GitHub token stored in Cognito successfully',
     };
 
     return {
       statusCode: 200,
       body: JSON.stringify({
-        message: 'OAuth callback handled successfully',
+        message: 'OAuth callback handled successfully and GitHub token stored',
         accessToken: tokenData.access_token,
         cognitoResponse: cognitoResponse,
       }),
