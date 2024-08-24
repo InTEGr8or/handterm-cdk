@@ -358,6 +358,7 @@ export class HandTermCdkStack extends Stack {
       environment: {
         GITHUB_CLIENT_ID: clientId,
         GITHUB_CLIENT_SECRET: clientSecret,
+        COGNITO_USER_POOL_ID: userPool.userPoolId,
       },
       httpApi: httpApi,
       path: '/oauth_callback',
