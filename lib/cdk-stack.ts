@@ -69,8 +69,13 @@ export class HandTermCdkStack extends Stack {
       attributeMapping: {
         email: 'email',
         preferredUsername: 'login',
-        name: 'name'
-      }
+        name: 'name',
+        picture: 'avatar_url',
+        address: 'location',
+        birthdate: 'created_at',
+        zoneinfo: 'tz_offset',
+        locale: 'locale'
+      },
     });
 
     // Define the HTTP API
