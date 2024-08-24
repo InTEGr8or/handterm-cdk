@@ -115,7 +115,21 @@ export class HandTermCdkStack extends Stack {
       assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
       managedPolicies: [
         iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')
-      ]
+      ],
+      inlinePolicies: {
+        CognitoAccess: new iam.PolicyDocument({
+          statements: [
+            new iam.PolicyStatement({
+              actions: [
+                'cognito-idp:AdminCreateUser',
+                'cognito-idp:AdminGetUser',
+                'cognito-idp:AdminUpdateUserAttributes'
+              ],
+              resources: [userPool.userPoolArn]
+            })
+          ]
+        })
+      }
     });
 
     // Define the Lambda Authorizer
