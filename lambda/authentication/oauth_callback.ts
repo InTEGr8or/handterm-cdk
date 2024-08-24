@@ -53,13 +53,14 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     }
 
     const githubUser = await getGitHubUser(tokenData.access_token!);
+    console.log('GitHub user data:', JSON.stringify(githubUser));
 
     // Create or update Cognito user
     const cognito = new CognitoIdentityServiceProvider();
     const userPoolId = process.env.COGNITO_USER_POOL_ID!;
 
     let cognitoUser;
-    let username = githubUser.email || `github_${githubUser.id}`;
+    let username = githubUser.email || `github_${githubUser.id}@example.com`;
     try {
       cognitoUser = await cognito.adminGetUser({
         UserPoolId: userPoolId,
@@ -156,7 +157,43 @@ async function getGitHubUser(accessToken: string): Promise<GitHubUser> {
       headers: {
         'Authorization': `token ${accessToken}`,
         'User-Agent': 'AWS Lambda',
+        'Accept': 'application/vnd.github.v3+json',
       },
+    };
+
+    // First, get the user data
+    const userData = await new Promise<any>((resolve, reject) => {
+      const req = request(options, (res) => {
+        let body = '';
+        res.on('data', (chunk) => { body += chunk; });
+        res.on('end', () => { resolve(JSON.parse(body)); });
+      });
+      req.on('error', (e) => { reject(e); });
+      req.end();
+    });
+
+    // Then, get the user's email
+    const emailOptions = {
+      ...options,
+      path: '/user/emails',
+    };
+
+    const emailData = await new Promise<any[]>((resolve, reject) => {
+      const req = request(emailOptions, (res) => {
+        let body = '';
+        res.on('data', (chunk) => { body += chunk; });
+        res.on('end', () => { resolve(JSON.parse(body)); });
+      });
+      req.on('error', (e) => { reject(e); });
+      req.end();
+    });
+
+    const primaryEmail = emailData.find(email => email.primary)?.email || emailData[0]?.email;
+
+    return {
+      id: userData.id.toString(),
+      login: userData.login,
+      email: primaryEmail || `github_${userData.id}@example.com`,
     };
 
     const req = request(options, (res) => {
