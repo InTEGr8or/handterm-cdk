@@ -149,72 +149,49 @@ async function getGitHubToken(code: string, clientId: string, clientSecret: stri
 }
 
 async function getGitHubUser(accessToken: string): Promise<GitHubUser> {
-  return new Promise((resolve, reject) => {
-    const options = {
-      hostname: 'api.github.com',
-      path: '/user',
-      method: 'GET',
-      headers: {
-        'Authorization': `token ${accessToken}`,
-        'User-Agent': 'AWS Lambda',
-        'Accept': 'application/vnd.github.v3+json',
-      },
-    };
+  const options = {
+    hostname: 'api.github.com',
+    path: '/user',
+    method: 'GET',
+    headers: {
+      'Authorization': `token ${accessToken}`,
+      'User-Agent': 'AWS Lambda',
+      'Accept': 'application/vnd.github.v3+json',
+    },
+  };
 
-    // First, get the user data
-    const userData = await new Promise<any>((resolve, reject) => {
-      const req = request(options, (res) => {
-        let body = '';
-        res.on('data', (chunk) => { body += chunk; });
-        res.on('end', () => { resolve(JSON.parse(body)); });
-      });
-      req.on('error', (e) => { reject(e); });
-      req.end();
-    });
-
-    // Then, get the user's email
-    const emailOptions = {
-      ...options,
-      path: '/user/emails',
-    };
-
-    const emailData = await new Promise<any[]>((resolve, reject) => {
-      const req = request(emailOptions, (res) => {
-        let body = '';
-        res.on('data', (chunk) => { body += chunk; });
-        res.on('end', () => { resolve(JSON.parse(body)); });
-      });
-      req.on('error', (e) => { reject(e); });
-      req.end();
-    });
-
-    const primaryEmail = emailData.find(email => email.primary)?.email || emailData[0]?.email;
-
-    return {
-      id: userData.id.toString(),
-      login: userData.login,
-      email: primaryEmail || `github_${userData.id}@example.com`,
-    };
-
+  // First, get the user data
+  const userData = await new Promise<any>((resolve, reject) => {
     const req = request(options, (res) => {
       let body = '';
-      res.on('data', (chunk) => {
-        body += chunk;
-      });
-      res.on('end', () => {
-        const user = JSON.parse(body);
-        resolve({
-          id: user.id.toString(),
-          login: user.login,
-          email: user.email,
-        });
-      });
+      res.on('data', (chunk) => { body += chunk; });
+      res.on('end', () => { resolve(JSON.parse(body)); });
     });
-
-    req.on('error', (e) => {
-      reject(e);
-    });
-
+    req.on('error', (e) => { reject(e); });
     req.end();
   });
+
+  // Then, get the user's email
+  const emailOptions = {
+    ...options,
+    path: '/user/emails',
+  };
+
+  const emailData = await new Promise<any[]>((resolve, reject) => {
+    const req = request(emailOptions, (res) => {
+      let body = '';
+      res.on('data', (chunk) => { body += chunk; });
+      res.on('end', () => { resolve(JSON.parse(body)); });
+    });
+    req.on('error', (e) => { reject(e); });
+    req.end();
+  });
+
+  const primaryEmail = emailData.find(email => email.primary)?.email || emailData[0]?.email;
+
+  return {
+    id: userData.id.toString(),
+    login: userData.login,
+    email: primaryEmail || `github_${userData.id}@example.com`,
+  };
 }
