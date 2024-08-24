@@ -1,6 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { CognitoIdentityServiceProvider } from 'aws-sdk';
-import https from 'https';
+import { request } from 'https';
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   const cognito = new CognitoIdentityServiceProvider();
@@ -42,13 +42,13 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         }
       };
 
-      const req = https.request(options, (res) => {
+      const req = request(options, (res: any) => {
         let data = '';
-        res.on('data', (chunk) => data += chunk);
+        res.on('data', (chunk: any) => data += chunk);
         res.on('end', () => resolve(data));
       });
 
-      req.on('error', (error) => reject(error));
+      req.on('error', (error: Error) => reject(error));
       req.end();
     });
 
