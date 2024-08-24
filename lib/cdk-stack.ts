@@ -122,7 +122,7 @@ export class HandTermCdkStack extends Stack {
     const nodeModulesLayer = new lambda.LayerVersion(this, 'NodeModulesLayer', {
       code: lambda.Code.fromAsset('layer'),
       compatibleRuntimes: [nodeRuntime],
-      description: 'A layer containing node-fetch',
+      description: 'A layer containing axios and other dependencies',
     });
 
     // Define the Lambda Authorizer
