@@ -49,3 +49,56 @@ aws ssm put-parameter --name "/github/secrets" --type "String" --value
  '{"clientId":"your_client_id","clientSecret":"your_client_secret","issuerUrl":"your 
  ssuer_url"}' --overwrite
  ```
+
+## Temp Prompt
+
+How can I make my AWS CDK include the `node-fetch` library in a layer accessible by the functions created by the CDK?
+
+Answer
+To include the node-fetch library in a Lambda layer using AWS CDK, you can follow these steps to create a Lambda layer that contains the node-fetch library and make it accessible to your Lambda functions:
+Steps to Create a Lambda Layer with node-fetch
+Create a Directory for the Layer:
+Create a directory structure that mimics the Node.js module structure. For example:
+text
+my-layer/nodejs/node_modules/node-fetch
+
+Install node-fetch Locally:
+Navigate to the nodejs directory and run npm install node-fetch to install the library locally. This will create a node_modules directory containing node-fetch and its dependencies.
+bash
+cd my-layer/nodejs
+npm install node-fetch
+
+Define the Layer in CDK:
+In your CDK stack, define a new Lambda layer using the lambda.LayerVersion construct, pointing to the directory where you installed node-fetch.
+javascript
+const lambda = require('aws-cdk-lib/aws-lambda');
+const path = require('path');
+
+const nodeFetchLayer = new lambda.LayerVersion(this, 'NodeFetchLayer', {
+  code: lambda.Code.fromAsset(path.join(__dirname, 'my-layer')),
+  compatibleRuntimes: [lambda.Runtime.NODEJS_14_X, lambda.Runtime.NODEJS_16_X],
+  description: 'A layer containing node-fetch',
+});
+
+Attach the Layer to Your Lambda Function:
+When defining your Lambda function in CDK, attach the node-fetch layer to it.
+javascript
+const myFunction = new lambda.Function(this, 'MyFunction', {
+  runtime: lambda.Runtime.NODEJS_16_X,
+  code: lambda.Code.fromAsset('path/to/your/function/code'),
+  handler: 'index.handler',
+  layers: [nodeFetchLayer], // Attach the layer here
+});
+
+Deploy Your CDK Stack:
+Deploy your CDK stack using the cdk deploy command. This will package your Lambda function and the layer, and deploy them to AWS.
+By following these steps, the node-fetch library will be included in a Lambda layer, which can be shared across multiple Lambda functions, reducing duplication and making management easier. This method ensures that the library is available in the Lambda execution environment, allowing you to import and use it in your Lambda function handlers.
+Related
+How do I ensure the node-fetch library is correctly included in the Lambda layer
+What are the common issues when using node-fetch in an AWS CDK project
+Can I use node-fetch with other libraries in the same Lambda layer
+How do I troubleshoot the "Cannot find module 'node-fetch'" error in CDK
+Are there any specific configurations needed for node-fetch in AWS Lambda
+Ask follow-up
+
+Pro
