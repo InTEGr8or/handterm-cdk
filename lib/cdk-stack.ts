@@ -125,7 +125,7 @@ export class HandTermCdkStack extends Stack {
 
     // Define the Lambda Layer
     const nodeModulesLayer = new lambda.LayerVersion(this, 'NodeModulesLayer', {
-      code: lambda.Code.fromAsset('layer/node_modules'),
+      code: lambda.Code.fromAsset('layer'),
       compatibleRuntimes: [nodeRuntime],
       description: 'A layer containing node-fetch',
     });
