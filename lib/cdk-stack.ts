@@ -49,6 +49,9 @@ export class HandTermCdkStack extends Stack {
         requireSymbols: true,
       },
       autoVerify: { email: true },
+      customAttributes: {
+        'github_token': new cognito.StringAttribute({ mutable: true }),
+      },
     });
 
     new cognito.CfnUserPoolIdentityProvider(this, 'GitHubIdentityProvider', {
@@ -310,6 +313,22 @@ export class HandTermCdkStack extends Stack {
       httpApi: httpApi,
       path: ENDPOINTS.api.PutFile,
       methods: [HttpMethod.POST],
+      authorizer: lambdaAuthorizer,
+    });
+
+    createLambdaIntegration({
+      scope: this,
+      id: 'ListRecentReposFunction',
+      handler: 'listRecentRepos.handler',
+      role: lambdaExecutionRole,
+      codePath: 'lambda/authentication',
+      layers: [nodeModulesLayer],
+      environment: {
+        COGNITO_USER_POOL_ID: userPool.userPoolId,
+      },
+      httpApi: httpApi,
+      path: '/list-recent-repos',
+      methods: [HttpMethod.GET],
       authorizer: lambdaAuthorizer,
     });
 

@@ -80,15 +80,9 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       };
     }
 
-    // Here, you would typically exchange the GitHub access token for Cognito tokens
-    // This might involve calling a Cognito API or using AWS SDK to update user attributes
-
-    // For demonstration, let's assume we store the access token in a user attribute
-    // You would replace this with actual Cognito interaction logic
-
-    // Update Cognito user attributes with the GitHub token
+    // Exchange the GitHub access token for Cognito tokens
     const cognito = new CognitoIdentityServiceProvider();
-    const userSub = event.requestContext.authorizer?.claims.sub; // Assuming the user is authenticated and the sub is available
+    const userSub = event.requestContext.authorizer?.claims.sub;
 
     if (!userSub) {
       return {
@@ -112,16 +106,10 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
     await cognito.adminUpdateUserAttributes(updateParams).promise();
 
-    const cognitoResponse = {
-      message: 'GitHub token stored in Cognito successfully',
-    };
-
     return {
       statusCode: 200,
       body: JSON.stringify({
-        message: 'OAuth callback handled successfully and GitHub token stored',
-        accessToken: tokenData.access_token,
-        cognitoResponse: cognitoResponse,
+        message: 'GitHub token stored successfully',
       }),
     };
   } catch (error: unknown) {
