@@ -1,6 +1,9 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { RequestInit } from 'node-fetch';
-const fetch = (url: string, init?: RequestInit) => import('node-fetch').then(({ default: fetch }) => fetch(url, init));
+import type { RequestInit } from 'node-fetch';
+const fetch = async (url: string, init?: RequestInit) => {
+  const { default: fetch } = await import('node-fetch');
+  return fetch(url, init);
+};
 
 interface TokenData {
   access_token?: string;
