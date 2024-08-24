@@ -1,6 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { CognitoIdentityServiceProvider } from 'aws-sdk';
-import axios from 'axios';
+import https from 'https';
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   const cognito = new CognitoIdentityServiceProvider();
@@ -30,29 +30,34 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     }
 
     // Use the GitHub token to fetch recent repos
-    const response = await axios.get('https://api.github.com/user/repos', {
-      params: {
-        sort: 'updated',
-        per_page: 10,
-      },
-      headers: {
-        'Authorization': `token ${githubToken}`,
-        'Accept': 'application/vnd.github.v3+json',
-      },
+    const response = await new Promise<string>((resolve, reject) => {
+      const options = {
+        hostname: 'api.github.com',
+        path: '/user/repos?sort=updated&per_page=10',
+        method: 'GET',
+        headers: {
+          'Authorization': `token ${githubToken}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'AWS Lambda'
+        }
+      };
+
+      const req = https.request(options, (res) => {
+        let data = '';
+        res.on('data', (chunk) => data += chunk);
+        res.on('end', () => resolve(data));
+      });
+
+      req.on('error', (error) => reject(error));
+      req.end();
     });
 
     return {
       statusCode: 200,
-      body: JSON.stringify(response.data),
+      body: response,
     };
   } catch (error) {
     console.error('Error:', error);
-    if (axios.isAxiosError(error) && error.response) {
-      return {
-        statusCode: error.response.status,
-        body: JSON.stringify({ message: error.response.data.message || 'GitHub API error' }),
-      };
-    }
     return {
       statusCode: 500,
       body: JSON.stringify({ message: 'Internal server error' }),
