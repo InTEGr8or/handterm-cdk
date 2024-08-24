@@ -118,20 +118,12 @@ export class HandTermCdkStack extends Stack {
       ]
     });
 
-    // Define the Lambda Layer
-    const nodeModulesLayer = new lambda.LayerVersion(this, 'NodeModulesLayer', {
-      code: lambda.Code.fromAsset('layer'),
-      compatibleRuntimes: [nodeRuntime],
-      description: 'A layer containing axios and other dependencies',
-    });
-
     // Define the Lambda Authorizer
     const authorizerFunction = new lambda.Function(this, 'AuthorizerFunction', {
       runtime: nodeRuntime,
       handler: 'authorizer.handler',
       role: lambdaExecutionRole,
       code: lambda.Code.fromAsset('lambda/authentication'),
-      layers: [nodeModulesLayer],
     });
 
     const lambdaAuthorizer = new HttpLambdaAuthorizer('LambdaAuthorizer', authorizerFunction);
@@ -159,7 +151,6 @@ export class HandTermCdkStack extends Stack {
       handler: 'signUp.handler',
       role: lambdaExecutionRole,
       codePath: 'lambda/authentication',
-      layers: [nodeModulesLayer],
       environment: {
         COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
       },
@@ -322,7 +313,6 @@ export class HandTermCdkStack extends Stack {
       handler: 'listRecentRepos.handler',
       role: lambdaExecutionRole,
       codePath: 'lambda/authentication',
-      layers: [nodeModulesLayer],
       environment: {
         COGNITO_USER_POOL_ID: userPool.userPoolId,
       },
@@ -365,7 +355,6 @@ export class HandTermCdkStack extends Stack {
       handler: 'oauth_callback.handler',
       role: lambdaExecutionRole,
       codePath: 'lambda/authentication',
-      layers: [nodeModulesLayer],
       environment: {
         GITHUB_CLIENT_ID: clientId,
         GITHUB_CLIENT_SECRET: clientSecret,
