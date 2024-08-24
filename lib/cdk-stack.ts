@@ -29,19 +29,6 @@ export class HandTermCdkStack extends Stack {
   private async initializeStack() {
     const { clientId, clientSecret, issuerUrl } = await getGitHubSecrets();
 
-    console.log("GitHub Client Secret: " + clientSecret);
-    console.log("GitHub Client ID: " + clientId);
-    console.log("GitHub Issuer URL: " + issuerUrl);
-    const allowHeaders = [
-      'Content-Type',
-      'X-Amz-Date',
-      'Authorization',
-      'X-Api-Key',
-      'X-Requested-With',
-      'sec-ch-ua',
-      'sec-ch-ua-mobile',
-      'sec-ch-ua-platform'
-    ];
     // Cognito User Pool
     const userPool = new cognito.UserPool(this, 'HandTermUserPool', {
       userPoolName: 'HandTermUserPool',

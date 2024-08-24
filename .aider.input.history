@@ -2677,3 +2677,162 @@
 
 # 2024-08-23 18:54:04.610541
 +Have you made any usefull changes after I told you the lambda layer is created in AWS but it is not attached to the Lambda? As far as I can see, you've only made erroneous changes which you then reversed.
+
+# 2024-08-23 20:17:46.698584
++I have redeployed and the layer is still not attached to the `OAuthCallbackFunction`. What's more is that when I manually attach the layer to the `OAuthCallbackFunction` in the AWS Console UI, and rerun the authentication process, I still get this error: ```2024-08-24T03:06:58.397ZundefinedERRORUncaught Exception 
++{
++    "errorType": "Runtime.ImportModuleError",
++    "errorMessage": "Error: Cannot find module 'node-fetch'\nRequire stack:\n- /var/task/oauth_callback.js\n- /var/runtime/index.mjs",
++    "stack": [
++        "Runtime.ImportModuleError: Error: Cannot find module 'node-fetch'",
++        "Require stack:",
++        "- /var/task/oauth_callback.js",
++        "- /var/runtime/index.mjs",
++        "    at _loadUserApp (file:///var/runtime/index.mjs:1087:17)",
++        "    at async Object.UserFunction.js.module.exports.load (file:///var/runtime/index.mjs:1119:21)",
++        "    at async start (file:///var/runtime/index.mjs:1282:23)",
++        "    at async file:///var/runtime/index.mjs:1288:1"
++    ]
++}```
+
+# 2024-08-23 20:23:38.931207
++I don't understand your suggestion and code change. You merely moved the `layers: [nodeModulesLayer],` down a row. Do you think that will fix it? Also, I already ran `yarn add node-fetch` in the `layer/` and I can see the contents here: ``` ls .\layer\node_modules\
++
++    Directory:
++C:\Users\xgenx\source\repos\handterm-cdk\layer\node_modules       
++
++Mode                 LastWriteTime         Length Name
++----                 -------------         ------ ----
++d----           8/23/2024  6:18 PM                data-uri-to-buf 
++                                                  fer
++d----           8/23/2024  6:18 PM                fetch-blob      
++d----           8/23/2024  6:18 PM                formdata-polyfi 
++                                                  ll
++d----           8/23/2024  6:18 PM                node-domexcepti 
++                                                  on
++d----           8/23/2024  6:18 PM                node-fetch      
++d----           8/23/2024  6:18 PM                web-streams-pol
++                                                  yfill
++-a---           8/23/2024  6:18 PM           1277 .yarn-integrity```, so neither of those changes serve any purpose.
+
+# 2024-08-23 20:44:11.678078
++I have deployed the layer, checked that it attached on the server in the web UI, and I have downloaded the layer from the server and I can see this inside the layer: ``` ls D:\Downloads\NodeModulesLayer29E0D577-7da024c3-1771-4413-b50b-8c69fc0e2802
++
++    Directory: D:\Downloads\NodeModulesLayer29E0D577-7da024c3-177 
++1-4413-b50b-8c69fc0e2802
++
++Mode                 LastWriteTime         Length Name
++----                 -------------         ------ ----
++d----           8/23/2024  8:41 PM                node_modules    
++-----          12/31/1979 11:00 PM            147 package.json    
++-----          12/31/1979 11:00 PM           2048 yarn.lock      ```, but I am still getting this error when I run the `OAuthCallbackFunction`: ```Unknown application error occurred
++Runtime.ImportModuleError
++END RequestId: 02889063-07d6-4a8d-800c-8674a6f87461
++REPORT RequestId: 02889063-07d6-4a8d-800c-8674a6f87461Duration: 1711.80 msBilled Duration: 1712 msMemory Size: 128 MBMax Memory Used: 13 MB
++INIT_START Runtime Version: nodejs:16.v40Runtime Version ARN: arn:aws:lambda:us-east-1::runtime:98ed388ef144131e504d460a9e26eb5c938895392a4c008b9f0e431b82c3b646
++2024-08-24T03:39:54.395ZundefinedERRORUncaught Exception 
++{
++    "errorType": "Runtime.ImportModuleError",
++    "errorMessage": "Error: Cannot find module 'node-fetch'\nRequire stack:\n- /var/task/oauth_callback.js\n- /var/runtime/index.mjs",
++    "stack": [
++        "Runtime.ImportModuleError: Error: Cannot find module 'node-fetch'",
++        "Require stack:",
++        "- /var/task/oauth_callback.js",
++        "- /var/runtime/index.mjs",
++        "    at _loadUserApp (file:///var/runtime/index.mjs:1087:17)",
++        "    at async Object.UserFunction.js.module.exports.load (file:///var/runtime/index.mjs:1119:21)",
++        "    at async start (file:///var/runtime/index.mjs:1282:23)",
++        "    at async file:///var/runtime/index.mjs:1288:1"
++    ]
++}```
+
+# 2024-08-23 20:59:56.487095
++ok, that seemed to have worked. Now I am getting this error: ```2024-08-24T03:57:44.151ZundefinedERRORUncaught Exception 
++{
++    "errorType": "Error",
++    "errorMessage": "require() of ES Module /opt/nodejs/node_modules/node-fetch/src/index.js from /var/task/oauth_callback.js not supported.\nInstead change the require of index.js in /var/task/oauth_callback.js to a dynamic import() which is available in all CommonJS modules.",
++    "code": "ERR_REQUIRE_ESM",
++    "stack": [
++        "Error [ERR_REQUIRE_ESM]: require() of ES Module /opt/nodejs/node_modules/node-fetch/src/index.js from /var/task/oauth_callback.js not supported.",
++        "Instead change the require of index.js in /var/task/oauth_callback.js to a dynamic import() which is available in all CommonJS modules.",
++        "    at Object.<anonymous> (/var/task/oauth_callback.js:4:22)",
++        "    at _tryRequireFile (file:///var/runtime/index.mjs:1002:37)",
++        "    at _tryRequire (file:///var/runtime/index.mjs:1052:25)",
++        "    at _loadUserApp (file:///var/runtime/index.mjs:1081:22)",
++        "    at Object.UserFunction.js.module.exports.load (file:///var/runtime/index.mjs:1119:27)",
++        "    at start (file:///var/runtime/index.mjs:1282:42)",
++        "    at file:///var/runtime/index.mjs:1288:7",
++        "    at async Promise.all (index 0)"
++    ]
++}```
+
+# 2024-08-23 21:01:14.907999
++That gives me this linting error: ```[{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/oauth_callback.ts",
++"owner": "typescript",
++"code": "7019",
++"severity": 8,
++"message": "Rest parameter 'args' implicitly has an 'any[]' type.",
++"source": "ts",
++"startLineNumber": 2,
++"startColumn": 16,
++"endLineNumber": 2,
++"endColumn": 23
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/oauth_callback.ts",
++"owner": "typescript",
++"code": "2556",
++"severity": 8,
++"message": "A spread argument must either have a tuple type or be passed to a rest parameter.",
++"source": "ts",
++"startLineNumber": 2,
++"startColumn": 82,
++"endLineNumber": 2,
++"endColumn": 89
++}]```
+
+# 2024-08-23 21:01:57.429586
++That gives me this error: ```[{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/oauth_callback.ts",
++"owner": "typescript",
++"code": "2345",
++"severity": 8,
++"message": "Argument of type 'RequestInfo' is not assignable to parameter of type 'URL | RequestInfo'.\n  Type 'Request' is not assignable to type 'URL | RequestInfo'.\n    Type 'Request' is missing the following properties from type 'Request': size, buffer",
++"source": "ts",
++"startLineNumber": 2,
++"startColumn": 111,
++"endLineNumber": 2,
++"endColumn": 118
++}]```
+
+# 2024-08-23 21:03:44.772860
++That gives me this error: ```[{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/oauth_callback.ts",
++"owner": "typescript",
++"code": "2345",
++"severity": 8,
++"message": "Argument of type 'RequestInit | undefined' is not assignable to parameter of type 'import(\"c:/Users/xgenx/source/repos/handterm-cdk/node_modules/node-fetch/@types/index\").RequestInit | undefined'.\n  Type 'RequestInit' is not assignable to type 'import(\"c:/Users/xgenx/source/repos/handterm-cdk/node_modules/node-fetch/@types/index\").RequestInit'.\n    Types of property 'body' are incompatible.\n      Type 'BodyInit | null | undefined' is not assignable to type 'import(\"c:/Users/xgenx/source/repos/handterm-cdk/node_modules/node-fetch/@types/index\").BodyInit | null | undefined'.\n        Type 'ReadableStream<any>' is not assignable to type 'BodyInit | null | undefined'.",
++"source": "ts",
++"startLineNumber": 2,
++"startColumn": 111,
++"endLineNumber": 2,
++"endColumn": 115
++}]```
+
+# 2024-08-23 21:12:24.502551
++I have redeployed but I seem to be getting the same problem: ```{"message":"An error occurred while handling the OAuth callback.","error":"require() of ES Module /opt/nodejs/node_modules/node-fetch/src/index.js from /var/task/oauth_callback.js not supported.\nInstead change the require of index.js in /var/task/oauth_callback.js to a dynamic import() which is available in all CommonJS modules."}```
+
+# 2024-08-23 21:16:37.319803
++I am still getting the same problem. Should we even be using fetch? Are we sure about that?
+
+# 2024-08-23 21:24:46.444164
++Why did you recommend `fetch` then? We didn't need the whole layer at all. If `http` works better with Lambda, I don't understand why you would have suggested `fetch` and gone through the whole adding a layer process. Now I am getting this ```{"message":"OAuth callback handled successfully","accessToken":"ghu_XdBDPRe914mtWCTBvzZ8gRB8OV52z73f3j3X"}```
+
+# 2024-08-23 21:29:52.099716
++Yes, I need to handle the access token that's returned. This is a cognito interaction, so I probably have to provide that token to cognito. I also need a function that will allow me to check if the GitHub authentication is active for the user, and a way to query a list of the user's most recently edited repos on GitHub.
+
+# 2024-08-24 08:54:43.836805
++What would the workflow look like if I don't need to use the GitHub token to authenticate the user to my site. My user is already authenticated on my site, but I wan't to store the auth token so that the user can access their own GitHub repos. Would I store the GitHub token on the server? Or should I just pass it to the front end to store it in local storage?
+
+# 2024-08-24 09:01:17.630735
++I am using Cognito to authenticate the user and create a `GitHubIdentityProvider`. Does Cognito have features to store the GitHub token? Considering your advice above, I definitely want to use server-side storage of the token, but I think Secrets Manager might be a little expensive to use on each user.
