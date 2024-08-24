@@ -59,35 +59,37 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     const userPoolId = process.env.COGNITO_USER_POOL_ID!;
 
     let cognitoUser;
+    let username = githubUser.email || `github_${githubUser.id}`;
     try {
       cognitoUser = await cognito.adminGetUser({
         UserPoolId: userPoolId,
-        Username: githubUser.email,
+        Username: username,
+      }).promise();
+
+      // Update GitHub token and other attributes
+      await cognito.adminUpdateUserAttributes({
+        UserPoolId: userPoolId,
+        Username: username,
+        UserAttributes: [
+          { Name: 'email', Value: githubUser.email },
+          { Name: 'preferred_username', Value: githubUser.login },
+          { Name: 'custom:github_id', Value: githubUser.id.toString() },
+          { Name: 'custom:github_token', Value: tokenData.access_token },
+        ],
       }).promise();
     } catch (error) {
       // User doesn't exist, create a new one
       cognitoUser = await cognito.adminCreateUser({
         UserPoolId: userPoolId,
-        Username: githubUser.email,
+        Username: username,
         UserAttributes: [
           { Name: 'email', Value: githubUser.email },
           { Name: 'preferred_username', Value: githubUser.login },
-          { Name: 'custom:github_id', Value: githubUser.id },
+          { Name: 'custom:github_id', Value: githubUser.id.toString() },
           { Name: 'custom:github_token', Value: tokenData.access_token },
         ],
       }).promise();
     }
-
-    // Update GitHub token and other attributes
-    await cognito.adminUpdateUserAttributes({
-      UserPoolId: userPoolId,
-      Username: githubUser.email,
-      UserAttributes: [
-        { Name: 'preferred_username', Value: githubUser.login },
-        { Name: 'custom:github_id', Value: githubUser.id },
-        { Name: 'custom:github_token', Value: tokenData.access_token },
-      ],
-    }).promise();
 
     return {
       statusCode: 200,
