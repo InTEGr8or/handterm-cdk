@@ -10,6 +10,7 @@ export const handler = async (event: any) => {
     console.log('Event:', JSON.stringify(event, null, 2));
     
     try {
+        console.log('Checking event structure');
         if (!event.requestContext) {
             console.error('No requestContext in event');
             return {
@@ -20,6 +21,7 @@ export const handler = async (event: any) => {
 
         console.log('RequestContext:', JSON.stringify(event.requestContext, null, 2));
 
+        console.log('Checking authorizer');
         if (!event.requestContext.authorizer) {
             console.error('No authorizer in requestContext');
             return {
@@ -30,6 +32,7 @@ export const handler = async (event: any) => {
 
         console.log('Authorizer:', JSON.stringify(event.requestContext.authorizer, null, 2));
 
+        console.log('Checking lambda in authorizer');
         if (!event.requestContext.authorizer.lambda) {
             console.error('No lambda in authorizer');
             return {
@@ -39,6 +42,7 @@ export const handler = async (event: any) => {
         }
 
         const userId = event.requestContext.authorizer.lambda.userId;
+        console.log('UserId:', userId);
         if (!userId) {
             console.error('No userId in lambda authorizer');
             return {
@@ -46,8 +50,6 @@ export const handler = async (event: any) => {
                 body: JSON.stringify({ message: 'User is not authenticated' }),
             };
         }
-
-        console.log('UserId:', userId);
 
         const objectKey = `user_data/${userId}/_index.md`;
         console.log('objectKey:', objectKey);
@@ -71,6 +73,10 @@ export const handler = async (event: any) => {
             console.log('GetUserFunction completed successfully');
             return {
                 statusCode: 200,
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Credentials': true,
+                },
                 body: JSON.stringify({ userId: userId, content: fileContent }),
             };
         } catch (headErr: unknown) {
@@ -80,12 +86,20 @@ export const handler = async (event: any) => {
                 console.log('Profile does not exist yet for userId:', userId);
                 return {
                     statusCode: 404,
+                    headers: {
+                        'Access-Control-Allow-Origin': '*',
+                        'Access-Control-Allow-Credentials': true,
+                    },
                     body: JSON.stringify({ message: 'Profile does not exist yet' }),
                 };
             } else {
                 console.error('S3 error:', JSON.stringify(error, null, 2));
                 return {
                     statusCode: 500,
+                    headers: {
+                        'Access-Control-Allow-Origin': '*',
+                        'Access-Control-Allow-Credentials': true,
+                    },
                     body: JSON.stringify({ message: 'S3 Object Error', error: error.message }),
                 };
             }
@@ -94,6 +108,10 @@ export const handler = async (event: any) => {
         console.error('Unexpected error:', JSON.stringify(err, null, 2));
         return { 
             statusCode: 500, 
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Credentials': true,
+            },
             body: JSON.stringify({ message: 'Internal Server Error', error: (err as Error).message }) 
         };
     } finally {
