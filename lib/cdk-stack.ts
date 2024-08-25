@@ -104,23 +104,20 @@ export class HandTermCdkStack extends Stack {
     });
 
     // Configure access logging for the stage
-    new apigatewayv2.CfnStage(this, 'ProdStageWithLogs', {
-      apiId: httpApi.apiId,
-      stageName: stage.stageName,
-      accessLogSettings: {
-        destinationArn: logGroup.logGroupArn,
-        format: JSON.stringify({
-          requestId: "$context.requestId",
-          ip: "$context.identity.sourceIp",
-          requestTime: "$context.requestTime",
-          httpMethod: "$context.httpMethod",
-          routeKey: "$context.routeKey",
-          status: "$context.status",
-          protocol: "$context.protocol",
-          responseLength: "$context.responseLength"
-        })
-      },
-    });
+    const cfnStage = stage.node.defaultChild as apigatewayv2.CfnStage;
+    cfnStage.accessLogSettings = {
+      destinationArn: logGroup.logGroupArn,
+      format: JSON.stringify({
+        requestId: "$context.requestId",
+        ip: "$context.identity.sourceIp",
+        requestTime: "$context.requestTime",
+        httpMethod: "$context.httpMethod",
+        routeKey: "$context.routeKey",
+        status: "$context.status",
+        protocol: "$context.protocol",
+        responseLength: "$context.responseLength"
+      })
+    };
 
     // Cognito User Pool Client
     const userPoolClient = new cognito.UserPoolClient(this, 'UserPoolClient', {
