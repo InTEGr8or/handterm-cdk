@@ -98,10 +98,18 @@ export class HandTermCdkStack extends Stack {
 
     // Add access logging to the API Gateway
     const logGroup = new logs.LogGroup(this, 'ApiGatewayAccessLogs');
-    const stage = httpApi.addStage('prod', {
-      stageName: 'prod',
-      autoDeploy: true,
-    });
+
+    // Create or update the stage
+    const stageName = 'prod';
+    let stage = httpApi.defaultStage;
+
+    if (!stage) {
+      stage = new apigatewayv2.HttpStage(this, 'ProdStage', {
+        httpApi,
+        stageName,
+        autoDeploy: true,
+      });
+    }
 
     // Configure access logging for the stage
     const cfnStage = stage.node.defaultChild as apigatewayv2.CfnStage;
@@ -118,6 +126,14 @@ export class HandTermCdkStack extends Stack {
         responseLength: "$context.responseLength"
       })
     };
+
+    // Ensure the stage is set as the default stage for the API
+    if (stage !== httpApi.defaultStage) {
+      httpApi.addStage('default', {
+        stageName,
+        autoDeploy: true,
+      });
+    }
 
     // Cognito User Pool Client
     const userPoolClient = new cognito.UserPoolClient(this, 'UserPoolClient', {
