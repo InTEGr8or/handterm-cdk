@@ -104,6 +104,10 @@ export class HandTermCdkStack extends Stack {
       oAuth: {
         callbackUrls: [`${httpApi.url}oauth_callback`],
         logoutUrls: [`${httpApi.url}signout`]
+      },
+      authFlows: {
+        userPassword: true,
+        userSrp: true
       }
     });
 
