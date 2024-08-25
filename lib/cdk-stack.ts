@@ -2,6 +2,7 @@
 import { ENDPOINTS } from '../lambda/cdkshared/endpoints';
 import { getGitHubSecrets } from './utils/githubSecrets';
 import { createLambdaIntegration } from './utils/lambdaUtils';
+import * as s3 from 'aws-cdk-lib/aws-s3';
 import {
   aws_cognito as cognito,
   aws_s3 as s3,
@@ -157,8 +158,9 @@ export class HandTermCdkStack extends Stack {
 
     // Define the Logs Bucket
     const logsBucket = new s3.Bucket(this, 'LogsBucket', {
-      removalPolicy: RemovalPolicy.DESTROY,
-      autoDeleteObjects: true,
+      bucketName: ENDPOINTS.aws.s3.bucketName,
+      removalPolicy: RemovalPolicy.RETAIN,
+      autoDeleteObjects: false,
     });
 
     // Define the Lambda Execution Role
@@ -289,7 +291,7 @@ export class HandTermCdkStack extends Stack {
       codePath: 'lambda/userStorage',
       environment: {
         COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
-        BUCKET_NAME: logsBucket.bucketName,
+        BUCKET_NAME: ENDPOINTS.aws.s3.bucketName,
       },
       httpApi: httpApi,
       path: ENDPOINTS.api.GetUser,
