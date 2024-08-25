@@ -1,7 +1,7 @@
-import { APIGatewayTokenAuthorizerEvent, APIGatewayAuthorizerResult, StatementEffect } from 'aws-lambda';
-import { CognitoIdentityServiceProvider } from 'aws-sdk';
+import { APIGatewayTokenAuthorizerEvent, APIGatewayAuthorizerResult } from 'aws-lambda';
+import { CognitoIdentityProviderClient, GetUserCommand } from '@aws-sdk/client-cognito-identity-provider';
 
-const cognito = new CognitoIdentityServiceProvider();
+const cognitoClient = new CognitoIdentityProviderClient({ region: 'us-east-1' });
 
 export const handler = async (event: APIGatewayTokenAuthorizerEvent): Promise<APIGatewayAuthorizerResult> => {
     console.log('Authorizer invoked with event:', JSON.stringify(event, null, 2));
@@ -24,12 +24,17 @@ export const handler = async (event: APIGatewayTokenAuthorizerEvent): Promise<AP
     }
 
     try {
-        const response = await cognito.getUser({
+        const command = new GetUserCommand({
             AccessToken: token
-        }).promise();
+        });
+        const response = await cognitoClient.send(command);
 
         console.log('Cognito getUser response:', JSON.stringify(response, null, 2));
         const userId = response.Username;
+
+        if (!userId) {
+            throw new Error('UserId not found in Cognito response');
+        }
 
         return generatePolicy(userId, 'Allow', event.methodArn, { userId });
     } catch (error) {
@@ -38,7 +43,7 @@ export const handler = async (event: APIGatewayTokenAuthorizerEvent): Promise<AP
     }
 };
 
-function generatePolicy(principalId: string, effect: StatementEffect, resource: string, context = {}): APIGatewayAuthorizerResult {
+function generatePolicy(principalId: string, effect: 'Allow' | 'Deny', resource: string, context = {}): APIGatewayAuthorizerResult {
     console.log(`Generating policy: principalId=${principalId}, effect=${effect}, resource=${resource}, context=${JSON.stringify(context)}`);
     return {
         principalId,
