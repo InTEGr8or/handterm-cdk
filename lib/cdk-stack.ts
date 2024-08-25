@@ -6,6 +6,8 @@ import {
   aws_cognito as cognito,
   aws_s3 as s3,
   aws_lambda as lambda,
+  aws_logs as logs,
+  aws_apigatewayv2 as apigatewayv2,
   RemovalPolicy,
   aws_iam as iam,
   App,
@@ -96,11 +98,19 @@ export class HandTermCdkStack extends Stack {
 
     // Add access logging to the API Gateway
     const logGroup = new logs.LogGroup(this, 'ApiGatewayAccessLogs');
-    httpApi.addStage('prod', {
+    const stage = httpApi.addStage('prod', {
       stageName: 'prod',
       autoDeploy: true,
-      accessLogDestination: new apigatewayv2.LogGroupLogDestination(logGroup),
-      accessLogFormat: apigatewayv2.AccessLogFormat.clf(),
+    });
+
+    // Configure access logging for the stage
+    new apigatewayv2.CfnStage(this, 'ProdStageWithLogs', {
+      apiId: httpApi.apiId,
+      stageName: stage.stageName,
+      accessLogSettings: {
+        destinationArn: logGroup.logGroupArn,
+        format: apigatewayv2.AccessLogFormat.clf().toString(),
+      },
     });
 
     // Cognito User Pool Client
