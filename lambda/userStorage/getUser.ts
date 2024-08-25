@@ -51,13 +51,15 @@ export const handler = async (event: any) => {
 
         const objectKey = `user_data/${userId}/_index.md`;
         console.log('objectKey:', objectKey);
+        console.log('BUCKET_NAME:', process.env.BUCKET_NAME);
 
         try {
             console.log('Attempting to check if object exists');
-            await s3.headObject({
+            const headResult = await s3.headObject({
                 Bucket: process.env.BUCKET_NAME || 'handterm',
                 Key: objectKey
             }).promise();
+            console.log('Head object result:', JSON.stringify(headResult, null, 2));
 
             console.log('Object exists, proceeding to get object');
             const s3Response = await s3.getObject({
@@ -79,6 +81,7 @@ export const handler = async (event: any) => {
             };
         } catch (err: unknown) {
             const error = err as AWS.AWSError;
+            console.error('S3 operation error:', JSON.stringify(error, null, 2));
 
             if (error.code === 'NoSuchKey' || error.code === 'NotFound') {
                 console.log('Profile does not exist yet for userId:', userId);
