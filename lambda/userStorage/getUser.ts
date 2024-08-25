@@ -5,6 +5,7 @@ import * as AWS from 'aws-sdk';
 const s3 = new AWS.S3({ region: 'us-east-1' });
 
 export const handler = async (event: any) => {
+    console.log('GetUserFunction started');
     try {
         console.log('Received event:', JSON.stringify(event, null, 2));
         
@@ -29,11 +30,13 @@ export const handler = async (event: any) => {
         console.log('objectKey:', objectKey);
 
         try {
+            console.log('Attempting to check if object exists');
             await s3.headObject({
                 Bucket: 'handterm',
                 Key: objectKey
             }).promise();
 
+            console.log('Object exists, proceeding to get object');
             // If headObject succeeds, the object exists, and you can proceed to get the object
             const s3Response = await s3.getObject({
                 Bucket: 'handterm',
@@ -41,8 +44,9 @@ export const handler = async (event: any) => {
             }).promise();
 
             const fileContent = s3Response.Body?.toString('utf-8');
-            console.log('fileContent: ', fileContent);
+            console.log('File content retrieved:', fileContent);
 
+            console.log('GetUserFunction completed successfully');
             return {
                 statusCode: 200,
                 body: JSON.stringify({ userId: userId, content: fileContent }),
@@ -73,5 +77,7 @@ export const handler = async (event: any) => {
             statusCode: 500, 
             body: JSON.stringify({ message: 'Internal Server Error', error: (err as Error).message }) 
         };
+    } finally {
+        console.log('GetUserFunction ended');
     }
 };
