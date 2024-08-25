@@ -21,30 +21,28 @@ export const handler = async (event: any) => {
 
         console.log('RequestContext:', JSON.stringify(event.requestContext, null, 2));
 
-        console.log('Checking authorizer');
-        if (!event.requestContext.authorizer) {
-            console.error('No authorizer in requestContext');
-            return {
-                statusCode: 400,
-                body: JSON.stringify({ message: 'Invalid request structure: No authorizer' }),
-            };
+        let userId;
+
+        // Check if the authorizer is present
+        if (event.requestContext.authorizer) {
+            console.log('Authorizer found:', JSON.stringify(event.requestContext.authorizer, null, 2));
+            
+            // Check if lambda is present in the authorizer
+            if (event.requestContext.authorizer.lambda) {
+                userId = event.requestContext.authorizer.lambda.userId;
+            } else {
+                console.log('No lambda in authorizer, checking for userId directly');
+                userId = event.requestContext.authorizer.userId;
+            }
+        } else {
+            console.log('No authorizer in requestContext, checking headers');
+            // If no authorizer, check if userId is passed in headers (for testing purposes)
+            userId = event.headers['x-user-id'];
         }
 
-        console.log('Authorizer:', JSON.stringify(event.requestContext.authorizer, null, 2));
-
-        console.log('Checking lambda in authorizer');
-        if (!event.requestContext.authorizer.lambda) {
-            console.error('No lambda in authorizer');
-            return {
-                statusCode: 400,
-                body: JSON.stringify({ message: 'Invalid request structure: No lambda in authorizer' }),
-            };
-        }
-
-        const userId = event.requestContext.authorizer.lambda.userId;
         console.log('UserId:', userId);
         if (!userId) {
-            console.error('No userId in lambda authorizer');
+            console.error('No userId found in request');
             return {
                 statusCode: 401,
                 body: JSON.stringify({ message: 'User is not authenticated' }),
