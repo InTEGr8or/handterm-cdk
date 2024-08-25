@@ -55,13 +55,13 @@ export const handler = async (event: any) => {
         try {
             console.log('Attempting to check if object exists');
             await s3.headObject({
-                Bucket: 'handterm',
+                Bucket: process.env.BUCKET_NAME || 'handterm',
                 Key: objectKey
             }).promise();
 
             console.log('Object exists, proceeding to get object');
             const s3Response = await s3.getObject({
-                Bucket: 'handterm',
+                Bucket: process.env.BUCKET_NAME || 'handterm',
                 Key: objectKey
             }).promise();
 

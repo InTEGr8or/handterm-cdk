@@ -2836,3 +2836,640 @@
 
 # 2024-08-24 09:01:17.630735
 +I am using Cognito to authenticate the user and create a `GitHubIdentityProvider`. Does Cognito have features to store the GitHub token? Considering your advice above, I definitely want to use server-side storage of the token, but I think Secrets Manager might be a little expensive to use on each user.
+
+# 2024-08-24 09:19:10.466332
++I don't see `COGNITO_USER_POOL_ID` being set or used anywhere. Should that be in the `cdk-stack.ts`? I don't see any changes in that file. I don't see the custom attribute that you were saying I should add to the Cognito User Pool.
+
+# 2024-08-24 09:35:39.731840
++/help
+
+# 2024-08-24 09:43:02.573432
++/add lib\cdk-stack.ts
+
+# 2024-08-24 09:43:19.583478
++/add lambda\authentication\oauth_callback.ts
+
+# 2024-08-24 09:58:50.002358
++When I receive a token back from the OAuth process, I'm not sure what to do with it. I want the user to be able to query a list of recent repos and select one for editing. I don't want to have to re-authenticate each time I make a request to GitHub, but I don't want to store the auth token on the client side. AWS Secrets Manager is a bit expensive to use for each user. Does Cognito have any feature that would allow me to store the GitHub token? What are the best options?
+
+# 2024-08-24 10:34:46.484573
++You seem to have duplicated some code, some of which was already there in the file you tried to create but that already existed: ```[{
++"resource": "/C:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/listRecentRepos.ts",
++"owner": "typescript",
++"code": "2300",
++"severity": 8,
++"message": "Duplicate identifier 'APIGatewayProxyEvent'.",
++"source": "ts",
++"startLineNumber": 1,
++"startColumn": 10,
++"endLineNumber": 1,
++"endColumn": 30
++},{
++"resource": "/C:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/listRecentRepos.ts",
++"owner": "typescript",
++"code": "2300",
++"severity": 8,
++"message": "Duplicate identifier 'APIGatewayProxyResult'.",
++"source": "ts",
++"startLineNumber": 1,
++"startColumn": 32,
++"endLineNumber": 1,
++"endColumn": 53
++},{
++"resource": "/C:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/listRecentRepos.ts",
++"owner": "typescript",
++"code": "2451",
++"severity": 8,
++"message": "Cannot redeclare block-scoped variable 'handler'.",
++"source": "ts",
++"startLineNumber": 4,
++"startColumn": 14,
++"endLineNumber": 4,
++"endColumn": 21
++},{
++"resource": "/C:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/listRecentRepos.ts",
++"owner": "typescript",
++"code": "2300",
++"severity": 8,
++"message": "Duplicate identifier 'APIGatewayProxyEvent'.",
++"source": "ts",
++"startLineNumber": 62,
++"startColumn": 10,
++"endLineNumber": 62,
++"endColumn": 30
++},{
++"resource": "/C:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/listRecentRepos.ts",
++"owner": "typescript",
++"code": "2300",
++"severity": 8,
++"message": "Duplicate identifier 'APIGatewayProxyResult'.",
++"source": "ts",
++"startLineNumber": 62,
++"startColumn": 32,
++"endLineNumber": 62,
++"endColumn": 53
++},{
++"resource": "/C:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/listRecentRepos.ts",
++"owner": "typescript",
++"code": "2451",
++"severity": 8,
++"message": "Cannot redeclare block-scoped variable 'handler'.",
++"source": "ts",
++"startLineNumber": 66,
++"startColumn": 14,
++"endLineNumber": 66,
++"endColumn": 21
++}]```
+
+# 2024-08-24 10:36:50.237515
++There is still a duplicated `import` section at line 58 in `listRecentRepos.ts`. Are you able to clean up the code duplication you created?
+
+# 2024-08-24 10:44:37.622828
++You are using `fetch` in the `listRecentRepos.ts` that you just edited. Is that a good idea? This is part of a CDK project. Does `fetch` work in the AWS Lambda environment, or would we have to add a Layer?
+
+# 2024-08-24 10:47:17.118672
++ls
+
+# 2024-08-24 10:47:26.227436
++/ls
+
+# 2024-08-24 10:50:19.728834
++The `oauth_callback.ts` is using `import { request } from 'https';`, which is natively supported by AWS Lambda environments, but you added the `axios` library. Can you explain why? You are the React/Nodejs expert and you know much more about AWS CDK and Lambda than I do, so I am curious what your thought process is in adding that additional dependency. Can you guide me through what you are thinking?
+
+# 2024-08-24 10:53:58.656839
++Why not use `https` in the `listRecentRepos.ts`? Also, should I upgrade to a newer version of Node? Is `axios` available in AWS Lamba `NODEJS_16_X`?
+
+# 2024-08-24 11:04:11.387184
++I am getting this error: ```[{
++"resource": "/C:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/listRecentRepos.ts",
++"owner": "typescript",
++"code": "1192",
++"severity": 8,
++"message": "Module '\"https\"' has no default export.",
++"source": "ts",
++"startLineNumber": 3,
++"startColumn": 8,
++"endLineNumber": 3,
++"endColumn": 13
++},{
++"resource": "/C:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/listRecentRepos.ts",
++"owner": "typescript",
++"code": "7006",
++"severity": 8,
++"message": "Parameter 'res' implicitly has an 'any' type.",
++"source": "ts",
++"startLineNumber": 45,
++"startColumn": 43,
++"endLineNumber": 45,
++"endColumn": 46
++},{
++"resource": "/C:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/listRecentRepos.ts",
++"owner": "typescript",
++"code": "7006",
++"severity": 8,
++"message": "Parameter 'chunk' implicitly has an 'any' type.",
++"source": "ts",
++"startLineNumber": 47,
++"startColumn": 25,
++"endLineNumber": 47,
++"endColumn": 30
++},{
++"resource": "/C:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/listRecentRepos.ts",
++"owner": "typescript",
++"code": "7006",
++"severity": 8,
++"message": "Parameter 'error' implicitly has an 'any' type.",
++"source": "ts",
++"startLineNumber": 51,
++"startColumn": 24,
++"endLineNumber": 51,
++"endColumn": 29
++}]```. You are importing `https` in a way that is different than the exammple I gave you above from `oauth_callback.ts`, `import { request } from 'https';`. Can you explain why?
+
+# 2024-08-24 11:22:18.393610
++I am getting 'User is not authenticated.' in the browser. What does that tell us about what is going wrong? It looks like that means the code has gotten past the token fetch. Does that mean we've authenticated with GitHub but we don't have a Cognito identity yet? 
+
+# 2024-08-24 11:43:28.320659
++That is a good idea. I've deployed the changes. Now I am getting this response: `{"message":"An error occurred while handling the OAuth callback.","error":"Missing required key 'UserPoolId' in params"}`
+
+# 2024-08-24 11:49:20.325375
++I've deployed it and now I am getting this error: ```{"message":"An error occurred while handling the OAuth callback.","error":"User: arn:aws:sts::318364255844:assumed-role/HandTermCdkStack-LambdaExecutionRoleD5C26073-z98LSirMNrpo/HandTermCdkStack-OAuthCallbackFunction09B806B4-UMTMQ0tgg127 is not authorized to perform: cognito-idp:AdminCreateUser on resource: arn:aws:cognito-idp:us-east-1:318364255844:userpool/us-east-1_TL47OLcyI because no identity-based policy allows the cognito-idp:AdminCreateUser action"}```. 
+
+# 2024-08-24 12:00:26.215784
++Ok, now I am getting this: ```{"message":"An error occurred while handling the OAuth callback.","error":"Username should be an email."}```. I would like to store all GitHub users' email addresses and usernames, but I set up Cognito to use email as the user name.
+
+# 2024-08-24 12:02:08.763895
++Can I request a list of all Cognito users from the AWS CLI? I already have it installed and configured.
+
+# 2024-08-24 12:07:06.187550
++Ok, I deployed the above changes and now I am getting this error: ```{"message":"An error occurred while handling the OAuth callback.","error":"Missing required key 'Username' in params"}```
+
+# 2024-08-24 12:13:01.212152
++I deployed again, but I am getting this error: ```{"message":"An error occurred while handling the OAuth callback.","error":"Username should be an email."}```. I am wondering if an email is retrieved, or if the `github_${githubUser.id}` does not produce a valid email.
+
+# 2024-08-24 12:17:24.154638
++That change is causing this error: ```[{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/oauth_callback.ts",
++"owner": "typescript",
++"code": "1308",
++"severity": 8,
++"message": "'await' expressions are only allowed within async functions and at the top levels of modules.",
++"source": "ts",
++"startLineNumber": 165,
++"startColumn": 22,
++"endLineNumber": 165,
++"endColumn": 27,
++"relatedInformation": [
++{
++"startLineNumber": 152,
++"startColumn": 22,
++"endLineNumber": 152,
++"endColumn": 44,
++"message": "Did you mean to mark this function as 'async'?",
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/oauth_callback.ts"
++}
++]
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/oauth_callback.ts",
++"owner": "typescript",
++"code": "1308",
++"severity": 8,
++"message": "'await' expressions are only allowed within async functions and at the top levels of modules.",
++"source": "ts",
++"startLineNumber": 181,
++"startColumn": 23,
++"endLineNumber": 181,
++"endColumn": 28,
++"relatedInformation": [
++{
++"startLineNumber": 152,
++"startColumn": 22,
++"endLineNumber": 152,
++"endColumn": 44,
++"message": "Did you mean to mark this function as 'async'?",
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/oauth_callback.ts"
++}
++]
++}]```
+
+# 2024-08-24 12:23:57.377137
++Now I am getting this error: ```{"message":"An error occurred while handling the OAuth callback.","error":"emailData.find is not a function"}```. Maybe we should output all the GitHub information returned so that we can see what we can parse?
+
+# 2024-08-24 17:13:46.398065
++That gives me information like this: ```2024-08-24T22:51:38.676Zbbfdfbec-7193-4703-86fe-3dd54a823f92INFOParsed user data: 
++{
++    "login": "InTEGr8or",
++    "id": 1802850,
++    "node_id": "MDQ6VXNlcjE4MDI4NTA=",
++    "avatar_url": "https://avatars.githubusercontent.com/u/1802850?v=4",
++    "gravatar_id": "",
++    "url": "https://api.github.com/users/InTEGr8or",
++    "html_url": "https://github.com/InTEGr8or",
++    "followers_url": "https://api.github.com/users/InTEGr8or/followers",
++    "following_url": "https://api.github.com/users/InTEGr8or/following{/other_user}",
++    "gists_url": "https://api.github.com/users/InTEGr8or/gists{/gist_id}",
++    "starred_url": "https://api.github.com/users/InTEGr8or/starred{/owner}{/repo}",
++    "subscriptions_url": "https://api.github.com/users/InTEGr8or/subscriptions",
++    "organizations_url": "https://api.github.com/users/InTEGr8or/orgs",
++    "repos_url": "https://api.github.com/users/InTEGr8or/repos",
++    "events_url": "https://api.github.com/users/InTEGr8or/events{/privacy}",
++    "received_events_url": "https://api.github.com/users/InTEGr8or/received_events",
++    "type": "User",
++    "site_admin": false,
++    "name": "Mark Stouffer",
++    "company": null,
++    "blog": "https://whywe.tech",
++    "location": "OC, CA",
++    "email": null,
++    "hireable": true,
++    "bio": "C#, SQL, Javascript, Powershell, Node.js, Python scripting, et al.\r\n\r\nCoder. Tech advocate. ",
++    "twitter_username": "WhyWeTech",
++    "notification_email": null,
++    "public_repos": 73,
++    "public_gists": 16,
++    "followers": 6,
++    "following": 5,
++    "created_at": "2012-06-01T04:28:26Z",
++    "updated_at": "2024-08-04T18:23:47Z"
++}
++
++2024-08-24T22:51:38.676Zbbfdfbec-7193-4703-86fe-3dd54a823f92INFOParsed email data: 
++{
++    "message": "Resource not accessible by integration",
++    "documentation_url": "https://docs.github.com/rest/users/emails#list-email-addresses-for-the-authenticated-user",
++    "status": "403"
++}
++
++2024-08-24T22:51:38.676Zbbfdfbec-7193-4703-86fe-3dd54a823f92INFOEmail data is not an array: object
++2024-08-24T22:51:38.676Zbbfdfbec-7193-4703-86fe-3dd54a823f92INFOGitHub user data: 
++{
++    "id": "1802850",
++    "login": "InTEGr8or",
++    "email": "github_1802850@example.com"
++}
++```. I don't think a new Cognito user was created. I am deciding that I should only create a new Cognito user from GitHub if they expose their email from GitHub. If their GitHub doesn't expose the email, it should only be used to link a GitHub account to an already existing and authenticated Cognito account.
+
+# 2024-08-24 20:12:19.532871
++When I try to sign in I get this error now: ```2024-08-25T02:13:53.126Z28ab12eb-ca4c-4223-a1f9-864e1290439fERRORSignIn error: InvalidParameterException: USER_PASSWORD_AUTH flow not enabled for this client
++    at Request.extractError (/var/runtime/node_modules/aws-sdk/lib/protocol/json.js:61:27)
++    at Request.callListeners (/var/runtime/node_modules/aws-sdk/lib/sequential_executor.js:106:20)
++    at Request.emit (/var/runtime/node_modules/aws-sdk/lib/sequential_executor.js:78:10)
++    at Request.emit (/var/runtime/node_modules/aws-sdk/lib/request.js:686:14)
++    at Request.transition (/var/runtime/node_modules/aws-sdk/lib/request.js:22:10)
++    at AcceptorStateMachine.runTo (/var/runtime/node_modules/aws-sdk/lib/state_machine.js:14:12)
++    at /var/runtime/node_modules/aws-sdk/lib/state_machine.js:26:10
++    at Request.<anonymous> (/var/runtime/node_modules/aws-sdk/lib/request.js:38:9)
++    at Request.<anonymous> (/var/runtime/node_modules/aws-sdk/lib/request.js:688:12)
++    at Request.callListeners (/var/runtime/node_modules/aws-sdk/lib/sequential_executor.js:116:18) {
++  code: 'InvalidParameterException',
++  time: 2024-08-25T02:13:53.084Z,
++  requestId: '339c99ef-dc68-4e90-9b48-ab933577f8d0',
++  statusCode: 400,
++  retryable: false,
++  retryDelay: 81.92041534293853
++}```
+
+# 2024-08-24 20:59:03.795755
++When I try to use the `GetUserFunction` I get a HTTP 500 error now: ```Request URL:
++https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/getUser
++Request Method:
++GET
++Status Code:
++500 Internal Server Error
++Remote Address:
++54.87.106.81:443
++Referrer Policy:
++strict-origin-when-cross-origin
++```
+
+# 2024-08-24 21:03:07.207656
++Ok, but there was already a `console.log()` in there, and the CloudWatch log at `arn:aws:logs:us-east-1:318364255844:log-group:/aws/lambda/HandTermCdkStack-GetUserFunctionD3D353B4-q2BRCfPiy27i:*` does not show any log items for the past 2 days.
+
+# 2024-08-24 21:14:20.111510
++I've deployed the updated code with the additional loging and then I log in and then I execute it again and I get a HTTP 500: `useAuth.ts:224 
++ 
++ GET https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/getUser 500 (Internal Server Error)`, and CloudWatch shows _no new logs_. I don't think adding addtional logging will fix that because I don't think the function is being run, which is why it's not generating logs.
+
+# 2024-08-24 21:26:06.489367
++I don't think that addresses the problem. I was able to sign in and the `SignInFunction` does not have special permissions created for it. We should not be doing ad hoc onsey-twosey modifications of each function. Wouldn't all the Lambda functions need the permissions you attached to the `GetUserFunction` _if that were the problem_? Would that missing permissoin even result in a 500 error? Is there another CloudWatch log for the APIGateway that might have more info?
+
+# 2024-08-24 21:32:53.263585
++That causes these errors: ```[{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2448",
++"severity": 8,
++"message": "Block-scoped variable 'logsBucket' used before its declaration.",
++"source": "ts",
++"startLineNumber": 145,
++"startColumn": 17,
++"endLineNumber": 145,
++"endColumn": 27,
++"relatedInformation": [
++{
++"startLineNumber": 178,
++"startColumn": 11,
++"endLineNumber": 178,
++"endColumn": 21,
++"message": "'logsBucket' is declared here.",
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts"
++}
++]
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2454",
++"severity": 8,
++"message": "Variable 'logsBucket' is used before being assigned.",
++"source": "ts",
++"startLineNumber": 145,
++"startColumn": 17,
++"endLineNumber": 145,
++"endColumn": 27
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2448",
++"severity": 8,
++"message": "Block-scoped variable 'logsBucket' used before its declaration.",
++"source": "ts",
++"startLineNumber": 146,
++"startColumn": 20,
++"endLineNumber": 146,
++"endColumn": 30,
++"relatedInformation": [
++{
++"startLineNumber": 178,
++"startColumn": 11,
++"endLineNumber": 178,
++"endColumn": 21,
++"message": "'logsBucket' is declared here.",
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts"
++}
++]
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2454",
++"severity": 8,
++"message": "Variable 'logsBucket' is used before being assigned.",
++"source": "ts",
++"startLineNumber": 146,
++"startColumn": 20,
++"endLineNumber": 146,
++"endColumn": 30
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2339",
++"severity": 8,
++"message": "Property 'addPermission' does not exist on type 'void'.",
++"source": "ts",
++"startLineNumber": 256,
++"startColumn": 21,
++"endLineNumber": 256,
++"endColumn": 34
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2339",
++"severity": 8,
++"message": "Property 'httpApiArn' does not exist on type 'HttpApi'.",
++"source": "ts",
++"startLineNumber": 258,
++"startColumn": 29,
++"endLineNumber": 258,
++"endColumn": 39
++}]```
+
+# 2024-08-24 21:34:12.140818
++That still gives me these errors: ```[{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2451",
++"severity": 8,
++"message": "Cannot redeclare block-scoped variable 'logsBucket'.",
++"source": "ts",
++"startLineNumber": 118,
++"startColumn": 11,
++"endLineNumber": 118,
++"endColumn": 21
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2451",
++"severity": 8,
++"message": "Cannot redeclare block-scoped variable 'logsBucket'.",
++"source": "ts",
++"startLineNumber": 184,
++"startColumn": 11,
++"endLineNumber": 184,
++"endColumn": 21
++}]```
+
+# 2024-08-24 22:04:40.709122
++Should we add access logging to the APIGateway? The HTTP request to `getUser` seems to be hitting an endpoint somewhere but not being routed to a function.
+
+# 2024-08-25 07:29:37.313559
++Now I am getting this error: ```[{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'logs'.",
++"source": "ts",
++"startLineNumber": 98,
++"startColumn": 26,
++"endLineNumber": 98,
++"endColumn": 30
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2353",
++"severity": 8,
++"message": "Object literal may only specify known properties, and 'accessLogDestination' does not exist in type 'HttpStageOptions'.",
++"source": "ts",
++"startLineNumber": 102,
++"startColumn": 7,
++"endLineNumber": 102,
++"endColumn": 27
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'apigatewayv2'.",
++"source": "ts",
++"startLineNumber": 102,
++"startColumn": 33,
++"endLineNumber": 102,
++"endColumn": 45
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'apigatewayv2'.",
++"source": "ts",
++"startLineNumber": 103,
++"startColumn": 24,
++"endLineNumber": 103,
++"endColumn": 36
++}]```
+
+# 2024-08-25 07:31:19.401116
++Now I am getting this error: ```[{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2339",
++"severity": 8,
++"message": "Property 'AccessLogFormat' does not exist on type 'typeof import(\"c:/Users/xgenx/source/repos/handterm-cdk/node_modules/aws-cdk-lib/aws-apigatewayv2/index\")'.",
++"source": "ts",
++"startLineNumber": 112,
++"startColumn": 30,
++"endLineNumber": 112,
++"endColumn": 45
++}]```
+
+# 2024-08-25 08:05:28.813372
++When I `cdk deploy` it I get this error: ```HandTermCdkStack |  2/78 | 8:04:20 AM | CREATE_FAILED        | AWS::ApiGatewayV2::Stage               | ProdStageWithLogs Stage already exists (Service: AmazonApiGatewayV2; Status Code: 409; Error Code: ConflictException; Request ID: 751febd1-d164-4798-a3f8-2521948119c1; Proxy: null)
++HandTermCdkStack |  2/78 | 8:04:20 AM | UPDATE_FAILED        | AWS::IAM::Role                         | LambdaExecutionRole (LambdaExecutionRoleD5C26073) Resource update cancelled```
+
+# 2024-08-25 08:11:01.828764
++Doesn't that mean that the CDK no longer works if the stage doesn't already exist? I think they CDK is supposed to be idempotent.
+
+# 2024-08-25 11:32:07.545332
++I want to create a test for `getUser` in a `.http` file. I want to run `GET https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/getUser` but I know that I have to request a token first and provide some credentials. I have a file at `test/getUser.http`. Can you help me implement the entire authentication flow in it?
+
+# 2024-08-25 11:40:47.797498
++I got to sign in, but I don't think you stored the refresh token, because `refreshToken` doesn't work.
+
+# 2024-08-25 12:03:54.404456
++I don't think the problem was with the server-side functions bease I could already see these values in the body of the `signIn` response: ```{
++  "AccessToken": "eyJraWQiOiJ2cG52eTk5ZVZlVTFJMU5YUWlcL3RlVmc5NSszbVwvc3pQUjloNzJQMm53ZFU9IiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiI2NDU4MTRhOC1kMDYxLTcwYTAtNTc5Ni1kN2RmMWFkMmIyZGEiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAudXMtZWFzdC0xLmFtYXpvbmF3cy5jb21cL3VzLWVhc3QtMV9UTDQ3T0xjeUkiLCJjbGllbnRfaWQiOiJmZTBxZjdiOXFtNmYxdDY2ZG5udGdtMDdxIiwib3JpZ2luX2p0aSI6IjBmODgxNTE1LWJiY2MtNDA1Ny1iN2RlLWIwOWE5ZTY4ZWFhYiIsImV2ZW50X2lkIjoiNzk1NDZjMWQtOWNhNi00NDA1LWJiMjItNTk0YjllYTI4Y2FjIiwidG9rZW5fdXNlIjoiYWNjZXNzIiwic2NvcGUiOiJhd3MuY29nbml0by5zaWduaW4udXNlci5hZG1pbiIsImF1dGhfdGltZSI6MTcyNDYxMTgyMCwiZXhwIjoxNzI0NjE1NDIwLCJpYXQiOjE3MjQ2MTE4MjAsImp0aSI6ImM5MjQ5N2NiLThkNzQtNDc1NC1iZTliLWQ5ZmJjMWY1OTQ5MSIsInVzZXJuYW1lIjoiNjQ1ODE0YTgtZDA2MS03MGEwLTU3OTYtZDdkZjFhZDJiMmRhIn0.JGEmzl4CUAND_UCLNPCXVHpIqMBMe1ICSD8csZYsIK9IUDfSYeVAnLZEKz23BmQMePd3sY7eIuRrcEwHzknbNEqH7UCBRUSZIoupvWfVnG73zVOAaJLIqMgpGriM8UOi9NAcNVZacMOKOnEt299IsNIzYpyw8XsWi-3EEBhyTN25Y7TemxhnpmsIviE-ymGgMR86k-m56Iei0Jy5tj0-ZDRVrJs40Z2Hut-JjBQef9f4yQnhbwU-p6NdbEtPLhRe1SLAmXsAp7CdBs5wJwfM4eI3AZ-DdXCMHb7PxXD6RTNe4IOoByxlXAU-XNpEC6QmSEtFy8ZizKnCmiQ2R-I3mA",
++  "ExpiresIn": 3600,
++  "TokenType": "Bearer",
++  "RefreshToken": "eyJjdHkiOiJKV1QiLCJlbmMiOiJBMjU2R0NNIiwiYWxnIjoiUlNBLU9BRVAifQ.MXeDH3LmJmV6l0Oy513r1l8NB2JSNWGeczqgkbHMNbu-ZHBt1VkCRxoVAc85u5GWZivGK8kSOXsIkcSIiTX-cdGU0GxFsleTsVU_AV6Uuvn47FChIJ_Fxdl0d_oTybZ5fQE_y_AfD_OfvacieWMcasSZdB-lEO8IFyjKqHBu5lKFuhMLh9005DG8ZAVf-8r2XrBKEtYeiFdKQMwgnW8GFBDaUH_qLVm3I4zg0ihJK-P7KfRF2WYA4ptdQkFQLmRXyOhBjEhM5KvOsG1yU0-hxSDMxWf8_yreNGJn20cMh8DY_4DrgdYQpdkhQrpGtm47fSKFmDbhTTLuce8Fjczzbg.3wcyEtAWzHxPDxVn.dNY4a1kxQejEwy100lccnXdAvqCoLvPAHn3KWmzeVcBWEljIZ3qaIOtCzFCCmw-g3EQXaslvfbdyu55y2VaMrOq_JSSJklGupmWP_pKNKlIe6N1msVr4xPQCta66rGxUSUfBRQQ5q51tQRDjtD2LaQw2YOjTsU1XLAe84kasyN70BqGFR-s0uK1F06NdJdQuJ71sf1zbGWfH2bzVAwGOptA8_orZFdHdJYRgIMyV_3Nwv4dTmo9kc8fLcfTlCMwpZMuP4jCIH5TuMMKJlgdEXP0td_Nm-lZEdTM6l_7MS2jnROb1w6uPtdtTwnFa-fNu_K7kkNSXE645IGL8pZZGtibfh7AvuL-I-oz-uWRJMOkhEeuy04uh2LjGtNCBU1Bfe0fXhi7WmfXLKaSjF7VZzLaP7xnfW9d7F39WEdfKg7wJ6uMZqFgRTj5LYR6ZTK2Ldl2QXHwwf7eSLOCVNs0Xgx8BZbRql2eSB5i7W-tnRa79gsuJDjU4bdXvcDmentJMO12CXDC_8nYB5r0SEs68cuxcaOiIEmUKQcDEiXdjJoMVpvxsiHH5jaqNdR-JNhPcbm0Jd0ci_QRlo2f1db5-MRW_5bZWfj8hyOeWCK6tpz1x4RS3lvlMS8Pcn8fSYsnR9MUYXQDR2wb0mHlqB8GPtxq0ofDiVpeP7GvnJBELo4xzipn3jeAUtyZCEZJiUxNpsKfXYGvvqj1hWZwq7TPDJx3imx0U9wEL4vnfdxV4XX_il_jmGUfh3cakQ5eWbNGdE3Z_G3gzgx33_uNtCv01Kga_XdQysA8pijhqAGh3rXQa9uL0V0mfR9jlHKEy4eBAyNkmeUJL72M1IqSPTMbYbdyi1US39ES-EUx-yT_Mdc7CIKvNf15BwMhbTUfspRP77zzotw2ylnbJOIeCBo-ufhPguesEnp8lUViid7uey1MRpW0ymCRSGtFjDmimgJSXNTLyNAj7rNZJfA1DluXsk-tBpUgtngJ8NAcvxfEroGu7kxWJFhI2sz-Nwha0H2z1VQhMri13r_1JMj8caOTxwLkvKMKr_xKQGBlJ-gE0GNzu_sZi2XQ1Gh3cRlBad1qOmx-DgRhynRGzSkdH7dKB1ianJeRKs0tKVEhu8alfMs-TgmWKNOQwMKND2QeLWvfaaVgK32wgPiUv8fJ2S-Ul7GxIKwN86SavdE1EaLHHX27i-Hab390tGX94fSHpH33m09u5tqciJiBrhi_DlYjR_V3oKzKHrmaH50chltqPcgQ1UB0fKzL6A1Z1VqwKVCYuzoTkxANfQMYflerq_LqLpHo_PqoS7O5aw2Apn_Hr-W-4E0d-lzek5N2V.DZoSqabchCsXTEGs3dgDKg",
++  "IdToken": "eyJraWQiOiJ6SldrNXZ1XC81TUVXc2Z1YU5ZZVNPK1wvYStEaENOR3QrUmxKc2xVOThGakk9IiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiI2NDU4MTRhOC1kMDYxLTcwYTAtNTc5Ni1kN2RmMWFkMmIyZGEiLCJlbWFpbF92ZXJpZmllZCI6ZmFsc2UsImlzcyI6Imh0dHBzOlwvXC9jb2duaXRvLWlkcC51cy1lYXN0LTEuYW1hem9uYXdzLmNvbVwvdXMtZWFzdC0xX1RMNDdPTGN5SSIsImNvZ25pdG86dXNlcm5hbWUiOiI2NDU4MTRhOC1kMDYxLTcwYTAtNTc5Ni1kN2RmMWFkMmIyZGEiLCJvcmlnaW5fanRpIjoiMGY4ODE1MTUtYmJjYy00MDU3LWI3ZGUtYjA5YTllNjhlYWFiIiwiYXVkIjoiZmUwcWY3YjlxbTZmMXQ2NmRubnRnbTA3cSIsImV2ZW50X2lkIjoiNzk1NDZjMWQtOWNhNi00NDA1LWJiMjItNTk0YjllYTI4Y2FjIiwidG9rZW5fdXNlIjoiaWQiLCJhdXRoX3RpbWUiOjE3MjQ2MTE4MjAsImV4cCI6MTcyNDYxNTQyMCwiaWF0IjoxNzI0NjExODIwLCJqdGkiOiJkZjBiN2ZiNi02ZTAyLTQyNTgtODZiYy05NTRhMmIxZTg2OGQiLCJlbWFpbCI6InRlc3R1c2VyQGV4YW1wbGUuY29tIn0.SkRPKdQXYJCAyEhehW247wtEIpxq1apSZFKEvb82UTU3gYnT6ny-iZtb9J7ZCUUTCkxLkBhH2QsWwNz0IQ_FlfOOeUnNBB-DkliBy4rlyI85te8BAIxviuar1ynnaCfCgkJ5fRw87kkqJAaDq4ubCGAEE7O3FMxFM0IGU75LlhOwjxvvW81oEohJbYeeR1hsVqpx_AfBAuGAcZEe1P1uIQsMq9f_smQnrPlTOOON2vmxca6V0jIGqDQvjKonzPS4FyzGWoE9e--23NXghc8PDe80exM45ewPef24Ti8F8NYtKAd_juNdiI-uO7C33ZYD10FBWQqxHuKOdba7yO9soA"
++}```. 
+
+# 2024-08-25 12:04:49.165840
++/undo
+
+# 2024-08-25 12:12:28.577629
++`getUser` is giving me this error: ```HTTP/1.1 500 Internal Server Error
++Date: Sun, 25 Aug 2024 19:05:21 GMT
++Content-Type: application/json
++Content-Length: 35
++Connection: keep-alive
++apigw-requestid: dFEBghDtIAMEZBQ=
++
++{
++  "message": "Internal Server Error"
++}```. At this point, I can run `signIn` and get the token response, but then when I try to use the token in `getUser` it doesn't even log a CloudWatch log item.
+
+# 2024-08-25 12:42:33.493093
++You're putting more and more logging _inside_ the `getUser` function but that won't work because the `getUser` function is not even being called by the HTTP request. The only log item is from when I invoke the function in the AWS Console Test feature. Then I get: ```2024-08-25T18:22:19.343Zd0ddfdf7-add8-445d-bd56-bc4954f89430INFORequestContext: 
++{
++    "resourceId": "123456",
++    "apiId": "1234567890",
++    "resourcePath": "/{proxy+}",
++    "httpMethod": "GET",
++    "requestId": "c6af9ac6-7b61-11e6-9a41-157e1e763a28",
++    "accountId": "123456789012",
++    "stage": "prod",
++    "identity": {
++        "apiKey": null,
++        "userArn": null,
++        "cognitoAuthenticationType": null,
++        "caller": null,
++        "userAgent": "Custom User Agent String",
++        "user": null,
++        "cognitoIdentityPoolId": null,
++        "cognitoIdentityId": null,
++        "cognitoAuthenticationProvider": null,
++        "sourceIp": "127.0.0.1",
++        "accountId": null
++    },
++    "extendedRequestId": null,
++    "path": "/getUser"
++}
++
++2024-08-25T18:22:19.343Zd0ddfdf7-add8-445d-bd56-bc4954f89430ERRORNo authorizer in requestContext
++2024-08-25T18:22:19.343Zd0ddfdf7-add8-445d-bd56-bc4954f89430INFOGetUserFunction ended
++END RequestId: d0ddfdf7-add8-445d-bd56-bc4954f89430
++REPORT RequestId: d0ddfdf7-add8-445d-bd56-bc4954f89430Duration: 155.31 msBilled Duration: 156 msMemory Size: 128 MBMax Memory Used: 85 MBInit Duration: 594.81 ms```
+
+# 2024-08-25 12:45:29.937589
++I am getting this linting error now: ```[{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/test/getUser.http",
++"owner": "_generated_diagnostic_collection_name_#8",
++"severity": 4,
++"message": "Only JSON and XML response/request body is supported to query the result",
++"startLineNumber": 24,
++"startColumn": 23,
++"endLineNumber": 24,
++"endColumn": 55
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/test/getUser.http",
++"owner": "_generated_diagnostic_collection_name_#8",
++"severity": 4,
++"message": "Only JSON and XML response/request body is supported to query the result",
++"startLineNumber": 31,
++"startColumn": 20,
++"endLineNumber": 31,
++"endColumn": 59
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/test/getUser.http",
++"owner": "_generated_diagnostic_collection_name_#8",
++"severity": 4,
++"message": "Only JSON and XML response/request body is supported to query the result",
++"startLineNumber": 36,
++"startColumn": 23,
++"endLineNumber": 36,
++"endColumn": 55
++}]```
+
+# 2024-08-25 14:15:21.843505
++The functions that are not working are the ones that require an authorizer. The functions that are working are the ones that do not require the authorizer. I think the authorizer is what is causing the `getUser` to not log any output. Is the authorizer logging errors?
+
+# 2024-08-25 14:19:35.066028
++The updates are not fully deployed yet, but I noticed that I am getting errors logged from the authorizer, such as this: ```REPORT RequestId: a5baf95a-926f-4f7f-9e62-d45e310c167aDuration: 1962.50 msBilled Duration: 1963 msMemory Size: 128 MBMax Memory Used: 17 MB
++INIT_START Runtime Version: nodejs:18.v33Runtime Version ARN: arn:aws:lambda:us-east-1::runtime:b7500cbab7a13e2ee74c533d5f8cf7ca697047a4f35fad455d19cc4fa6ff8b84
++2024-08-25T21:12:18.713ZundefinedERRORUncaught Exception 
++{
++    "errorType": "Runtime.ImportModuleError",
++    "errorMessage": "Error: Cannot find module 'aws-sdk'\nRequire stack:\n- /var/task/authorizer.js\n- /var/runtime/index.mjs",
++    "stack": [
++        "Runtime.ImportModuleError: Error: Cannot find module 'aws-sdk'",
++        "Require stack:",
++        "- /var/task/authorizer.js",
++        "- /var/runtime/index.mjs",
++        "    at _loadUserApp (file:///var/runtime/index.mjs:1087:17)",
++        "    at async UserFunction.js.module.exports.load (file:///var/runtime/index.mjs:1119:21)",
++        "    at async start (file:///var/runtime/index.mjs:1282:23)",
++        "    at async file:///var/runtime/index.mjs:1288:1"
++    ]
++}
++
++INIT_REPORT Init Duration: 130.88 msPhase: initStatus: errorError Type: Runtime.ImportModuleError```
+
+# 2024-08-25 14:26:57.187353
++You changed the `aws-sdk` to `"@aws-sdk/client-cognito-identity-provider": "^3.425.0",`, probably to accomodate the `authorizer.ts`, but there are other functions that use the `aws-sdk` aren't there?Are you sure that your change won't break the dependencies for the other functions?
+
+# 2024-08-25 14:30:30.917935
++Are they compatibale? 
+
+# 2024-08-25 14:35:14.121094
++Now I am getting these errors: ```[{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/authorizer.ts",
++"owner": "typescript",
++"code": "2307",
++"severity": 8,
++"message": "Cannot find module '@aws-sdk/client-cognito-identity-provider' or its corresponding type declarations.",
++"source": "ts",
++"startLineNumber": 2,
++"startColumn": 63,
++"endLineNumber": 2,
++"endColumn": 106
++}]```
