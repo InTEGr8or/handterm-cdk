@@ -94,6 +94,15 @@ export class HandTermCdkStack extends Stack {
       },
     });
 
+    // Add access logging to the API Gateway
+    const logGroup = new logs.LogGroup(this, 'ApiGatewayAccessLogs');
+    httpApi.addStage('prod', {
+      stageName: 'prod',
+      autoDeploy: true,
+      accessLogDestination: new apigatewayv2.LogGroupLogDestination(logGroup),
+      accessLogFormat: apigatewayv2.AccessLogFormat.clf(),
+    });
+
     // Cognito User Pool Client
     const userPoolClient = new cognito.UserPoolClient(this, 'UserPoolClient', {
       userPool,
@@ -251,6 +260,9 @@ export class HandTermCdkStack extends Stack {
       methods: [HttpMethod.GET],
       authorizer: lambdaAuthorizer,
     });
+
+    // Log the GetUser endpoint for debugging
+    new CfnOutput(this, 'GetUserEndpoint', { value: `${httpApi.url}${ENDPOINTS.api.GetUser}` });
 
     createLambdaIntegration({
       scope: this,
