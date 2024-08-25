@@ -3783,3 +3783,6 @@
 
 # 2024-08-25 15:46:34.363564
 +I don't want to use a different bucket name. I have been using `handterm` as the bucket in this stack for quite some time, and all the other code points to the `handterm` bucket.
+
+# 2024-08-25 15:51:32.713912
++Will that raise an error when I try to deploy the CDK stack again? Remember, it just returned an error because the bucket already existed. I would like to not flip-flop back and forth between two unacceptable problems.
