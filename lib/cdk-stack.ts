@@ -114,6 +114,12 @@ export class HandTermCdkStack extends Stack {
     // Ensure the client is created after the identity provider
     userPoolClient.node.addDependency(userPool);
 
+    // Define the Logs Bucket
+    const logsBucket = new s3.Bucket(this, 'LogsBucket', {
+      removalPolicy: RemovalPolicy.DESTROY,
+      autoDeleteObjects: true,
+    });
+
     // Define the Lambda Execution Role
     const lambdaExecutionRole = new iam.Role(this, 'LambdaExecutionRole', {
       assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
@@ -237,7 +243,7 @@ export class HandTermCdkStack extends Stack {
       authorizer: lambdaAuthorizer,
     });
 
-    const getUserFunction = createLambdaIntegration({
+    createLambdaIntegration({
       scope: this,
       id: 'GetUserFunction',
       handler: 'getUser.handler',
@@ -250,12 +256,6 @@ export class HandTermCdkStack extends Stack {
       path: ENDPOINTS.api.GetUser,
       methods: [HttpMethod.GET],
       authorizer: lambdaAuthorizer,
-    });
-
-    // Add explicit permission for API Gateway to invoke the Lambda function
-    getUserFunction.addPermission('APIGatewayInvoke', {
-      principal: new iam.ServicePrincipal('apigateway.amazonaws.com'),
-      sourceArn: `${httpApi.httpApiArn}/*/${HttpMethod.GET}${ENDPOINTS.api.GetUser}`,
     });
 
     createLambdaIntegration({
