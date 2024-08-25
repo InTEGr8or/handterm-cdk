@@ -180,12 +180,6 @@ export class HandTermCdkStack extends Stack {
       ],
     });
 
-    // Define the Logs Bucket
-    const logsBucket = new s3.Bucket(this, 'LogsBucket', {
-      removalPolicy: RemovalPolicy.DESTROY,
-      autoDeleteObjects: true,
-    });
-
     createLambdaIntegration({
       scope: this,
       id: 'SignUpFunction',
