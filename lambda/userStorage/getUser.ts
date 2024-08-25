@@ -6,17 +6,28 @@ const s3 = new AWS.S3({ region: 'us-east-1' });
 
 export const handler = async (event: any) => {
     try {
+        console.log('Received event:', JSON.stringify(event, null, 2));
+        
+        if (!event.requestContext || !event.requestContext.authorizer || !event.requestContext.authorizer.lambda) {
+            console.error('Invalid event structure:', JSON.stringify(event, null, 2));
+            return {
+                statusCode: 400,
+                body: JSON.stringify({ message: 'Invalid request structure' }),
+            };
+        }
 
-        console.log('event:', event, 'userId:', event.requestContext.authorizer);
         const userId = event.requestContext.authorizer.lambda.userId;
         if (!userId) {
+            console.error('User is not authenticated. Event:', JSON.stringify(event, null, 2));
             return {
                 statusCode: 401,
                 body: JSON.stringify({ message: 'User is not authenticated' }),
             };
         }
+
         const objectKey = `user_data/${userId}/_index.md`;
         console.log('objectKey:', objectKey);
+
         try {
             await s3.headObject({
                 Bucket: 'handterm',
@@ -42,21 +53,25 @@ export const handler = async (event: any) => {
 
             if (error.code === 'NoSuchKey') {
                 // Handle the NoSuchKey error case
+                console.log('Profile does not exist yet for userId:', userId);
                 return {
                     statusCode: 404,
                     body: JSON.stringify({ message: 'Profile does not exist yet' }),
                 };
             } else {
-                // If it's a different kind of error, you might want to log or handle it differently
-                console.error('S3 headObject error:', error);
+                // If it's a different kind of error, log and handle it
+                console.error('S3 error:', JSON.stringify(error, null, 2));
                 return {
                     statusCode: 500,
-                    body: JSON.stringify({ message: 'S# Head Object Error' }),
+                    body: JSON.stringify({ message: 'S3 Object Error', error: error.message }),
                 };
             }
         }
     } catch (err) {
-        console.error('Error:', err);
-        return { statusCode: 500, body: JSON.stringify(err) };
+        console.error('Unexpected error:', JSON.stringify(err, null, 2));
+        return { 
+            statusCode: 500, 
+            body: JSON.stringify({ message: 'Internal Server Error', error: (err as Error).message }) 
+        };
     }
 };
