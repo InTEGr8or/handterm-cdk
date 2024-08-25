@@ -109,7 +109,16 @@ export class HandTermCdkStack extends Stack {
       stageName: stage.stageName,
       accessLogSettings: {
         destinationArn: logGroup.logGroupArn,
-        format: apigatewayv2.AccessLogFormat.clf().toString(),
+        format: JSON.stringify({
+          requestId: "$context.requestId",
+          ip: "$context.identity.sourceIp",
+          requestTime: "$context.requestTime",
+          httpMethod: "$context.httpMethod",
+          routeKey: "$context.routeKey",
+          status: "$context.status",
+          protocol: "$context.protocol",
+          responseLength: "$context.responseLength"
+        })
       },
     });
 
