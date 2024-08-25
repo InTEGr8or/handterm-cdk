@@ -155,9 +155,9 @@ export class HandTermCdkStack extends Stack {
     // Ensure the client is created after the identity provider
     userPoolClient.node.addDependency(userPool);
 
-    // Define the Logs Bucket with a unique name
+    // Define the Logs Bucket
     const logsBucket = new s3.Bucket(this, 'LogsBucket', {
-      bucketName: `${ENDPOINTS.aws.s3.bucketName}-${this.account}-${this.region}`,
+      bucketName: ENDPOINTS.aws.s3.bucketName,
       removalPolicy: RemovalPolicy.RETAIN,
       autoDeleteObjects: false,
     });
