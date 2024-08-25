@@ -4,6 +4,7 @@ import { CognitoIdentityProviderClient, GetUserCommand } from '@aws-sdk/client-c
 const cognitoClient = new CognitoIdentityProviderClient({ region: 'us-east-1' });
 
 export const handler = async (event: APIGatewayTokenAuthorizerEvent): Promise<APIGatewayAuthorizerResult> => {
+    console.log('COGNITO_USER_POOL_ID:', process.env.COGNITO_USER_POOL_ID);
     console.log('Authorizer invoked with event:', JSON.stringify(event, null, 2));
 
     const authHeader = event.authorizationToken;
