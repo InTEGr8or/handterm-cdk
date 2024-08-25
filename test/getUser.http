@@ -1,1 +1,34 @@
+GET https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/getUser### Sign Up
+POST https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/signup
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "password": "TestPassword123!"
+}
+
+### Sign In
+# @name signIn
+POST https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/signin
+Content-Type: application/json
+
+{
+  "email": "testuser@example.com",
+  "password": "TestPassword123!"
+}
+
+### Get User (using token from Sign In response)
 GET https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/getUser
+Authorization: Bearer {{signIn.response.body.$.token}}
+
+### Refresh Token
+POST https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/refreshToken
+Content-Type: application/json
+
+{
+  "refreshToken": "{{signIn.response.body.$.refreshToken}}"
+}
+
+### Sign Out
+POST https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/signout
+Authorization: Bearer {{signIn.response.body.$.token}}
