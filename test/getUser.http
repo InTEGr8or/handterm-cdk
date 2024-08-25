@@ -21,16 +21,16 @@ Content-Type: application/json
 
 ### Get User (using token from Sign In response)
 GET https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/getUser
-Authorization: Bearer {{signIn.response.body.$.token}}
+Authorization: Bearer {{signIn.response.body.AccessToken}}
 
 ### Refresh Token
 POST https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/refreshToken
 Content-Type: application/json
 
 {
-  "refreshToken": "{{signIn.response.body.$.refreshToken}}"
+  "refreshToken": "{{signIn.response.body.RefreshToken}}"
 }
 
 ### Sign Out
 POST https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/signout
-Authorization: Bearer {{signIn.response.body.$.token}}
+Authorization: Bearer {{signIn.response.body.AccessToken}}
