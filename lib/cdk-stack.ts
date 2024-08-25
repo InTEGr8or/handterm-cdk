@@ -155,12 +155,17 @@ export class HandTermCdkStack extends Stack {
     // Ensure the client is created after the identity provider
     userPoolClient.node.addDependency(userPool);
 
-    // Define the Logs Bucket
-    const logsBucket = new s3.Bucket(this, 'LogsBucket', {
-      bucketName: ENDPOINTS.aws.s3.bucketName,
-      removalPolicy: RemovalPolicy.RETAIN,
-      autoDeleteObjects: false,
-    });
+    // Define or import the Logs Bucket
+    let logsBucket: s3.IBucket;
+    try {
+      logsBucket = s3.Bucket.fromBucketName(this, 'ExistingLogsBucket', ENDPOINTS.aws.s3.bucketName);
+    } catch {
+      logsBucket = new s3.Bucket(this, 'LogsBucket', {
+        bucketName: ENDPOINTS.aws.s3.bucketName,
+        removalPolicy: RemovalPolicy.RETAIN,
+        autoDeleteObjects: false,
+      });
+    }
 
     // Define the Lambda Execution Role
     const lambdaExecutionRole = new iam.Role(this, 'LambdaExecutionRole', {
