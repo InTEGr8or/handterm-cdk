@@ -5,7 +5,6 @@ import { request } from 'https';
 const cognito = new CognitoIdentityProviderClient({ region: 'us-east-1' });
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  const cognito = new CognitoIdentityServiceProvider();
   const userSub = event.requestContext.authorizer?.claims.sub;
 
   if (!userSub) {
