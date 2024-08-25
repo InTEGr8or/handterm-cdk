@@ -77,18 +77,18 @@ export const handler = async (event: any) => {
                 },
                 body: JSON.stringify({ userId: userId, content: fileContent }),
             };
-        } catch (headErr: unknown) {
-            const error = headErr as AWS.AWSError;
+        } catch (err: unknown) {
+            const error = err as AWS.AWSError;
 
-            if (error.code === 'NoSuchKey') {
+            if (error.code === 'NoSuchKey' || error.code === 'NotFound') {
                 console.log('Profile does not exist yet for userId:', userId);
                 return {
-                    statusCode: 404,
+                    statusCode: 200,  // Changed from 404 to 200
                     headers: {
                         'Access-Control-Allow-Origin': '*',
                         'Access-Control-Allow-Credentials': true,
                     },
-                    body: JSON.stringify({ message: 'Profile does not exist yet' }),
+                    body: JSON.stringify({ userId: userId, content: null, message: 'Profile does not exist yet' }),
                 };
             } else {
                 console.error('S3 error:', JSON.stringify(error, null, 2));
