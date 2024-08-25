@@ -3,6 +3,8 @@ import * as AWS from 'aws-sdk';
 
 const s3 = new AWS.S3({ region: 'us-east-1' });
 
+console.log('Loading function');
+
 export const handler = async (event: any) => {
     console.log('GetUserFunction invoked');
     console.log('Event:', JSON.stringify(event, null, 2));
