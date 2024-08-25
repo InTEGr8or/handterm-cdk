@@ -1,6 +1,7 @@
 // cdk/lambda/userStorage/getLog.ts
 
 import * as AWS from 'aws-sdk';
+import { ENDPOINTS } from '../cdkshared/endpoints';
 const s3 = new AWS.S3();
 
 exports.handler = async (event: any) => {
@@ -8,7 +9,7 @@ exports.handler = async (event: any) => {
     const userId = authorizer.lambda.userId;
     const logDomain = event.queryStringParameters.key || '';
     const limit = event.queryStringParameters.limit || 10;
-    const bucketName = 'handterm';
+    const bucketName = ENDPOINTS.aws.s3.bucketName;
     console.log('getLog received userId:', userId, 'logDomain:', event.queryStringParameters);
     if (!userId) {
         return { statusCode: 401, body: JSON.stringify({ message: 'Unauthorized' }) };

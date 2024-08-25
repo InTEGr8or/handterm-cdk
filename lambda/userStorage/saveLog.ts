@@ -1,11 +1,12 @@
 // cdk/lambda/userStorage/saveLog.ts
 
 import * as AWS from 'aws-sdk';
+import { ENDPOINTS } from '../cdkshared/endpoints';
 
 const s3 = new AWS.S3();
 
 let domain = 'logs';
-const bucketName = 'handterm';
+const bucketName = ENDPOINTS.aws.s3.bucketName;
 
 exports.handler = async (event: any) => {
     const userId = event.requestContext.authorizer.lambda.userId;

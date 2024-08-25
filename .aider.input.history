@@ -3473,3 +3473,313 @@
 +"endLineNumber": 2,
 +"endColumn": 106
 +}]```
+
+# 2024-08-25 14:38:49.108972
++I am getting these errors: ```[{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/authorizer.ts",
++"owner": "typescript",
++"code": "2307",
++"severity": 8,
++"message": "Cannot find module '@aws-sdk/client-cognito-identity-provider' or its corresponding type declarations.",
++"source": "ts",
++"startLineNumber": 2,
++"startColumn": 63,
++"endLineNumber": 2,
++"endColumn": 106
++},{
++"resource": "/C:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/listRecentRepos.ts",
++"owner": "typescript",
++"code": "2307",
++"severity": 8,
++"message": "Cannot find module '@aws-sdk/client-cognito-identity-provider' or its corresponding type declarations.",
++"source": "ts",
++"startLineNumber": 2,
++"startColumn": 68,
++"endLineNumber": 2,
++"endColumn": 111
++},{
++"resource": "/C:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/listRecentRepos.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'CognitoIdentityServiceProvider'.",
++"source": "ts",
++"startLineNumber": 8,
++"startColumn": 23,
++"endLineNumber": 8,
++"endColumn": 53
++},{
++"resource": "/C:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/listRecentRepos.ts",
++"owner": "typescript",
++"code": "7006",
++"severity": 8,
++"message": "Parameter 'attr' implicitly has an 'any' type.",
++"source": "ts",
++"startLineNumber": 26,
++"startColumn": 59,
++"endLineNumber": 26,
++"endColumn": 63
++}]```
+
+# 2024-08-25 14:40:00.943346
++/lint 
+
+# 2024-08-25 14:40:14.533931
++/lint ```[{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/authorizer.ts",
++"owner": "typescript",
++"code": "2307",
++"severity": 8,
++"message": "Cannot find module '@aws-sdk/client-cognito-identity-provider' or its corresponding type declarations.",
++"source": "ts",
++"startLineNumber": 2,
++"startColumn": 63,
++"endLineNumber": 2,
++"endColumn": 106
++},{
++"resource": "/C:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/listRecentRepos.ts",
++"owner": "typescript",
++"code": "2307",
++"severity": 8,
++"message": "Cannot find module '@aws-sdk/client-cognito-identity-provider' or its corresponding type declarations.",
++"source": "ts",
++"startLineNumber": 2,
++"startColumn": 68,
++"endLineNumber": 2,
++"endColumn": 111
++}]```
+
+# 2024-08-25 14:40:29.350694
++I am getting this error: ```[{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/authorizer.ts",
++"owner": "typescript",
++"code": "2307",
++"severity": 8,
++"message": "Cannot find module '@aws-sdk/client-cognito-identity-provider' or its corresponding type declarations.",
++"source": "ts",
++"startLineNumber": 2,
++"startColumn": 63,
++"endLineNumber": 2,
++"endColumn": 106
++},{
++"resource": "/C:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/listRecentRepos.ts",
++"owner": "typescript",
++"code": "2307",
++"severity": 8,
++"message": "Cannot find module '@aws-sdk/client-cognito-identity-provider' or its corresponding type declarations.",
++"source": "ts",
++"startLineNumber": 2,
++"startColumn": 68,
++"endLineNumber": 2,
++"endColumn": 111
++}]```
+
+# 2024-08-25 14:49:58.839204
++Ok, now I think the authorizer is working and I am getting logged errors from `getUser`: ```2024-08-25T21:46:09.546Z633cdbfa-7b2a-4f7c-afa7-905f41460957INFORequestContext: 
++{
++    "accountId": "318364255844",
++    "apiId": "x7jzrjfuv8",
++    "authorizer": {
++        "lambda": {
++            "userId": "e4485438-e0d1-7098-10fe-cd1dd7c7885d"
++        }
++    },
++    "domainName": "x7jzrjfuv8.execute-api.us-east-1.amazonaws.com",
++    "domainPrefix": "x7jzrjfuv8",
++    "http": {
++        "method": "GET",
++        "path": "/getUser",
++        "protocol": "HTTP/1.1",
++        "sourceIp": "104.32.208.200",
++        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 Edg/127.0.0.0"
++    },
++    "requestId": "dFbk-igioAMEY5Q=",
++    "routeKey": "GET /getUser",
++    "stage": "$default",
++    "time": "25/Aug/2024:21:46:07 +0000",
++    "timeEpoch": 1724622367556
++}
++
++2024-08-25T21:46:09.546Z633cdbfa-7b2a-4f7c-afa7-905f41460957INFOAuthorizer found: 
++{
++    "lambda": {
++        "userId": "e4485438-e0d1-7098-10fe-cd1dd7c7885d"
++    }
++}
++
++2024-08-25T21:46:09.546Z633cdbfa-7b2a-4f7c-afa7-905f41460957INFOUserId: e4485438-e0d1-7098-10fe-cd1dd7c7885d
++2024-08-25T21:46:09.546Z633cdbfa-7b2a-4f7c-afa7-905f41460957INFOobjectKey: user_data/e4485438-e0d1-7098-10fe-cd1dd7c7885d/_index.md
++2024-08-25T21:46:09.546Z633cdbfa-7b2a-4f7c-afa7-905f41460957INFOAttempting to check if object exists
++2024-08-25T21:46:10.206Z633cdbfa-7b2a-4f7c-afa7-905f41460957ERRORS3 error: 
++{
++    "message": null,
++    "code": "NotFound",
++    "region": null,
++    "time": "2024-08-25T21:46:10.148Z",
++    "requestId": "BDMDY70RQ5RA1ZJX",
++    "extendedRequestId": "pA9BcxOKt4oi+qHEay2Gb5uPXH2Pje2Gval0cZUuBG2fCekWF4AYsGmIPrEHhZKRGxkDqOWGIHfCVbBSpot0b9p03W5xb8vb",
++    "statusCode": 404,
++    "retryable": false,
++    "retryDelay": 64.10840479318256
++}
++
++2024-08-25T21:46:10.206Z633cdbfa-7b2a-4f7c-afa7-905f41460957INFOGetUserFunction ended
++END RequestId: 633cdbfa-7b2a-4f7c-afa7-905f41460957```. It still returns an HTTP 500 in the browser from `getUser`.
+
+# 2024-08-25 15:12:26.440231
++Now, I am getting a "Profile does not exist yet" error, but I can see it here: ``` aws s3 cp s3://handterm/user_data/e4485438-e0d1-7098-10fe-cd1dd7c7885d/_index.md -   
++# Index
++
++My HandTerm index.
++
++## To Do
++
++* [ ] List files.
++    * [ ] S3 head.
++* [x] Save to S3.
++* [x] CSS line number gutter.
++* [x] Improve highlighting.
++* [ ] GitHub files
++* [x] Get :q working.
++* [x] Try Monaco-vim
++* [ ] Add tests.
++* [x] Test editor with video
++* [x] Add :video```
+
+# 2024-08-25 15:24:42.142262
++Did you log out the bucket name? I don't see it in the log: ```2024-08-25T22:15:32.082Z2b771dca-7bbc-40a9-a3c4-2113a710eac6INFOGetUserFunction invoked
++2024-08-25T22:15:32.083Z2b771dca-7bbc-40a9-a3c4-2113a710eac6INFOEvent: 
++{
++    "version": "2.0",
++    "routeKey": "GET /getUser",
++    "rawPath": "/getUser",
++    "rawQueryString": "",
++    "headers": {
++        "accept": "application/json, text/plain, */*",
++        "accept-encoding": "gzip, deflate, br, zstd",
++        "accept-language": "en-US,en;q=0.9",
++        "authorization": "Bearer eyJraWQiOiJ2cG52eTk5ZVZlVTFJMU5YUWlcL3RlVmc5NSszbVwvc3pQUjloNzJQMm53ZFU9IiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJlNDQ4NTQzOC1lMGQxLTcwOTgtMTBmZS1jZDFkZDdjNzg4NWQiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAudXMtZWFzdC0xLmFtYXpvbmF3cy5jb21cL3VzLWVhc3QtMV9UTDQ3T0xjeUkiLCJjbGllbnRfaWQiOiJmZTBxZjdiOXFtNmYxdDY2ZG5udGdtMDdxIiwib3JpZ2luX2p0aSI6IjBhOGYyYThjLTA1M2YtNDgzYi05ZGU2LTk3MmQ1N2YyNjFhYyIsImV2ZW50X2lkIjoiOTBiZDJlNmYtYWNhNS00YjlkLWE3ZTAtYzM1MGE4ZDI5ODRmIiwidG9rZW5fdXNlIjoiYWNjZXNzIiwic2NvcGUiOiJhd3MuY29nbml0by5zaWduaW4udXNlci5hZG1pbiIsImF1dGhfdGltZSI6MTcyNDU1ODk1MywiZXhwIjoxNzI0NjI3NzI5LCJpYXQiOjE3MjQ2MjQxMjksImp0aSI6ImMxZTNlMmVlLTRhMTctNDE2Ny1hYzI0LTgwYzQ3MTdlM2JmMiIsInVzZXJuYW1lIjoiZTQ0ODU0MzgtZTBkMS03MDk4LTEwZmUtY2QxZGQ3Yzc4ODVkIn0.nVagMTwueEpv4_FrzJeZhN7VpoTWg7t83OTBM6pInlMwTXyqqtKSoiP5LQclRpWZrW-Pebdh9Djp49-kcUTlgl2h_7k5bmfegpNcdXYYpdYGsFDBEEpKf_uTVHVFCPjSaYKfjyxmoQxvZoSac05dRM4nIytIaiNz7LHQBLkeBzUbjYzgw9S4A_RhIiHN-luoh4Th-wlY05AUmcGeIbaxSLseLPf_2UyDw3Qhq_tlnZ64DpqnUmh2OqAG3sNk6-Dn4LdwzpKICTptjANbNYZNUhNzJqqM7B6xTlGb-wFI4w_5CZiy4aa29IhVOJHObU4-T1kWaQ8MoYuPth-ii5mcpQ",
++        "content-length": "0",
++        "host": "x7jzrjfuv8.execute-api.us-east-1.amazonaws.com",
++        "origin": "http://localhost:5173",
++        "priority": "u=1, i",
++        "referer": "http://localhost:5173/",
++        "sec-ch-ua": "\"Not)A;Brand\";v=\"99\", \"Microsoft Edge\";v=\"127\", \"Chromium\";v=\"127\"",
++        "sec-ch-ua-mobile": "?0",
++        "sec-ch-ua-platform": "\"Windows\"",
++        "sec-fetch-dest": "empty",
++        "sec-fetch-mode": "cors",
++        "sec-fetch-site": "cross-site",
++        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 Edg/127.0.0.0",
++        "x-amzn-trace-id": "Root=1-66cbad01-6a26aca17121c67c250705d1",
++        "x-forwarded-for": "104.32.208.200",
++        "x-forwarded-port": "443",
++        "x-forwarded-proto": "https"
++    },
++    "requestContext": {
++        "accountId": "318364255844",
++        "apiId": "x7jzrjfuv8",
++        "authorizer": {
++            "lambda": {
++                "userId": "e4485438-e0d1-7098-10fe-cd1dd7c7885d"
++            }
++        },
++        "domainName": "x7jzrjfuv8.execute-api.us-east-1.amazonaws.com",
++        "domainPrefix": "x7jzrjfuv8",
++        "http": {
++            "method": "GET",
++            "path": "/getUser",
++            "protocol": "HTTP/1.1",
++            "sourceIp": "104.32.208.200",
++            "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 Edg/127.0.0.0"
++        },
++        "requestId": "dFf4Vit-IAMEYTA=",
++        "routeKey": "GET /getUser",
++        "stage": "$default",
++        "time": "25/Aug/2024:22:15:29 +0000",
++        "timeEpoch": 1724624129881
++    },
++    "isBase64Encoded": false
++}
++
++2024-08-25T22:15:32.102Z2b771dca-7bbc-40a9-a3c4-2113a710eac6INFOChecking event structure
++2024-08-25T22:15:32.102Z2b771dca-7bbc-40a9-a3c4-2113a710eac6INFORequestContext: 
++{
++    "accountId": "318364255844",
++    "apiId": "x7jzrjfuv8",
++    "authorizer": {
++        "lambda": {
++            "userId": "e4485438-e0d1-7098-10fe-cd1dd7c7885d"
++        }
++    },
++    "domainName": "x7jzrjfuv8.execute-api.us-east-1.amazonaws.com",
++    "domainPrefix": "x7jzrjfuv8",
++    "http": {
++        "method": "GET",
++        "path": "/getUser",
++        "protocol": "HTTP/1.1",
++        "sourceIp": "104.32.208.200",
++        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 Edg/127.0.0.0"
++    },
++    "requestId": "dFf4Vit-IAMEYTA=",
++    "routeKey": "GET /getUser",
++    "stage": "$default",
++    "time": "25/Aug/2024:22:15:29 +0000",
++    "timeEpoch": 1724624129881
++}
++
++2024-08-25T22:15:32.102Z2b771dca-7bbc-40a9-a3c4-2113a710eac6INFOAuthorizer found: 
++{
++    "lambda": {
++        "userId": "e4485438-e0d1-7098-10fe-cd1dd7c7885d"
++    }
++}
++
++2024-08-25T22:15:32.102Z2b771dca-7bbc-40a9-a3c4-2113a710eac6INFOUserId: e4485438-e0d1-7098-10fe-cd1dd7c7885d
++2024-08-25T22:15:32.102Z2b771dca-7bbc-40a9-a3c4-2113a710eac6INFOobjectKey: user_data/e4485438-e0d1-7098-10fe-cd1dd7c7885d/_index.md
++2024-08-25T22:15:32.102Z2b771dca-7bbc-40a9-a3c4-2113a710eac6INFOAttempting to check if object exists
++2024-08-25T22:15:32.763Z2b771dca-7bbc-40a9-a3c4-2113a710eac6INFOProfile does not exist yet for userId: e4485438-e0d1-7098-10fe-cd1dd7c7885d
++2024-08-25T22:15:32.763Z2b771dca-7bbc-40a9-a3c4-2113a710eac6INFOGetUserFunction ended
++END RequestId: 2b771dca-7bbc-40a9-a3c4-2113a710eac6
++REPORT RequestId: 2b771dca-7bbc-40a9-a3c4-2113a710eac6Duration: 821.61 msBilled Duration: 822 msMemory Size: 128 MBMax Memory Used: 87 MBInit Duration: 604.37 ms```. The bucket name should be `handterm`. I don't know when or why that was changed but it looks like you may have modified that for some unknown reason. I did not modify the bucket name. It looks like your or another LLM changed it on 2024-08-22, 3 days ago. I need it to be `handterm`. It is an existing bucket with existing content.
+
+# 2024-08-25 15:34:48.606605
++The CDK is still outputing this, which creates the wrong bucket: ```Outputs:
++HandTermCdkStack.ApiEndpoint = https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/
++HandTermCdkStack.BucketName = handtermcdkstack-logsbucket9c4d8843-1gdriyejsbjs
++HandTermCdkStack.GetUserEndpoint = https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com//getUser
++HandTermCdkStack.IdentityPoolId = us-east-1:cf78a12b-e41b-4c75-b504-3f71fd8239cd
++HandTermCdkStack.UserPoolClientId = fe0qf7b9qm6f1t66dnntgm07q       
++HandTermCdkStack.UserPoolId = us-east-1_TL47OLcyI```. The bucket name had been handled centrally before. There is this file `lambda/cdkshared/endpoints.ts` which provides a perfectly well working constant `bucketName`. I don't know how that got taken out, but it should not have been taken out of the code. That's the bucket name we should be using in all the files. We don't need different bucket names in different places.
+
+# 2024-08-25 15:41:04.465352
++I am getting this error: ```[{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2300",
++"severity": 8,
++"message": "Duplicate identifier 's3'.",
++"source": "ts",
++"startLineNumber": 5,
++"startColumn": 13,
++"endLineNumber": 5,
++"endColumn": 15
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2300",
++"severity": 8,
++"message": "Duplicate identifier 's3'.",
++"source": "ts",
++"startLineNumber": 8,
++"startColumn": 13,
++"endLineNumber": 8,
++"endColumn": 15
++}]```
+
+# 2024-08-25 15:44:51.173819
++Now I am getting this error: ```HandTermCdkStack |  1/80 | 3:42:47 PM | UPDATE_COMPLETE      | AWS::CDK::Metadata                     | CDKMetadata/Default (CDKMetadata)
++HandTermCdkStack |  1/80 | 3:42:48 PM | UPDATE_FAILED        | AWS::S3::Bucket                        | LogsBucket (LogsBucket9C4D8843) Resource handler returned message: "handterm already exists (Service: S3, Status Code: 0, Request ID: null)" (RequestToken: 364355d9-d2cc-0ca8-fa55-a2826f0f3ded, HandlerErrorCode: AlreadyExists)```
+
+# 2024-08-25 15:46:34.363564
++I don't want to use a different bucket name. I have been using `handterm` as the bucket in this stack for quite some time, and all the other code points to the `handterm` bucket.
