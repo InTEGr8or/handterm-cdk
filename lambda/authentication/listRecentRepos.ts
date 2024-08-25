@@ -23,7 +23,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     });
     const userResponse = await cognito.send(command);
 
-    const githubToken = userResponse.UserAttributes?.find(attr => attr.Name === 'custom:github_token')?.Value;
+    const githubToken = userResponse.UserAttributes?.find((attr: { Name?: string; Value?: string }) => attr.Name === 'custom:github_token')?.Value;
 
     if (!githubToken) {
       return {
