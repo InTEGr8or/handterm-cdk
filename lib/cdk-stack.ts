@@ -132,9 +132,26 @@ export class HandTermCdkStack extends Stack {
               resources: [userPool.userPoolArn]
             })
           ]
+        }),
+        S3Access: new iam.PolicyDocument({
+          statements: [
+            new iam.PolicyStatement({
+              actions: [
+                's3:GetObject',
+                's3:PutObject',
+                's3:ListBucket'
+              ],
+              resources: [
+                logsBucket.bucketArn,
+                `${logsBucket.bucketArn}/*`
+              ]
+            })
+          ]
         })
       }
     });
+
+    // Remove any explicit permissions added to individual functions
 
     // Define the Lambda Authorizer
     const authorizerFunction = new lambda.Function(this, 'AuthorizerFunction', {
