@@ -21,7 +21,8 @@
     "dotenv": "^16.4.5",
     "jsonwebtoken": "^9.0.2",
     "node-fetch": "^3.3.2",
-    "source-map-support": "^0.5.21"
+    "source-map-support": "^0.5.21",
+    "@types/aws-lambda": "^8.10.140"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.140",
