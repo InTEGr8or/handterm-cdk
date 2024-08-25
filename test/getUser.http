@@ -1,19 +1,21 @@
-GET https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/getUser### Sign Up
-POST https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/signup
+### Sign Up
+POST https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/signUp
 Content-Type: application/json
 
 {
+  "username": "testuser@example.com",
   "email": "testuser@example.com",
   "password": "TestPassword123!"
 }
 
 ### Sign In
 # @name signIn
-POST https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/signin
+POST https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/signIn
 Content-Type: application/json
 
 {
   "email": "testuser@example.com",
+  "username": "testuser@example.com",
   "password": "TestPassword123!"
 }
 
