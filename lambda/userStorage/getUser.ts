@@ -5,9 +5,10 @@ import * as AWS from 'aws-sdk';
 const s3 = new AWS.S3({ region: 'us-east-1' });
 
 export const handler = async (event: any) => {
-    console.log('GetUserFunction started');
+    console.log('GetUserFunction invoked');
+    console.log('Event:', JSON.stringify(event, null, 2));
+    console.log('Context:', JSON.stringify(event.requestContext, null, 2));
     try {
-        console.log('Received event:', JSON.stringify(event, null, 2));
         
         if (!event.requestContext || !event.requestContext.authorizer || !event.requestContext.authorizer.lambda) {
             console.error('Invalid event structure:', JSON.stringify(event, null, 2));

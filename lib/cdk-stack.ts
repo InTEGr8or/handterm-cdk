@@ -220,7 +220,7 @@ export class HandTermCdkStack extends Stack {
       authorizer: lambdaAuthorizer,
     });
 
-    createLambdaIntegration({
+    const getUserFunction = createLambdaIntegration({
       scope: this,
       id: 'GetUserFunction',
       handler: 'getUser.handler',
@@ -233,6 +233,12 @@ export class HandTermCdkStack extends Stack {
       path: ENDPOINTS.api.GetUser,
       methods: [HttpMethod.GET],
       authorizer: lambdaAuthorizer,
+    });
+
+    // Add explicit permission for API Gateway to invoke the Lambda function
+    getUserFunction.addPermission('APIGatewayInvoke', {
+      principal: new iam.ServicePrincipal('apigateway.amazonaws.com'),
+      sourceArn: `${httpApi.httpApiArn}/*/${HttpMethod.GET}${ENDPOINTS.api.GetUser}`,
     });
 
     createLambdaIntegration({
