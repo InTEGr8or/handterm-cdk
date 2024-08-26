@@ -1,6 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { request } from 'https';
-import { CognitoIdentityServiceProvider } from 'aws-sdk';
+import { CognitoIdentityProviderClient, AdminUpdateUserAttributesCommand } from '@aws-sdk/client-cognito-identity-provider';
 
 interface TokenData {
   access_token?: string;
