@@ -1,6 +1,6 @@
 // cdk/lambda/userStorage/getLog.ts
 
-import * as AWS from 'aws-sdk';
+import { S3Client, GetObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { ENDPOINTS } from '../cdkshared/endpoints';
 const s3 = new AWS.S3();
 
@@ -24,8 +24,8 @@ exports.handler = async (event: any) => {
 
         // Ensure items have a key before sorting
         const sortedKeys = (listedObjects.Contents || [])
-            .filter((item) => item.Key !== undefined) // Filter out items without a Key
-            .sort((a, b) => {
+            .filter((item: { Key?: string }) => item.Key !== undefined) // Filter out items without a Key
+            .sort((a: { Key: string }, b: { Key: string }) => {
                 // Assuming both a.Key and b.Key exist due to filter above
                 const timeA = parseInt(a.Key!.split('/').pop() || '0', 10);
                 const timeB = parseInt(b.Key!.split('/').pop() || '0', 10);

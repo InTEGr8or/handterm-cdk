@@ -1,6 +1,6 @@
 // cdk/lambda/authentication/changePassword.ts
 
-import * as AWS from 'aws-sdk';
+import { CognitoIdentityProviderClient, ChangePasswordCommand } from '@aws-sdk/client-cognito-identity-provider';
 
 const cognito = new AWS.CognitoIdentityServiceProvider({ region: 'us-east-1' });
 
