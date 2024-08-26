@@ -19,9 +19,10 @@ beforeEach(() => {
   });
 });
 
-test('Stack Creation', () => {
+test('Stack Creation', async () => {
   const app = new cdk.App();
   const stack = new HandTermCdkStack(app, 'MyTestStack');
+  await new Promise(resolve => setTimeout(resolve, 1000)); // Give time for async operations to complete
   const template = Template.fromStack(stack);
 
   template.resourceCountIs('AWS::ApiGatewayV2::Api', 1);

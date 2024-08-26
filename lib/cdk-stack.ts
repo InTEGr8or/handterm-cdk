@@ -2,6 +2,7 @@
 import { ENDPOINTS } from '../lambda/cdkshared/endpoints';
 import { getGitHubSecrets } from './utils/githubSecrets';
 import { createLambdaIntegration } from './utils/lambdaUtils';
+import * as cdk from "aws-cdk-lib";
 import {
   aws_cognito as cognito,
   aws_s3 as s3,
@@ -50,7 +51,7 @@ export class HandTermCdkStack extends Stack {
       userVerification: {
         emailSubject: 'Verify your email for our app!',
         emailBody: 'Hello {username}, Thanks for signing up to our app! Your verification code is {####}',
-        emailStyle: cognito.VerificationEmailStyle.CODE,
+        emailStyle: cdk.aws_cognito.VerificationEmailStyle.CODE,
       },
       signInAliases: {
         email: true

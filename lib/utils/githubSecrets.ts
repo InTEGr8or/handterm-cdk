@@ -15,19 +15,14 @@ export async function getGitHubSecrets(): Promise<GitHubSecrets> {
     console.log("Fetched GitHub Secrets: " + githubSecrets);
 
     if (!githubSecrets) {
-      console.warn("GitHub secrets not found in Parameter Store. Using default values for testing.");
-      return {
-        clientId: 'default-client-id',
-        clientSecret: 'default-client-secret',
-        issuerUrl: 'https://github.com/login/oauth'
-      };
+      throw new Error('GitHub secrets not found in Parameter Store');
     }
 
     const parsedSecrets = JSON.parse(githubSecrets);
     return {
       clientId: parsedSecrets.clientId,
       clientSecret: parsedSecrets.clientSecret,
-      issuerUrl: 'https://github.com/login/oauth'
+      issuerUrl: parsedSecrets.issuerUrl
     };
   } catch (error) {
     console.error("Error fetching GitHub secrets:", error);
