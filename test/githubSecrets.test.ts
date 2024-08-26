@@ -24,7 +24,7 @@ describe('GitHub Secrets', () => {
     expect(secrets).toEqual({
       clientId: 'test-client-id',
       clientSecret: 'test-client-secret',
-      issuerUrl: 'https://test-issuer.com'
+      issuerUrl: 'https://github.com/login/oauth'
     });
   });
 
