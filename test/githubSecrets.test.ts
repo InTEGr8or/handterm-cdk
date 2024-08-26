@@ -1,6 +1,7 @@
 import { getGitHubSecrets } from '../lib/utils/githubSecrets';
 import { mockClient } from 'aws-sdk-client-mock';
 import { SSMClient, GetParameterCommand } from '@aws-sdk/client-ssm';
+import { getGitHubSecrets } from '../lib/utils/githubSecrets';
 
 const ssmMock = mockClient(SSMClient);
 
