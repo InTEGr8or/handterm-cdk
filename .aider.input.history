@@ -3796,3 +3796,121 @@
 +    // Redirect the user to the GitHub authorization URL        
 +    window.location.href = githubAuthUrl;
 +  };```, GitHub is not given the Cognito userId. When GitHub calls back to the `lambda\authentication\oauth_callback.ts`, that code in the CDK Lambda code on the server has no way of verifying that they user, it doesn't even know which user to validate, is logged in on the client. There must be some way for our GitHub auth redirect to pass a token to GitHub, or for our `oauth_callback` code to trigger a validation step or reverification from the client that is redirected there. How is that supposed to work?
+
+# 2024-08-25 18:44:21.141362
++Ok, now the `/github_auth` path reports this in the browser: `{"message":"No Cognito authentication token provided."}`
+
+# 2024-08-25 18:57:12.783578
++Now I am getting this error: ```{"message":"Failed to link GitHub account","error":"Missing required key 'Username' in params"}```. Is there a step I need to do.
+
+# 2024-08-25 19:10:39.716680
++Now I am getting this: ```{"message":"No valid Authorization header provided"}```. I am wondering if this might be a good time to implement unit testing or component testing. Do you think anything like that could streamline this troubleshooting process?
+
+# 2024-08-25 19:19:16.865735
++`yarn test` gives me this error: ```yarn test  
++yarn run v1.22.22
++$ jest
++Debugger listening on ws://127.0.0.1:57009/5e2835e5-7360-4106-9a4a-c2085626cd08
++For help, see: https://nodejs.org/en/docs/inspector
++Debugger attached.
++
++ RUNS  test/cdk.test.ts
++Waiting for the debugger to disconnect...
++node:internal/process/promises:289
++            triggerUncaughtException(err, true /* fromPromise */);  
++            ^
++
++[UnhandledPromiseRejection: This error originated either by throwing inside of an async function without a catch block, or by rejecting a promise which was not handled with .catch(). The promise rejected with the reason "GitHub secrets could not be retrieved from Parameter Store: ConfigError: Missing region in config".] {
++  code: 'ERR_UNHANDLED_REJECTION'
++}
++
++Node.js v20.12.1
++error Command failed with exit code 1.
++info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.```. Are there any other tests that would help us troubleshoot?
+
+# 2024-08-25 19:41:24.435791
++I am getting this error now: ```yarn test
++yarn run v1.22.22
++$ jest
++Debugger listening on ws://127.0.0.1:62363/644d9af9-57d7-4e46-b66b-9d930ee93a49
++For help, see: https://nodejs.org/en/docs/inspector
++Debugger attached.
++ FAIL  test/githubSecrets.test.ts
++   Test suite failed to run
++                                                                    
++    test/githubSecrets.test.ts:2:28 - error TS2307: Cannot find module 'aws-sdk-client-mock' or its corresponding type declarations.    
++                                                                    
++    2 import { mockClient } from 'aws-sdk-client-mock';             
++                                 ~~~~~~~~~~~~~~~~~~~~~              
++    test/githubSecrets.test.ts:3:48 - error TS2307: Cannot find module '@aws-sdk/client-ssm' or its corresponding type declarations.    
++
++    3 import { SSMClient, GetParameterCommand } from '@aws-sdk/client-ssm';
++                                                     ~~~~~~~~~~~~~~~~~~~~~
++
++ FAIL  test/cdk.test.ts
++   Test suite failed to run
++
++    test/cdk.test.ts:39:21 - error TS2339: Property 'getLogicalId' does not exist on type 'Template'.
++
++    39       Ref: template.getLogicalId(stack.userPool.node.defaultChild as cdk.CfnElement)
++                           ~~~~~~~~~~~~
++
++Test Suites: 2 failed, 2 total
++Tests:       0 total
++Snapshots:   0 total
++Time:        53.634 s
++Ran all test suites.
++Waiting for the debugger to disconnect...
++error Command failed with exit code 1.
++info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.```
+
+# 2024-08-25 20:25:02.324853
++/add lib\cdk-stack.ts
+
+# 2024-08-25 20:25:38.871608
++When I run `yarn deploy` I am getting this error: ```yarn deploy
++yarn run v1.22.22
++$ yarn cpCdk && echo 'Starting TypeScript compilation' && yarn build && echo 'TypeScript compilation completed' && cdk deploy --region=us-east-1 --profile mark
++$ cp ../handterm/src/shared/endpoints.ts lambda/cdkshared/      
++'Starting TypeScript compilation' 
++$ tsc
++bin/cdk.ts:7:1 - error TS2673: Constructor of class 'HandTermCdkStack' is private and only accessible within the class declaration.
++
++  7 new HandTermCdkStack(app, 'HandTermCdkStack', {
++    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
++  8   /* If you don't specify 'env', this stack will be environment-agnostic.
++    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
++...
++ 20   /* For more information, see https://docs.aws.amazon.com/cdk/latest/guide/environments.html */
++    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
++ 21 });
++    ~~
++
++lambda/tests/authorizer.test.ts:3:28 - error TS2307: Cannot find module 'aws-sdk-client-mock' or its corresponding type declarations.
++
++3 import { mockClient } from 'aws-sdk-client-mock';
++                             ~~~~~~~~~~~~~~~~~~~~~
++
++lib/cdk-stack.ts:473:1 - error TS2673: Constructor of class 'HandTermCdkStack' is private and only accessible within the class declaration.
++
++473 new HandTermCdkStack(app, 'HandTermCdkStack');
++    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
++
++test/githubSecrets.test.ts:1:10 - error TS2300: Duplicate identifier 'getGitHubSecrets'.
++
++1 import { getGitHubSecrets } from '../lib/utils/githubSecrets';
++           ~~~~~~~~~~~~~~~~
++
++test/githubSecrets.test.ts:2:28 - error TS2307: Cannot find module 'aws-sdk-client-mock' or its corresponding type declarations.
++
++2 import { mockClient } from 'aws-sdk-client-mock';
++                             ~~~~~~~~~~~~~~~~~~~~~```
+
+# 2024-08-25 20:26:34.582811
++/run yarn add -D aws-sdk-client-mock
+
+# 2024-08-25 20:27:43.811778
++/run yarn add -D aws-sdk-client-mock
+
+# 2024-08-25 20:39:44.275359
++/run yarn add -D aws-sdk-client-mock

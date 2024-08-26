@@ -36,7 +36,7 @@ test('Cognito User Pool and Client Created', async () => {
 
   template.hasResourceProperties('AWS::Cognito::UserPoolClient', {
     UserPoolId: {
-      Ref: template.getLogicalId(stack.userPool.node.defaultChild as cdk.CfnElement)
+      Ref: stack.getLogicalId(stack.userPool.node.defaultChild as cdk.CfnElement)
     },
     ExplicitAuthFlows: [
       'ALLOW_USER_PASSWORD_AUTH',
