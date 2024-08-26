@@ -17,6 +17,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
   console.log('OAuth callback received:', event);
 
   const code = event.queryStringParameters?.code;
+  const cognitoAuthToken = event.headers['Authorization'];
 
   if (!code) {
     return {
@@ -60,7 +61,37 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     const userPoolId = process.env.COGNITO_USER_POOL_ID!;
 
     let cognitoUser;
-    if (githubUser.email && githubUser.email !== `github_${githubUser.id}@example.com`) {
+    if (cognitoAuthToken) {
+      // User is already logged in, link GitHub account
+      try {
+        const cognitoUserInfo = await cognito.getUser({ AccessToken: cognitoAuthToken.split(' ')[1] }).promise();
+        await cognito.adminUpdateUserAttributes({
+          UserPoolId: userPoolId,
+          Username: cognitoUserInfo.Username,
+          UserAttributes: [
+            { Name: 'custom:github_id', Value: githubUser.id.toString() },
+            { Name: 'custom:github_token', Value: tokenData.access_token },
+          ],
+        }).promise();
+
+        return {
+          statusCode: 200,
+          body: JSON.stringify({
+            message: 'GitHub account linked successfully',
+            userId: cognitoUserInfo.Username,
+          }),
+        };
+      } catch (error) {
+        console.error('Error linking GitHub account:', error);
+        return {
+          statusCode: 500,
+          body: JSON.stringify({
+            message: 'Failed to link GitHub account',
+            error: (error as Error).message,
+          }),
+        };
+      }
+    } else if (githubUser.email && githubUser.email !== `github_${githubUser.id}@example.com`) {
       // GitHub account exposes email, we can create or update a Cognito user
       try {
         cognitoUser = await cognito.adminGetUser({
