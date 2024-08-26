@@ -27,10 +27,13 @@ export class HandTermCdkStack extends Stack {
 
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
-    this.initializeStack();
+    this.initializeStack().catch(error => {
+      console.error('Failed to initialize stack:', error);
+      throw error;
+    });
   }
 
-  private async initializeStack() {
+  private async initializeStack(): Promise<void> {
     const { clientId, clientSecret, issuerUrl } = await getGitHubSecrets();
 
     // Cognito User Pool

@@ -15,9 +15,9 @@
   },
   "dependencies": {
     "@aws-sdk/client-cognito-identity-provider": "^3.425.0",
+    "@aws-sdk/client-ssm": "^3.0.0",
     "@types/aws-lambda": "^8.10.140",
     "aws-cdk-lib": "2.147.2",
-    "aws-sdk": "^2.1450.0",
     "constructs": "^10.0.0",
     "dotenv": "^16.4.5",
     "jsonwebtoken": "^9.0.2",

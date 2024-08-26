@@ -1,4 +1,4 @@
-import * as AWS from 'aws-sdk';
+import { SSMClient, GetParameterCommand } from "@aws-sdk/client-ssm";
 
 export interface GitHubSecrets {
   clientId: string;
@@ -7,30 +7,25 @@ export interface GitHubSecrets {
 }
 
 export async function getGitHubSecrets(): Promise<GitHubSecrets> {
-  const ssmClient = new AWS.SSM();
-  return new Promise((resolve, reject) => {
-    ssmClient.getParameter({ Name: '/github/secrets' }, (err, data) => {
-      if (err) {
-        reject("GitHub secrets could not be retrieved from Parameter Store: " + err);
-      } else {
-        const githubSecrets = data.Parameter?.Value;
-        console.log("Fetched GitHub Secrets: " + githubSecrets);
+  const ssmClient = new SSMClient();
+  try {
+    const command = new GetParameterCommand({ Name: '/github/secrets' });
+    const response = await ssmClient.send(command);
+    const githubSecrets = response.Parameter?.Value;
+    console.log("Fetched GitHub Secrets: " + githubSecrets);
 
-        if (!githubSecrets) {
-          reject("GitHub secrets could not be retrieved from Parameter Store.");
-        } else {
-          try {
-            const parsedSecrets = JSON.parse(githubSecrets);
-            resolve({
-              clientId: parsedSecrets.clientId,
-              clientSecret: parsedSecrets.clientSecret,
-              issuerUrl: 'https://github.com/login/oauth'
-            });
-          } catch (error: any) {
-            reject(`Failed to parse GitHub secrets JSON: ` + githubSecrets + error);
-          }
-        }
-      }
-    });
-  });
+    if (!githubSecrets) {
+      throw new Error("GitHub secrets could not be retrieved from Parameter Store.");
+    }
+
+    const parsedSecrets = JSON.parse(githubSecrets);
+    return {
+      clientId: parsedSecrets.clientId,
+      clientSecret: parsedSecrets.clientSecret,
+      issuerUrl: 'https://github.com/login/oauth'
+    };
+  } catch (error) {
+    console.error("Error fetching GitHub secrets:", error);
+    throw new Error("GitHub secrets could not be retrieved from Parameter Store: " + error);
+  }
 }
