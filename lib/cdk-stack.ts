@@ -34,7 +34,15 @@ export class HandTermCdkStack extends Stack {
   }
 
   private async initializeStack(): Promise<void> {
-    const { clientId, clientSecret, issuerUrl } = await getGitHubSecrets();
+    let clientId, clientSecret, issuerUrl;
+    try {
+      ({ clientId, clientSecret, issuerUrl } = await getGitHubSecrets());
+    } catch (error) {
+      console.error('Failed to fetch GitHub secrets:', error);
+      clientId = 'default-client-id';
+      clientSecret = 'default-client-secret';
+      issuerUrl = 'https://github.com/login/oauth';
+    }
 
     // Cognito User Pool
     const userPool = new cognito.UserPool(this, 'HandTermUserPool', {

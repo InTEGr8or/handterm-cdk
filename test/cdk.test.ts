@@ -11,8 +11,12 @@ beforeEach(() => {
   mockedGetGitHubSecrets.mockResolvedValue({
     clientId: 'test-client-id',
     clientSecret: 'test-client-secret',
-    issuerUrl: 'https://test-issuer.com'
+    issuerUrl: 'https://github.com/login/oauth'
   });
+});
+
+afterEach(() => {
+  jest.resetAllMocks();
 });
 
 test('API Gateway REST API Created', () => {
