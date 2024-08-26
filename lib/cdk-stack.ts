@@ -39,9 +39,8 @@ export class HandTermCdkStack extends Stack {
       ({ clientId, clientSecret, issuerUrl } = await getGitHubSecrets());
     } catch (error) {
       console.error('Failed to fetch GitHub secrets:', error);
-      clientId = 'default-client-id';
-      clientSecret = 'default-client-secret';
-      issuerUrl = 'https://github.com/login/oauth';
+      // Instead of using default values, we'll throw an error to stop stack creation
+      throw new Error('Failed to initialize stack due to missing GitHub secrets');
     }
 
     // Cognito User Pool

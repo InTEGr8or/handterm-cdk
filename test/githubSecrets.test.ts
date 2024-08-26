@@ -33,4 +33,23 @@ describe('GitHub Secrets', () => {
 
     await expect(getGitHubSecrets()).rejects.toThrow('GitHub secrets could not be retrieved from Parameter Store');
   });
+
+  it('should return GitHub secrets when they can be retrieved', async () => {
+    ssmMock.on(GetParameterCommand).resolves({
+      Parameter: {
+        Value: JSON.stringify({
+          clientId: 'test-client-id',
+          clientSecret: 'test-client-secret',
+          issuerUrl: 'https://test-issuer.com'
+        })
+      }
+    });
+
+    const secrets = await getGitHubSecrets();
+    expect(secrets).toEqual({
+      clientId: 'test-client-id',
+      clientSecret: 'test-client-secret',
+      issuerUrl: 'https://test-issuer.com'
+    });
+  });
 });
