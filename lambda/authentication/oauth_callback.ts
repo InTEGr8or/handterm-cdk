@@ -43,7 +43,19 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
   try {
     const decodedState = JSON.parse(Buffer.from(state, 'base64').toString('utf-8'));
     const cognitoUserId = decodedState.cognitoUserId;
-    const cognitoAuthToken = decodedState.cognitoToken;
+
+    if (!cognitoUserId) {
+      console.error('Cognito User ID not found in state');
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          message: 'Cognito User ID not found in state',
+        }),
+      };
+    }
+
+    console.log('Decoded state:', decodedState);
+    console.log('Cognito User ID:', cognitoUserId);
 
     const tokenData = await getGitHubToken(code, clientId, clientSecret);
 
@@ -65,28 +77,41 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     const userPoolId = process.env.COGNITO_USER_POOL_ID!;
 
     try {
-      await cognito.adminUpdateUserAttributes({
-        UserPoolId: userPoolId,
-        Username: cognitoUserId,
-        UserAttributes: [
-          { Name: 'custom:github_id', Value: githubUser.id.toString() },
-          { Name: 'custom:github_token', Value: tokenData.access_token },
-        ],
-      }).promise();
+      console.log('Updating user attributes for Cognito User ID:', cognitoUserId);
+      try {
+        await cognito.adminUpdateUserAttributes({
+          UserPoolId: userPoolId,
+          Username: cognitoUserId,
+          UserAttributes: [
+            { Name: 'custom:github_id', Value: githubUser.id.toString() },
+            { Name: 'custom:github_token', Value: tokenData.access_token },
+          ],
+        }).promise();
 
-      return {
-        statusCode: 200,
-        body: JSON.stringify({
-          message: 'GitHub account linked successfully',
-          userId: cognitoUserId,
-        }),
-      };
+        console.log('User attributes updated successfully');
+        return {
+          statusCode: 200,
+          body: JSON.stringify({
+            message: 'GitHub account linked successfully',
+            userId: cognitoUserId,
+          }),
+        };
+      } catch (updateError) {
+        console.error('Error updating user attributes:', updateError);
+        return {
+          statusCode: 500,
+          body: JSON.stringify({
+            message: 'Failed to link GitHub account',
+            error: (updateError as Error).message,
+          }),
+        };
+      }
     } catch (error) {
-      console.error('Error linking GitHub account:', error);
+      console.error('Error in OAuth callback:', error);
       return {
         statusCode: 500,
         body: JSON.stringify({
-          message: 'Failed to link GitHub account',
+          message: 'An error occurred while handling the OAuth callback',
           error: (error as Error).message,
         }),
       };
