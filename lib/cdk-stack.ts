@@ -23,9 +23,16 @@ import { HttpLambdaAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 const nodeRuntime = lambda.Runtime.NODEJS_18_X;
 
 export class HandTermCdkStack extends Stack {
-  constructor(scope: Construct, id: string, props?: StackProps) {
+  public userPool: cognito.UserPool;
+
+  private constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
-    this.initializeStack();
+  }
+
+  public static async create(scope: Construct, id: string, props?: StackProps): Promise<HandTermCdkStack> {
+    const stack = new HandTermCdkStack(scope, id, props);
+    await stack.initializeStack();
+    return stack;
   }
 
   private async initializeStack() {

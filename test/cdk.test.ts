@@ -1,62 +1,66 @@
 import * as cdk from 'aws-cdk-lib';
 import { Template } from 'aws-cdk-lib/assertions';
 import * as Cdk from '../lib/cdk-stack';
+import { getGitHubSecrets } from '../lib/utils/githubSecrets';
 
-// example test. To run these tests, uncomment this file along with the
-// example resource in lib/cdk-stack.ts
-test('API Gateway REST API Created', () => {
-    const app = new cdk.App();
-    // WHEN
-    const stack = new Cdk.HandTermCdkStack(app, 'MyTestStack');
-    // THEN
-    const template = Template.fromStack(stack);
-    template.hasResourceProperties('AWS::ApiGateway::RestApi', {
-        Name: 'api',
-    });
+jest.mock('../lib/utils/githubSecrets');
+
+const mockedGetGitHubSecrets = getGitHubSecrets as jest.MockedFunction<typeof getGitHubSecrets>;
+
+beforeEach(() => {
+  mockedGetGitHubSecrets.mockResolvedValue({
+    clientId: 'test-client-id',
+    clientSecret: 'test-client-secret',
+    issuerUrl: 'https://test-issuer.com'
+  });
 });
 
-test('Cognito User Pool and Client Created', () => {
+test('API Gateway REST API Created', async () => {
   const app = new cdk.App();
-  const stack = new Cdk.HandTermCdkStack(app, 'MyTestStack');
+  const stack = await Cdk.HandTermCdkStack.create(app, 'MyTestStack');
+  const template = Template.fromStack(stack);
   
+  template.hasResourceProperties('AWS::ApiGatewayV2::Api', {
+    Name: 'HandTermService',
+  });
+});
+
+test('Cognito User Pool and Client Created', async () => {
+  const app = new cdk.App();
+  const stack = await Cdk.HandTermCdkStack.create(app, 'MyTestStack');
   const template = Template.fromStack(stack);
 
-  // Test for the User Pool
   template.hasResourceProperties('AWS::Cognito::UserPool', {
     UserPoolName: 'HandTermUserPool',
   });
 
-  // Test for the User Pool Client
-  template.hasResource('AWS::Cognito::UserPoolClient', {
-    Properties: {
-      ExplicitAuthFlows: [
-        'ALLOW_USER_SRP_AUTH',
-        'ALLOW_REFRESH_TOKEN_AUTH'
-      ]
-    }
+  template.hasResourceProperties('AWS::Cognito::UserPoolClient', {
+    UserPoolId: {
+      Ref: template.getLogicalId(stack.userPool.node.defaultChild as cdk.CfnElement)
+    },
+    ExplicitAuthFlows: [
+      'ALLOW_USER_PASSWORD_AUTH',
+      'ALLOW_USER_SRP_AUTH',
+      'ALLOW_REFRESH_TOKEN_AUTH'
+    ]
   });
 });
 
-test('S3 Bucket for User Logs Created', () => {
+test('S3 Bucket for User Logs Created', async () => {
   const app = new cdk.App();
-  const stack = new Cdk.HandTermCdkStack(app, 'MyTestStack');
-  
+  const stack = await Cdk.HandTermCdkStack.create(app, 'MyTestStack');
   const template = Template.fromStack(stack);
 
-  // Test for the S3 Bucket
   template.hasResourceProperties('AWS::S3::Bucket', {
     BucketName: 'handterm'
   });
 });
 
-test('Lambda@Edge Function for HttpOnly Cookies Created', () => {
+test('Lambda Functions Created', async () => {
   const app = new cdk.App();
-  const stack = new Cdk.HandTermCdkStack(app, 'MyTestStack');
-  
+  const stack = await Cdk.HandTermCdkStack.create(app, 'MyTestStack');
   const template = Template.fromStack(stack);
 
-  // Test for the Lambda@Edge function
-  template.hasResourceProperties('AWS::Lambda::Function', {
-    Description: 'A Lambda@Edge function for HttpOnly Cookies'
-  });
+  // Test for the Lambda functions
+  template.resourceCountIs('AWS::Lambda::Function', 12);  // Adjust this number based on your actual Lambda function count
 });
