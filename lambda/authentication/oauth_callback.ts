@@ -17,13 +17,13 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
   console.log('OAuth callback received:', event);
 
   const code = event.queryStringParameters?.code;
-  const cognitoAuthToken = event.headers['Authorization'];
+  const state = event.queryStringParameters?.state;
 
-  if (!code) {
+  if (!code || !state) {
     return {
       statusCode: 400,
       body: JSON.stringify({
-        message: 'Authorization code is missing.',
+        message: 'Authorization code or state is missing.',
       }),
     };
   }
@@ -41,6 +41,10 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
   }
 
   try {
+    const decodedState = JSON.parse(Buffer.from(state, 'base64').toString('utf-8'));
+    const cognitoUserId = decodedState.cognitoUserId;
+    const cognitoAuthToken = decodedState.cognitoToken;
+
     const tokenData = await getGitHubToken(code, clientId, clientSecret);
 
     if (tokenData.error) {
@@ -60,92 +64,30 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     const cognito = new CognitoIdentityServiceProvider();
     const userPoolId = process.env.COGNITO_USER_POOL_ID!;
 
-    let cognitoUser;
-    if (cognitoAuthToken) {
-      // User is already logged in, link GitHub account
-      try {
-        const cognitoUserInfo = await cognito.getUser({ AccessToken: cognitoAuthToken.split(' ')[1] }).promise();
-        await cognito.adminUpdateUserAttributes({
-          UserPoolId: userPoolId,
-          Username: cognitoUserInfo.Username,
-          UserAttributes: [
-            { Name: 'custom:github_id', Value: githubUser.id.toString() },
-            { Name: 'custom:github_token', Value: tokenData.access_token },
-          ],
-        }).promise();
+    try {
+      await cognito.adminUpdateUserAttributes({
+        UserPoolId: userPoolId,
+        Username: cognitoUserId,
+        UserAttributes: [
+          { Name: 'custom:github_id', Value: githubUser.id.toString() },
+          { Name: 'custom:github_token', Value: tokenData.access_token },
+        ],
+      }).promise();
 
-        return {
-          statusCode: 200,
-          body: JSON.stringify({
-            message: 'GitHub account linked successfully',
-            userId: cognitoUserInfo.Username,
-          }),
-        };
-      } catch (error) {
-        console.error('Error linking GitHub account:', error);
-        return {
-          statusCode: 500,
-          body: JSON.stringify({
-            message: 'Failed to link GitHub account',
-            error: (error as Error).message,
-          }),
-        };
-      }
-    } else if (githubUser.email && githubUser.email !== `github_${githubUser.id}@example.com`) {
-      // GitHub account exposes email, we can create or update a Cognito user
-      try {
-        cognitoUser = await cognito.adminGetUser({
-          UserPoolId: userPoolId,
-          Username: githubUser.email,
-        }).promise();
-
-        // Update GitHub token and other attributes
-        await cognito.adminUpdateUserAttributes({
-          UserPoolId: userPoolId,
-          Username: githubUser.email,
-          UserAttributes: [
-            { Name: 'email', Value: githubUser.email },
-            { Name: 'preferred_username', Value: githubUser.login },
-            { Name: 'custom:github_id', Value: githubUser.id.toString() },
-            { Name: 'custom:github_token', Value: tokenData.access_token },
-          ],
-        }).promise();
-
-        return {
-          statusCode: 200,
-          body: JSON.stringify({
-            message: 'GitHub account linked successfully',
-            userId: githubUser.id,
-          }),
-        };
-      } catch (error) {
-        // User doesn't exist, create a new one
-        cognitoUser = await cognito.adminCreateUser({
-          UserPoolId: userPoolId,
-          Username: githubUser.email,
-          UserAttributes: [
-            { Name: 'email', Value: githubUser.email },
-            { Name: 'preferred_username', Value: githubUser.login },
-            { Name: 'custom:github_id', Value: githubUser.id.toString() },
-            { Name: 'custom:github_token', Value: tokenData.access_token },
-          ],
-        }).promise();
-
-        return {
-          statusCode: 200,
-          body: JSON.stringify({
-            message: 'New Cognito user created and GitHub account linked successfully',
-            userId: githubUser.id,
-          }),
-        };
-      }
-    } else {
-      // GitHub account doesn't expose email, we can't create a new Cognito user
       return {
-        statusCode: 400,
+        statusCode: 200,
         body: JSON.stringify({
-          message: 'Unable to link GitHub account. Please sign in to your Cognito account first and then link your GitHub account.',
-          userId: githubUser.id,
+          message: 'GitHub account linked successfully',
+          userId: cognitoUserId,
+        }),
+      };
+    } catch (error) {
+      console.error('Error linking GitHub account:', error);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({
+          message: 'Failed to link GitHub account',
+          error: (error as Error).message,
         }),
       };
     }

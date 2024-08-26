@@ -3786,3 +3786,13 @@
 
 # 2024-08-25 15:51:32.713912
 +Will that raise an error when I try to deploy the CDK stack again? Remember, it just returned an error because the bucket already existed. I would like to not flip-flop back and forth between two unacceptable problems.
+
+# 2024-08-25 17:38:29.233835
++When I am logged in now, I try to connect to GitHub by running the `githubAuthRedirect`, and I accept the connection on the GitHub end, and that sends me to the `oauth_callback` and it tells me this: `{"message":"Unable to link GitHub account. Please sign in to your Cognito account first and then link your GitHub account.","userId":"1802850"}`
+
+# 2024-08-25 17:52:58.578038
++I think the problem might be that when this is initially called in the front-end code: ```  const initiateGitHubAuth = () => {
++    const githubAuthUrl = `${API_URL}/github_auth`;
++    // Redirect the user to the GitHub authorization URL        
++    window.location.href = githubAuthUrl;
++  };```, GitHub is not given the Cognito userId. When GitHub calls back to the `lambda\authentication\oauth_callback.ts`, that code in the CDK Lambda code on the server has no way of verifying that they user, it doesn't even know which user to validate, is logged in on the client. There must be some way for our GitHub auth redirect to pass a token to GitHub, or for our `oauth_callback` code to trigger a validation step or reverification from the client that is redirected there. How is that supposed to work?
