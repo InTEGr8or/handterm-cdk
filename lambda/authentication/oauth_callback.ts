@@ -79,14 +79,15 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     try {
       console.log('Updating user attributes for Cognito User ID:', cognitoUserId);
       try {
-        await cognito.adminUpdateUserAttributes({
+        const command = new AdminUpdateUserAttributesCommand({
           UserPoolId: userPoolId,
           Username: cognitoUserId,
           UserAttributes: [
             { Name: 'custom:github_id', Value: githubUser.id.toString() },
             { Name: 'custom:github_token', Value: tokenData.access_token },
           ],
-        }).promise();
+        });
+        await cognito.send(command);
 
         console.log('User attributes updated successfully');
         return {

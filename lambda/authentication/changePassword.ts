@@ -2,11 +2,11 @@
 
 import { CognitoIdentityProviderClient, ChangePasswordCommand } from '@aws-sdk/client-cognito-identity-provider';
 
-const cognito = new AWS.CognitoIdentityServiceProvider({ region: 'us-east-1' });
+const cognito = new CognitoIdentityProviderClient({ region: 'us-east-1' });
 
 const allowedOrigins = ['http://localhost:5173', 'https://handterm.com'];
 
-exports.handler = async (event: { body: string }) => {
+export const handler = async (event: { body: string }) => {
   const body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
   try {
     const { accessToken, previousPassword, proposedPassword } = body;
@@ -16,7 +16,8 @@ exports.handler = async (event: { body: string }) => {
       ProposedPassword: proposedPassword,
     };
 
-    const data = await cognito.changePassword(params).promise();
+    const command = new ChangePasswordCommand(params);
+    const data = await cognito.send(command);
     console.log('ChangePassword success:', JSON.stringify(data));
     return {
       statusCode: 200,
