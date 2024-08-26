@@ -24,7 +24,7 @@ describe('GitHub Secrets', () => {
     expect(secrets).toEqual({
       clientId: 'test-client-id',
       clientSecret: 'test-client-secret',
-      issuerUrl: 'https://github.com/login/oauth'
+      issuerUrl: 'https://test-issuer.com'
     });
   });
 
@@ -32,24 +32,5 @@ describe('GitHub Secrets', () => {
     ssmMock.on(GetParameterCommand).rejects(new Error('Parameter not found'));
 
     await expect(getGitHubSecrets()).rejects.toThrow('GitHub secrets could not be retrieved from Parameter Store');
-  });
-
-  it('should return GitHub secrets when they can be retrieved', async () => {
-    ssmMock.on(GetParameterCommand).resolves({
-      Parameter: {
-        Value: JSON.stringify({
-          clientId: 'test-client-id',
-          clientSecret: 'test-client-secret',
-          issuerUrl: 'https://test-issuer.com'
-        })
-      }
-    });
-
-    const secrets = await getGitHubSecrets();
-    expect(secrets).toEqual({
-      clientId: 'test-client-id',
-      clientSecret: 'test-client-secret',
-      issuerUrl: 'https://test-issuer.com'
-    });
   });
 });

@@ -12,7 +12,6 @@ export async function getGitHubSecrets(): Promise<GitHubSecrets> {
     const command = new GetParameterCommand({ Name: '/github/secrets' });
     const response = await ssmClient.send(command);
     const githubSecrets = response.Parameter?.Value;
-    console.log("Fetched GitHub Secrets: " + githubSecrets);
 
     if (!githubSecrets) {
       throw new Error('GitHub secrets not found in Parameter Store');
@@ -25,7 +24,6 @@ export async function getGitHubSecrets(): Promise<GitHubSecrets> {
       issuerUrl: parsedSecrets.issuerUrl
     };
   } catch (error) {
-    console.error("Error fetching GitHub secrets:", error);
     throw new Error('GitHub secrets could not be retrieved from Parameter Store');
   }
 }
