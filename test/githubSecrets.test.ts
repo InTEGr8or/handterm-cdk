@@ -1,4 +1,4 @@
-import { getGitHubSecrets } from '../lib/utils/githubSecrets';
+import { getGitHubSecrets as getGitHubSecretsUtil } from '../lib/utils/githubSecrets';
 import { mockClient } from 'aws-sdk-client-mock';
 import { SSMClient, GetParameterCommand } from '@aws-sdk/client-ssm';
 import { getGitHubSecrets } from '../lib/utils/githubSecrets';

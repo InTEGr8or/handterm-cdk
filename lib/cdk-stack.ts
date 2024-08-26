@@ -25,14 +25,9 @@ const nodeRuntime = lambda.Runtime.NODEJS_18_X;
 export class HandTermCdkStack extends Stack {
   public userPool: cognito.UserPool;
 
-  private constructor(scope: Construct, id: string, props?: StackProps) {
+  constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
-  }
-
-  public static async create(scope: Construct, id: string, props?: StackProps): Promise<HandTermCdkStack> {
-    const stack = new HandTermCdkStack(scope, id, props);
-    await stack.initializeStack();
-    return stack;
+    this.initializeStack();
   }
 
   private async initializeStack() {
