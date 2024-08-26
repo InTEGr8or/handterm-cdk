@@ -73,7 +73,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     console.log('GitHub user data:', JSON.stringify(githubUser));
 
     // Create or update Cognito user
-    const cognito = new CognitoIdentityServiceProvider();
+    const cognito = new CognitoIdentityProviderClient();
     const userPoolId = process.env.COGNITO_USER_POOL_ID!;
 
     try {
