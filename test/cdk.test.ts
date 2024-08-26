@@ -15,9 +15,9 @@ beforeEach(() => {
   });
 });
 
-test('API Gateway REST API Created', async () => {
+test('API Gateway REST API Created', () => {
   const app = new cdk.App();
-  const stack = await Cdk.HandTermCdkStack.create(app, 'MyTestStack');
+  const stack = new Cdk.HandTermCdkStack(app, 'MyTestStack');
   const template = Template.fromStack(stack);
   
   template.hasResourceProperties('AWS::ApiGatewayV2::Api', {
@@ -25,9 +25,9 @@ test('API Gateway REST API Created', async () => {
   });
 });
 
-test('Cognito User Pool and Client Created', async () => {
+test('Cognito User Pool and Client Created', () => {
   const app = new cdk.App();
-  const stack = await Cdk.HandTermCdkStack.create(app, 'MyTestStack');
+  const stack = new Cdk.HandTermCdkStack(app, 'MyTestStack');
   const template = Template.fromStack(stack);
 
   template.hasResourceProperties('AWS::Cognito::UserPool', {
@@ -46,9 +46,9 @@ test('Cognito User Pool and Client Created', async () => {
   });
 });
 
-test('S3 Bucket for User Logs Created', async () => {
+test('S3 Bucket for User Logs Created', () => {
   const app = new cdk.App();
-  const stack = await Cdk.HandTermCdkStack.create(app, 'MyTestStack');
+  const stack = new Cdk.HandTermCdkStack(app, 'MyTestStack');
   const template = Template.fromStack(stack);
 
   template.hasResourceProperties('AWS::S3::Bucket', {
@@ -56,9 +56,9 @@ test('S3 Bucket for User Logs Created', async () => {
   });
 });
 
-test('Lambda Functions Created', async () => {
+test('Lambda Functions Created', () => {
   const app = new cdk.App();
-  const stack = await Cdk.HandTermCdkStack.create(app, 'MyTestStack');
+  const stack = new Cdk.HandTermCdkStack(app, 'MyTestStack');
   const template = Template.fromStack(stack);
 
   // Test for the Lambda functions
