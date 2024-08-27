@@ -96,17 +96,29 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       return errorResponse(400, 'Unable to create or find Cognito user.');
     }
 
-    // Update user attributes
-    await cognito.send(new AdminUpdateUserAttributesCommand({
-      UserPoolId: userPoolId,
-      Username: cognitoUserId,
-      UserAttributes: [
-        { Name: 'custom:github_id', Value: githubUser.id.toString() },
-        { Name: 'custom:github_token', Value: tokenData.access_token },
-      ],
-    }));
+    // Check if the attributes exist in the schema before updating
+    const githubIdExists = await attributeExistsInSchema(cognito, userPoolId, 'custom:github_id');
+    const githubTokenExists = await attributeExistsInSchema(cognito, userPoolId, 'custom:github_token');
 
-    console.log('User attributes updated successfully');
+    const userAttributes = [];
+    if (githubIdExists) {
+      userAttributes.push({ Name: 'custom:github_id', Value: githubUser.id.toString() });
+    }
+    if (githubTokenExists) {
+      userAttributes.push({ Name: 'custom:github_token', Value: tokenData.access_token });
+    }
+
+    if (userAttributes.length > 0) {
+      await cognito.send(new AdminUpdateUserAttributesCommand({
+        UserPoolId: userPoolId,
+        Username: cognitoUserId,
+        UserAttributes: userAttributes,
+      }));
+      console.log('User attributes updated successfully');
+    } else {
+      console.log('No attributes to update');
+    }
+
     return {
       statusCode: 200,
       body: JSON.stringify({
@@ -119,6 +131,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     return errorResponse(500, 'An unexpected error occurred while handling the OAuth callback.');
   }
 };
+
+import { DescribeUserPoolCommand } from '@aws-sdk/client-cognito-identity-provider';
 
 async function getGitHubToken(code: string, clientId: string, clientSecret: string): Promise<TokenData> {
   return new Promise((resolve, reject) => {
@@ -212,15 +226,19 @@ async function getGitHubUser(accessToken: string): Promise<GitHubUser> {
       primaryEmail = emailData.find(email => email.primary)?.email || emailData[0]?.email;
     } else {
       console.log('Email data is not an array:', typeof emailData);
+      // Use the email from the user data if available
+      primaryEmail = userData.email;
     }
   } catch (error) {
     console.error('Error fetching email data:', error);
+    // Use the email from the user data if available
+    primaryEmail = userData.email;
   }
 
   return {
     id: userData.id.toString(),
     login: userData.login,
-    email: primaryEmail,
+    email: primaryEmail || `${userData.login}@example.com`,
   };
 }
 
@@ -229,4 +247,15 @@ function errorResponse(statusCode: number, message: string): APIGatewayProxyResu
     statusCode,
     body: JSON.stringify({ message }),
   };
+}
+
+// Function to check if an attribute exists in the user pool schema
+async function attributeExistsInSchema(cognito: CognitoIdentityProviderClient, userPoolId: string, attributeName: string): Promise<boolean> {
+  try {
+    const { SchemaAttributes } = await cognito.send(new DescribeUserPoolCommand({ UserPoolId: userPoolId }));
+    return SchemaAttributes?.some(attr => attr.Name === attributeName) || false;
+  } catch (error) {
+    console.error(`Error checking schema for attribute ${attributeName}:`, error);
+    return false;
+  }
 }
