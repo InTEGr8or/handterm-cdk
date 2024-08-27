@@ -1,5 +1,5 @@
 // cdk/lambda/authentication/signIn.ts
-import { CognitoIdentityProviderClient, InitiateAuthCommand } from "@aws-sdk/client-cognito-identity-provider";
+import { CognitoIdentityProviderClient, InitiateAuthCommand, AuthFlowType } from "@aws-sdk/client-cognito-identity-provider";
 const cognito = new CognitoIdentityProviderClient({ region: 'us-east-1' });
 
 export const handler = async (event: { body: string }) => {
@@ -13,7 +13,7 @@ export const handler = async (event: { body: string }) => {
       throw new Error('COGNITO_APP_CLIENT_ID environment variable is not set.');
     }
     const params = {
-      AuthFlow: 'USER_PASSWORD_AUTH',
+      AuthFlow: 'USER_PASSWORD_AUTH' as AuthFlowType,
       ClientId: clientId,
       AuthParameters: {
         USERNAME: username,
