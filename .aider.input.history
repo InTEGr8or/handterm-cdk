@@ -4826,3 +4826,106 @@
 
 # 2024-08-26 20:47:01.670470
 +Go ahead and make the change.
+
+# 2024-08-27 06:42:06.485224
++When I execute the GitHub authentication process now it redirects me to here: `https://github.com/login/oauth/authorize?client_id=Iv23li7gy43wuuUgck9v&redirect_uri=%7BredirectUri%7D&scope=read%3Auser%2Cuser%3Aemail&state=eyJ0aW1lc3RhbXAiOjE3MjQ3NjU5Mzk4MjB9`, and I get the message: ```Be careful!
++The redirect_uri is not associated with this application.```
+
+# 2024-08-27 07:07:13.248870
++Ok, now it redirects me here: `https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/oauth_callback?code=2c5d2c58981bde64137e&state=eyJ0aW1lc3RhbXAiOjE3MjQ3NjcxNDU3NjV9`, and it gives me: ```{
++    "message": "Internal Server Error"
++}```, and the log for `oauth_callback` tells me: ```2024-08-27T13:59:08.609Z        undefined       ERROR   Uncaught Exception   {"errorType":"Runtime.ImportModuleError","errorMessage":"Error: Cannot find module '@aws-sdk/client-cognito-identity-provider'\nRequire stack:\n- /var/task/oauth_callback.js\n- /var/runtime/index.mjs","stack":["Runtime.ImportModuleError: Error: Cannot find module '@aws-sdk/client-cognito-identity-provider'","Require stack:","- /var/task/oauth_callback.js","- /var/runtime/index.mjs","    at _loadUserApp (file:///var/runtime/index.mjs:1087:17)","    at async Object.UserFunction.js.module.exports.load (file:///var/runtime/index.mjs:1119:21)","    at async start (file:///var/runtime/index.mjs:1282:23)","    at async file:///var/runtime/index.mjs:1288:1"]}
++
++INIT_REPORT Init Duration: 142.10 ms    Phase: init     Status: error   Error Type: Runtime.ImportModuleError```
+
+# 2024-08-27 07:07:54.440634
++/run npm install
+
+# 2024-08-27 07:08:47.588644
++I use Yarn, not NPM. Please check to root directory before trying to run NPM.
+
+# 2024-08-27 07:17:37.458424
++Now I am getting this error: ```[{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/cdk-stack.ts",
++"owner": "typescript",
++"code": "2353",
++"severity": 8,
++"message": "Object literal may only specify known properties, and 'bundling' does not exist in type 'LambdaIntegrationProps'.",
++"source": "ts",
++"startLineNumber": 467,
++"startColumn": 7,
++"endLineNumber": 467,
++"endColumn": 15
++}]```
+
+# 2024-08-27 07:32:20.172599
++I am not sure what you intended to do in the `package.json` but it is malformed. Please review.
+
+# 2024-08-27 07:34:02.486309
++You seem to keep trying to edit a file called `json`. There is no such file and there shouldn't be any such file.
+
+# 2024-08-27 07:35:08.957396
++Please correct your edits to `package.json`.
+
+# 2024-08-27 07:35:36.254737
++/add package.json
+
+# 2024-08-27 07:41:57.789106
++The features of the chat interface seem to make it dificult for you to edit the `package.json`. Please review the contents of the file and tell me how you intended it to be edited. ```{
++  "name": "cdk",
++  "version": "0.1.0",
++  "license": "Apache-2.0",
++  "bin": {
++    "cdk": "bin/cdk.js"
++  },
++  "scripts": {
++    "cpCdk": "cp ../handterm/src/shared/endpoints.ts lambda/cdkshared/",
++    "build": "tsc",
++    "deploy": "yarn cpCdk && echo 'Starting TypeScript compilation' && yarn build && echo 'TypeScript compilation completed' && cdk deploy --region=us-east-1 --profile mark",
++    "watch": "tsc -w",
++    "test": "jest",
++    "cdk": "cdk"
++  },
++  "dependencies": {
++    "@aws-sdk/client-cognito-identity-provider": "^3.425.0",
++    "@aws-sdk/client-s3": "^3.425.0",
++    "@aws-sdk/client-ssm": "^3.0.0",
++    "@types/aws-lambda": "^8.10.140",
++    "aws-cdk-lib": "2.147.2",
++    "aws-sdk": "^2.1683.0",
++    "constructs": "^10.0.0",
++    "dotenv": "^16.4.5",
++    "jsonwebtoken": "^9.0.2",
++    "node-fetch": "^3.3.2",
++    "source-map-support": "^0.5.21"
++  },
++  "devDependencies": {
++    "@aws-sdk/client-ssm": "^3.0.0",
++    "@types/aws-lambda": "^8.10.140",
++    "@types/jest": "^29.5.12",
++    "@types/jsonwebtoken": "^9.0.6",
++    "@types/node": "20.14.2",
++    "aws-cdk": "2.147.2",
++    "aws-sdk-client-mock": "^4.0.1",
++    "jest": "^29.7.0",
++    "ts-jest": "^29.1.4",
++    "ts-node": "^10.9.2",
++    "typescript": "~5.4.5"
++  }
++}
++{
++  "name": "handterm-backend",
++  "version": "1.0.0",
++  "description": "Backend for HandTerm application",
++  "dependencies": {
++    "@aws-sdk/client-cognito-identity-provider": "^3.x.x",
++    "@aws-sdk/client-s3": "^3.x.x",
++    "aws-lambda": "^1.0.7"
++  },
++  "devDependencies": {
++    "@types/aws-lambda": "^8.10.x",
++    "@types/node": "^14.x.x",
++    "typescript": "^4.x.x"
++  }
++}
++```
