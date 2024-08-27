@@ -63,10 +63,27 @@ export class HandTermCdkStack extends Stack {
         requireSymbols: true,
       },
       autoVerify: { email: true },
-      customAttributes: {
-        'github_token': new cognito.StringAttribute({ mutable: true }),
-        'github_id': new cognito.StringAttribute({ mutable: true, minLen: 1, maxLen: 256 }),
-      },
+    });
+
+    // Add custom attributes separately
+    new cognito.CfnUserPoolCustomAttributes(this, 'UserPoolCustomAttributes', {
+      userPoolId: userPool.userPoolId,
+      customAttributes: [
+        {
+          name: 'github_token',
+          attributeDataType: 'String',
+          mutable: true,
+        },
+        {
+          name: 'github_id',
+          attributeDataType: 'String',
+          mutable: true,
+          stringAttributeConstraints: {
+            minLength: '1',
+            maxLength: '256',
+          },
+        },
+      ],
     });
 
     new cognito.CfnUserPoolIdentityProvider(this, 'GitHubIdentityProvider', {
