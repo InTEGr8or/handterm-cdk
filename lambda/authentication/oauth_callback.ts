@@ -1,6 +1,7 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { request } from 'https';
 import { CognitoIdentityProviderClient, AdminUpdateUserAttributesCommand, AdminCreateUserCommand, AdminSetUserPasswordCommand, AdminGetUserCommand } from '@aws-sdk/client-cognito-identity-provider';
+import { listRecentRepos } from './listRecentRepos';
 
 interface TokenData {
   access_token?: string;
@@ -107,11 +108,25 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     }));
     console.log('User attributes updated successfully');
 
+    // Fetch recent repositories
+    const recentRepos = await listRecentRepos(cognitoUserId);
+
+    // Construct the redirect URL
+    const redirectUrl = decodedState.redirectUrl || 'https://handterm.com';
+    const redirectUrlWithParams = new URL(redirectUrl);
+    redirectUrlWithParams.searchParams.append('userId', cognitoUserId);
+    redirectUrlWithParams.searchParams.append('message', 'GitHub account linked successfully');
+    redirectUrlWithParams.searchParams.append('recentRepos', JSON.stringify(recentRepos.slice(0, 5)));
+
     return {
-      statusCode: 200,
+      statusCode: 302,
+      headers: {
+        Location: redirectUrlWithParams.toString(),
+      },
       body: JSON.stringify({
         message: 'GitHub account linked successfully',
         userId: cognitoUserId,
+        recentRepos: recentRepos.slice(0, 5),
       }),
     };
   } catch (error) {

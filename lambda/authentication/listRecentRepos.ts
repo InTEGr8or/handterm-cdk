@@ -4,14 +4,9 @@ import { request } from 'https';
 
 const cognito = new CognitoIdentityProviderClient({ region: 'us-east-1' });
 
-export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  const userSub = event.requestContext.authorizer?.claims.sub;
-
+export const listRecentRepos = async (userSub: string): Promise<any[]> => {
   if (!userSub) {
-    return {
-      statusCode: 401,
-      body: JSON.stringify({ message: 'Unauthorized' }),
-    };
+    throw new Error('Unauthorized');
   }
 
   try {
@@ -54,9 +49,26 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       req.end();
     });
 
+    return JSON.parse(response);
+  } catch (error) {
+    console.error('Error:', error);
+    throw error;
+  }
+};
+
+export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+  try {
+    const userSub = event.requestContext.authorizer?.claims.sub;
+    if (!userSub) {
+      return {
+        statusCode: 401,
+        body: JSON.stringify({ message: 'Unauthorized' }),
+      };
+    }
+    const repos = await listRecentRepos(userSub);
     return {
       statusCode: 200,
-      body: response,
+      body: JSON.stringify(repos),
     };
   } catch (error) {
     console.error('Error:', error);
