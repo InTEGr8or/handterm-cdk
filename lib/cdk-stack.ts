@@ -192,7 +192,8 @@ export class HandTermCdkStack extends Stack {
               actions: [
                 'cognito-idp:AdminCreateUser',
                 'cognito-idp:AdminGetUser',
-                'cognito-idp:AdminUpdateUserAttributes'
+                'cognito-idp:AdminUpdateUserAttributes',
+                'cognito-idp:AdminSetUserPassword'
               ],
               resources: [userPool.userPoolArn]
             })
