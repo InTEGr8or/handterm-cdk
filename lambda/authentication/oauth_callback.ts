@@ -62,11 +62,13 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       // User is not logged in, check if they exist in Cognito by GitHub ID
       try {
         console.log('Searching for user with GitHub ID:', githubUser.id);
-        const listUsersResponse = await cognito.send(new ListUsersCommand({
+        const listUsersCommand = new ListUsersCommand({
           UserPoolId: userPoolId,
           Filter: `custom:github_id = "${githubUser.id}"`,
-        }));
+        });
+        console.log('ListUsersCommand:', JSON.stringify(listUsersCommand, null, 2));
         
+        const listUsersResponse = await cognito.send(listUsersCommand);
         console.log('ListUsers response:', JSON.stringify(listUsersResponse, null, 2));
         
         if (listUsersResponse.Users && listUsersResponse.Users.length > 0) {
@@ -74,14 +76,16 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
           console.log('Existing user found:', cognitoUserId);
         } else {
           console.log('User not found, creating new user');
-          // User doesn't exist, create a new one with GitHub ID as username
-          const createUserResponse = await cognito.send(new AdminCreateUserCommand({
+          const createUserCommand = new AdminCreateUserCommand({
             UserPoolId: userPoolId,
             Username: githubUser.id.toString(),
             UserAttributes: [
               { Name: 'custom:github_id', Value: githubUser.id.toString() },
             ],
-          }));
+          });
+          console.log('AdminCreateUserCommand:', JSON.stringify(createUserCommand, null, 2));
+          
+          const createUserResponse = await cognito.send(createUserCommand);
           cognitoUserId = createUserResponse.User?.Username;
           isNewUser = true;
           console.log('New user created:', cognitoUserId);
@@ -89,8 +93,13 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       } catch (error) {
         console.error('Error finding or creating user:', error);
         if (error instanceof Error) {
-          console.error('Error details:', error.message);
+          console.error('Error name:', error.name);
+          console.error('Error message:', error.message);
           console.error('Error stack:', error.stack);
+        }
+        if (error instanceof Error && error.name === 'InvalidParameterException') {
+          console.error('Invalid parameter in Cognito request. Check the Filter syntax and other parameters.');
+          return errorResponse(400, 'Invalid request to Cognito service.');
         }
         return errorResponse(500, 'Failed to find or create user in Cognito.');
       }
