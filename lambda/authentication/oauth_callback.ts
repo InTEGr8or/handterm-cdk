@@ -1,6 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { request } from 'https';
-import { CognitoIdentityProviderClient, AdminUpdateUserAttributesCommand } from '@aws-sdk/client-cognito-identity-provider';
+import { CognitoIdentityProviderClient, AdminUpdateUserAttributesCommand, AdminCreateUserCommand, AdminSetUserPasswordCommand, AdminGetUserCommand } from '@aws-sdk/client-cognito-identity-provider';
 
 interface TokenData {
   access_token?: string;
@@ -14,117 +14,98 @@ interface GitHubUser {
 }
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  console.log('OAuth callback received:', event);
-
-  const code = event.queryStringParameters?.code;
-  const state = event.queryStringParameters?.state;
-
-  if (!code || !state) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({
-        message: 'Authorization code or state is missing.',
-      }),
-    };
-  }
-
-  const clientId = process.env.GITHUB_CLIENT_ID;
-  const clientSecret = process.env.GITHUB_CLIENT_SECRET;
-
-  if (!clientId || !clientSecret) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({
-        message: 'GitHub client ID or client secret is not set.',
-      }),
-    };
-  }
+  console.log('OAuth callback received:', JSON.stringify(event, null, 2));
 
   try {
-    const decodedState = JSON.parse(Buffer.from(state, 'base64').toString('utf-8'));
-    const cognitoUserId = decodedState.cognitoUserId;
+    const code = event.queryStringParameters?.code;
+    const state = event.queryStringParameters?.state;
 
-    if (!cognitoUserId) {
-      console.error('Cognito User ID not found in state');
-      return {
-        statusCode: 400,
-        body: JSON.stringify({
-          message: 'Cognito User ID not found in state',
-        }),
-      };
+    if (!code || !state) {
+      return errorResponse(400, 'Authorization code or state is missing.');
+    }
+
+    const clientId = process.env.GITHUB_CLIENT_ID;
+    const clientSecret = process.env.GITHUB_CLIENT_SECRET;
+
+    if (!clientId || !clientSecret) {
+      console.error('Missing environment variables:', { clientId, clientSecret });
+      return errorResponse(500, 'GitHub client ID or client secret is not set.');
+    }
+
+    let decodedState;
+    try {
+      decodedState = JSON.parse(Buffer.from(state, 'base64').toString('utf-8'));
+    } catch (error) {
+      console.error('Error decoding state:', error);
+      return errorResponse(400, 'Invalid state parameter.');
     }
 
     console.log('Decoded state:', decodedState);
-    console.log('Cognito User ID:', cognitoUserId);
 
     const tokenData = await getGitHubToken(code, clientId, clientSecret);
 
     if (tokenData.error) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({
-          message: 'Failed to exchange authorization code for access token.',
-          error: tokenData.error,
-        }),
-      };
+      console.error('Error getting GitHub token:', tokenData.error);
+      return errorResponse(400, 'Failed to exchange authorization code for access token.');
     }
 
     const githubUser = await getGitHubUser(tokenData.access_token!);
     console.log('GitHub user data:', JSON.stringify(githubUser));
 
-    // Create or update Cognito user
     const cognito = new CognitoIdentityProviderClient();
     const userPoolId = process.env.COGNITO_USER_POOL_ID!;
 
+    // Check if the user already exists in Cognito
+    let cognitoUserId;
     try {
-      console.log('Updating user attributes for Cognito User ID:', cognitoUserId);
-      try {
-        const command = new AdminUpdateUserAttributesCommand({
-          UserPoolId: userPoolId,
-          Username: cognitoUserId,
-          UserAttributes: [
-            { Name: 'custom:github_id', Value: githubUser.id.toString() },
-            { Name: 'custom:github_token', Value: tokenData.access_token },
-          ],
-        });
-        await cognito.send(command);
-
-        console.log('User attributes updated successfully');
-        return {
-          statusCode: 200,
-          body: JSON.stringify({
-            message: 'GitHub account linked successfully',
-            userId: cognitoUserId,
-          }),
-        };
-      } catch (updateError) {
-        console.error('Error updating user attributes:', updateError);
-        return {
-          statusCode: 500,
-          body: JSON.stringify({
-            message: 'Failed to link GitHub account',
-            error: (updateError as Error).message,
-          }),
-        };
-      }
+      const listUsersResponse = await cognito.send(new AdminGetUserCommand({
+        UserPoolId: userPoolId,
+        Username: githubUser.email,
+      }));
+      cognitoUserId = listUsersResponse.Username;
     } catch (error) {
-      console.error('Error in OAuth callback:', error);
-      return {
-        statusCode: 500,
-        body: JSON.stringify({
-          message: 'An error occurred while handling the OAuth callback',
-          error: (error as Error).message,
-        }),
-      };
+      console.log('User not found in Cognito, creating new user');
+      // Create a new user if not found
+      const createUserResponse = await cognito.send(new AdminCreateUserCommand({
+        UserPoolId: userPoolId,
+        Username: githubUser.email,
+        UserAttributes: [
+          { Name: 'email', Value: githubUser.email },
+          { Name: 'email_verified', Value: 'true' },
+        ],
+      }));
+      cognitoUserId = createUserResponse.User?.Username;
+
+      // Set a temporary password for the new user
+      await cognito.send(new AdminSetUserPasswordCommand({
+        UserPoolId: userPoolId,
+        Username: cognitoUserId!,
+        Password: 'TemporaryPassword123!', // This should be changed by the user on first login
+        Permanent: true,
+      }));
     }
-  } catch (error: unknown) {
+
+    // Update user attributes
+    await cognito.send(new AdminUpdateUserAttributesCommand({
+      UserPoolId: userPoolId,
+      Username: cognitoUserId!,
+      UserAttributes: [
+        { Name: 'custom:github_id', Value: githubUser.id.toString() },
+        { Name: 'custom:github_token', Value: tokenData.access_token },
+      ],
+    }));
+
+    console.log('User attributes updated successfully');
     return {
-      statusCode: 500,
+      statusCode: 200,
       body: JSON.stringify({
-        message: 'An error occurred while handling the OAuth callback.',
-        error: (error as Error).message,
+        message: 'GitHub account linked successfully',
+        userId: cognitoUserId,
       }),
     };
+  } catch (error) {
+    console.error('Unhandled error in OAuth callback:', error);
+    return errorResponse(500, 'An unexpected error occurred while handling the OAuth callback.');
   }
 };
 
@@ -225,5 +206,12 @@ async function getGitHubUser(accessToken: string): Promise<GitHubUser> {
     id: userData.id.toString(),
     login: userData.login,
     email: primaryEmail || `github_${userData.id}@example.com`,
+  };
+}
+
+function errorResponse(statusCode: number, message: string): APIGatewayProxyResult {
+  return {
+    statusCode,
+    body: JSON.stringify({ message }),
   };
 }
