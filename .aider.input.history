@@ -4929,3 +4929,111 @@
 +  }
 +}
 +```
+
+# 2024-08-27 07:57:11.905773
++I am getting this linting error: ```[{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/utils/lambdaUtils.ts",
++"owner": "typescript",
++"code": "2305",
++"severity": 8,
++"message": "Module '\"aws-cdk-lib/aws-lambda\"' has no exported member 'BundlingOptions'.",
++"source": "ts",
++"startLineNumber": 4,
++"startColumn": 53,
++"endLineNumber": 4,
++"endColumn": 68
++}]```
+
+# 2024-08-27 08:00:38.597371
++/add node_modules\aws-cdk-lib\aws-lambda\lib\function.d.ts
+
+# 2024-08-27 08:02:20.311159
++I don't see `BundlingProps` in `aws-cdk-lib/aws-lambda` either, and I am getting this linting error: ```[{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/utils/lambdaUtils.ts",
++"owner": "typescript",
++"code": "2305",
++"severity": 8,
++"message": "Module '\"aws-cdk-lib/aws-lambda\"' has no exported member 'BundlingProps'.",
++"source": "ts",
++"startLineNumber": 4,
++"startColumn": 53,
++"endLineNumber": 4,
++"endColumn": 66
++}]```
+
+# 2024-08-27 08:08:28.927426
++Do you see the word `bundling` anywhere in `node_modules\aws-cdk-lib\aws-lambda\lib\function.d.ts`? I don't. Why are you trying to import it from `aws-cdk-lib/aws-lambda`? Can you explain your reasoning? Are you trying to add a layer to the CDK? Is `@aws-sdk` not available in the AWS Lambda environment?
+
+# 2024-08-27 09:04:41.977087
++I think that V3 is available in AWS Lambda now: `https://aws.amazon.com/blogs/compute/node-js-18-x-runtime-now-available-in-aws-lambda/`. Your `BundlingProps` still doesn't exist in `aws-cdk-lib/aws-lambda`: ```[{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lib/utils/lambdaUtils.ts",
++"owner": "typescript",
++"code": "2305",
++"severity": 8,
++"message": "Module '\"aws-cdk-lib/aws-lambda\"' has no exported member 'BundlingProps'.",
++"source": "ts",
++"startLineNumber": 4,
++"startColumn": 53,
++"endLineNumber": 4,
++"endColumn": 66
++}]```. 
+
+# 2024-08-27 09:07:50.327564
++/run yarn deploy
+
+# 2024-08-27 09:27:05.192785
++/add lib\cdk-stack.ts
+
+# 2024-08-27 09:27:17.601176
++/add package.json
+
+# 2024-08-27 09:36:55.150182
++/add lambda\authentication\signIn.ts
+
+# 2024-08-27 09:39:09.494744
++I am getting this error in the CloudWatch logs after I've deployed the CDK and when I try to log in: ```2024-08-27T16:15:48.316Z        undefined       ERROR   Uncaught Exception   {"errorType":"Runtime.ImportModuleError","errorMessage":"Error: Cannot find module 'aws-sdk'\nRequire stack:\n- /var/task/signIn.js\n- /var/runtime/index.mjs","stack":["Runtime.ImportModuleError: Error: Cannot find module 'aws-sdk'","Require stack:","- /var/task/signIn.js","- /var/runtime/index.mjs","    at _loadUserApp (file:///var/runtime/index.mjs:1087:17)","    at async UserFunction.js.module.exports.load (file:///var/runtime/index.mjs:1119:21)","    at async start (file:///var/runtime/index.mjs:1282:23)","    at async file:///var/runtime/index.mjs:1288:1"]}
++
++INIT_REPORT Init Duration: 2098.53 ms   Phase: invoke   Status: error   Error Type: Runtime.ImportModuleError
++
++START RequestId: b83c3680-419f-4e1c-a8c6-8dd9b4f34c64 Version: $LATEST        
++
++Unknown application error occurred
++Runtime.ImportModuleError```
+
+# 2024-08-27 09:42:03.644682
++I am getting this linting error: ```[{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/signIn.ts",
++"owner": "typescript",
++"code": "2769",
++"severity": 8,
++"message": "No overload matches this call.\n  Overload 1 of 2, '(input: InitiateAuthCommandInput): InitiateAuthCommand', gave the following error.\n    Argument of type '{ AuthFlow: string; ClientId: string; AuthParameters: { USERNAME: any; PASSWORD: any; }; }' is not assignable to parameter of type 'InitiateAuthCommandInput'.\n      Types of property 'AuthFlow' are incompatible.\n        Type 'string' is not assignable to type 'AuthFlowType | undefined'.\n  Overload 2 of 2, '(__0_0: InitiateAuthCommandInput): InitiateAuthCommand', gave the following error.\n    Argument of type '{ AuthFlow: string; ClientId: string; AuthParameters: { USERNAME: any; PASSWORD: any; }; }' is not assignable to parameter of type 'InitiateAuthCommandInput'.\n      Types of property 'AuthFlow' are incompatible.\n        Type 'string' is not assignable to type 'AuthFlowType | undefined'.",
++"source": "ts",
++"startLineNumber": 24,
++"startColumn": 45,
++"endLineNumber": 24,
++"endColumn": 51
++}]```
+
+# 2024-08-27 09:42:23.357388
++/run yarn build
+
+# 2024-08-27 09:42:55.657886
++/run yarn deploy
+
+# 2024-08-27 10:16:48.670075
++I am getting this error now: ```2024-08-27T17:06:54.235Z        undefined       ERROR   Uncaught Exception   {"errorType":"Runtime.ImportModuleError","errorMessage":"Error: Cannot find module 'aws-sdk'\nRequire stack:\n- /var/task/getUser.js\n- /var/runtime/index.mjs","stack":["Runtime.ImportModuleError: Error: Cannot find module 'aws-sdk'","Require stack:","- /var/task/getUser.js","- /var/runtime/index.mjs","    at _loadUserApp (file:///var/runtime/index.mjs:1087:17)","    at async UserFunction.js.module.exports.load (file:///var/runtime/index.mjs:1119:21)","    at async start (file:///var/runtime/index.mjs:1282:23)","    at async file:///var/runtime/index.mjs:1288:1"]}```. There are nine files that still import `aws-sdk`. Do they all need to be updated?
+
+# 2024-08-27 10:17:04.959880
++/run yarn build && yarn deploy
+
+# 2024-08-27 10:23:04.236972
++/run yarn build && yarn deploy
+
+# 2024-08-27 10:36:50.490285
++/drop lambda\authentication\signIn.ts
+
+# 2024-08-27 10:37:03.170570
++/add lambda\authentication\refreshToken.ts
+
+# 2024-08-27 10:37:28.206977
++`refreshToken` is still using `aws-sdk`.
