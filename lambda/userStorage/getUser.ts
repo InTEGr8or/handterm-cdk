@@ -3,6 +3,7 @@ import * as AWS from 'aws-sdk';
 import { ENDPOINTS } from '../cdkshared/endpoints';
 
 const s3 = new AWS.S3({ region: 'us-east-1' });
+const bucketName = 'handterm';
 
 console.log('Loading function');
 
@@ -52,19 +53,19 @@ export const handler = async (event: any) => {
 
         const objectKey = `user_data/${userId}/_index.md`;
         console.log('objectKey:', objectKey);
-        console.log('BUCKET_NAME:', ENDPOINTS.aws.s3.bucketName);
+        console.log('BUCKET_NAME:', bucketName);
 
         try {
             console.log('Attempting to check if object exists');
             const headResult = await s3.headObject({
-                Bucket: ENDPOINTS.aws.s3.bucketName!,
+                Bucket: bucketName!,
                 Key: objectKey
             }).promise();
             console.log('Head object result:', JSON.stringify(headResult, null, 2));
 
             console.log('Object exists, proceeding to get object');
             const s3Response = await s3.getObject({
-                Bucket: ENDPOINTS.aws.s3.bucketName!,
+                Bucket: bucketName!,
                 Key: objectKey
             }).promise();
 

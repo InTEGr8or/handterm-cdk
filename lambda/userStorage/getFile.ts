@@ -3,6 +3,8 @@
 import * as AWS from 'aws-sdk';
 import { ENDPOINTS } from '../cdkshared/endpoints';
 
+const bucketName = 'handterm';
+
 const s3 = new AWS.S3({ region: 'us-east-1' });
 
 export const handler = async (event: any) => {
@@ -24,7 +26,7 @@ export const handler = async (event: any) => {
     // Check if the file exists
     try{
         await s3.headObject({
-            Bucket: ENDPOINTS.aws.s3.bucketName,
+            Bucket: bucketName,
             Key: objectKey
         }).promise();
     }catch(err){
@@ -36,7 +38,7 @@ export const handler = async (event: any) => {
     }
 
     const s3Response = await s3.getObject({
-        Bucket: ENDPOINTS.aws.s3.bucketName,
+        Bucket: bucketName,
         Key: objectKey
     }).promise();
 
