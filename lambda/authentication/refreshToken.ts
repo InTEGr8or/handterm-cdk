@@ -1,14 +1,13 @@
-// cdk/lambda/authentication/refreshSession.ts
-import * as AWS from 'aws-sdk';
-const cognito = new AWS.CognitoIdentityServiceProvider({ region: 'us-east-1' });
+import { CognitoIdentityProviderClient, InitiateAuthCommand } from "@aws-sdk/client-cognito-identity-provider";
 
-exports.handler = async (event: { body: string }) => {
+const cognitoClient = new CognitoIdentityProviderClient({ region: 'us-east-1' });
+
+export const handler = async (event: { body: string }) => {
   const body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
-  console.log('RefreshSession body:', body);
+  console.log('RefreshToken body:', body);
 
   try {
     const { refreshToken } = body;
-    // Ensure ClientId is a string and not undefined
     const clientId = process.env.COGNITO_APP_CLIENT_ID;
     if (!clientId) {
       throw new Error('COGNITO_APP_CLIENT_ID environment variable is not set.');
@@ -17,30 +16,28 @@ exports.handler = async (event: { body: string }) => {
       throw new Error('Refresh token is required.');
     }
 
-    const params = {
+    const command = new InitiateAuthCommand({
       AuthFlow: 'REFRESH_TOKEN_AUTH',
       ClientId: clientId,
       AuthParameters: {
         REFRESH_TOKEN: refreshToken,
       },
-    };
+    });
 
-    const data = await cognito.initiateAuth(params).promise();
+    const data = await cognitoClient.send(command);
 
-    console.log('RefreshSession success:', JSON.stringify(data));
+    console.log('RefreshToken success:', JSON.stringify(data));
 
     const { IdToken, AccessToken } = data.AuthenticationResult ?? {};
 
     if (!IdToken || !AccessToken) {
-      // Handle the missing tokens scenario
       return {
         statusCode: 400,
         body: JSON.stringify({ message: "Token refresh failed or incomplete." }),
       };
     }
 
-    // Return the new tokens to the client
-    const response = {
+    return {
       statusCode: 200,
       body: JSON.stringify({
         IdToken,
@@ -51,10 +48,9 @@ exports.handler = async (event: { body: string }) => {
         "Access-Control-Allow-Credentials": true,
       },
     };
-    return response;
   } catch (err: any) {
-    console.error('RefreshSession error:', err);
-    const response = {
+    console.error('RefreshToken error:', err);
+    return {
       statusCode: 500,
       headers: {
         "Access-Control-Allow-Origin": "*",
@@ -62,7 +58,5 @@ exports.handler = async (event: { body: string }) => {
       },
       body: JSON.stringify({ message: err.message || 'An error occurred during the token refresh process.' }),
     };
-
-    return response;
   }
 };
