@@ -1,8 +1,8 @@
 
-import * as AWS from 'aws-sdk';
+import { S3Client, GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { ENDPOINTS } from '../cdkshared/endpoints';
 
-const s3 = new AWS.S3({ region: 'us-east-1' });
+const s3Client = new S3Client({ region: 'us-east-1' });
 const bucketName = 'handterm';
 
 console.log('Loading function');
@@ -57,19 +57,21 @@ export const handler = async (event: any) => {
 
         try {
             console.log('Attempting to check if object exists');
-            const headResult = await s3.headObject({
+            const headCommand = new HeadObjectCommand({
                 Bucket: bucketName!,
                 Key: objectKey
-            }).promise();
+            });
+            const headResult = await s3Client.send(headCommand);
             console.log('Head object result:', JSON.stringify(headResult, null, 2));
 
             console.log('Object exists, proceeding to get object');
-            const s3Response = await s3.getObject({
+            const getCommand = new GetObjectCommand({
                 Bucket: bucketName!,
                 Key: objectKey
-            }).promise();
+            });
+            const s3Response = await s3Client.send(getCommand);
 
-            const fileContent = s3Response.Body?.toString('utf-8');
+            const fileContent = await s3Response.Body?.transformToString();
             console.log('File content retrieved:', fileContent);
 
             console.log('GetUserFunction completed successfully');
@@ -82,10 +84,10 @@ export const handler = async (event: any) => {
                 body: JSON.stringify({ userId: userId, content: fileContent }),
             };
         } catch (err: unknown) {
-            const error = err as AWS.AWSError;
+            const error = err as Error & { name?: string };
             console.error('S3 operation error:', JSON.stringify(error, null, 2));
 
-            if (error.code === 'NoSuchKey' || error.code === 'NotFound') {
+            if (error.name === 'NoSuchKey' || error.name === 'NotFound') {
                 console.log('Profile does not exist yet for userId:', userId);
                 return {
                     statusCode: 200,  // Changed from 404 to 200
