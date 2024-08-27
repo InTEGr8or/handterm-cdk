@@ -464,6 +464,15 @@ export class HandTermCdkStack extends Stack {
       httpApi: httpApi,
       path: '/oauth_callback',
       methods: [HttpMethod.GET, HttpMethod.POST],
+      bundling: {
+        externalModules: [
+          'aws-sdk', // Use the 'aws-sdk' available in the Lambda runtime
+        ],
+        nodeModules: [
+          '@aws-sdk/client-cognito-identity-provider',
+          '@aws-sdk/client-s3',
+        ],
+      },
     });
 
     new CfnOutput(this, 'ApiEndpoint', { value: httpApi.url || '' });
