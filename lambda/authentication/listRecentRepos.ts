@@ -4,9 +4,12 @@ import { request } from 'https';
 
 const cognito = new CognitoIdentityProviderClient({ region: 'us-east-1' });
 
-export const listRecentRepos = async (userSub: string): Promise<any[]> => {
+export const listRecentRepos = async (userSub: string): Promise<any[] | { statusCode: number; body: string }> => {
   if (!userSub) {
-    throw new Error('Unauthorized');
+    return {
+      statusCode: 401,
+      body: JSON.stringify({ message: 'Unauthorized' }),
+    };
   }
 
   try {
