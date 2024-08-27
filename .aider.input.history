@@ -3914,3 +3914,505 @@
 
 # 2024-08-25 20:39:44.275359
 +/run yarn add -D aws-sdk-client-mock
+
+# 2024-08-25 20:58:30.777067
++Now I am getting this error: ``` yarn test
++yarn run v1.22.22
++$ jest
++Debugger listening on ws://127.0.0.1:50639/9f5ff12d-9d61-403a-99c4-d41a0a4d246b
++For help, see: https://nodejs.org/en/docs/inspector
++Debugger attached.
++ FAIL  test/cdk.test.ts
++   Test suite failed to run
++
++    test/cdk.test.ts:20:44 - error TS2339: Property 'create' does not exist on type 'typeof HandTermCdkStack'.
++
++    20   const stack = await Cdk.HandTermCdkStack.create(app, 'MyTestStack');
++                                                  ~~~~~~        
++    test/cdk.test.ts:30:44 - error TS2339: Property 'create' does not exist on type 'typeof HandTermCdkStack'.
++
++    30   const stack = await Cdk.HandTermCdkStack.create(app, 'MyTestStack');
++                                                  ~~~~~~        
++    test/cdk.test.ts:51:44 - error TS2339: Property 'create' does not exist on type 'typeof HandTermCdkStack'.
++
++    51   const stack = await Cdk.HandTermCdkStack.create(app, 'MyTestStack');
++                                                  ~~~~~~        
++    test/cdk.test.ts:61:44 - error TS2339: Property 'create' does not exist on type 'typeof HandTermCdkStack'.
++
++    61   const stack = await Cdk.HandTermCdkStack.create(app, 'MyTestStack');
++                                                  ~~~~~~        
++
++ FAIL  test/githubSecrets.test.ts
++   Test suite failed to run
++
++    Cannot find module 'aws-sdk' from 'lib/utils/githubSecrets.js'
++
++    Require stack:
++      lib/utils/githubSecrets.js
++      test/githubSecrets.test.ts
++
++    > 1 | import { SSMClient, GetParameterCommand } from "@aws-sdk/client-ssm";
++        | ^
++      2 |
++      3 | export interface GitHubSecrets {
++      4 |   clientId: string;
++
++      at Resolver._throwModNotFoundError (node_modules/jest-resolve/build/resolver.js:427:11)
++      at Object.<anonymous> (lib/utils/githubSecrets.ts:1:1)    
++      at Object.<anonymous> (test/githubSecrets.test.ts:3:1)    
++
++Test Suites: 2 failed, 2 total
++Tests:       0 total
++Snapshots:   0 total
++Time:        13.125 s
++Ran all test suites.
++Waiting for the debugger to disconnect...
++error Command failed with exit code 1.```
+
+# 2024-08-25 21:02:49.640913
++Now I am getting this error: ```yarn test
++yarn run v1.22.22
++$ jest
++Debugger listening on ws://127.0.0.1:52659/08ef8a13-bcc3-4674-af77-e9c25892f00e
++For help, see: https://nodejs.org/en/docs/inspector
++Debugger attached.
++ FAIL  test/cdk.test.ts
++   Test suite failed to run
++                                                                
++    Cannot find module 'aws-sdk' from 'lib/utils/githubSecrets.js'                                                              
++                                                                
++    > 1 | import { SSMClient, GetParameterCommand } from "@aws-sdk/client-ssm";                                                 
++        | ^
++      2 |
++      3 | export interface GitHubSecrets {
++      4 |   clientId: string;
++
++      at Resolver._throwModNotFoundError (node_modules/jest-resolve/build/resolver.js:427:11)
++      at Object.<anonymous> (lib/utils/githubSecrets.ts:1:1)    
++      at Object.<anonymous> (lib/cdk-stack.ts:3:1)
++      at Object.<anonymous> (test/cdk.test.ts:3:1)
++
++ FAIL  test/githubSecrets.test.ts
++   Test suite failed to run
++
++    Cannot find module 'aws-sdk' from 'lib/utils/githubSecrets.js'
++
++    Require stack:
++      lib/utils/githubSecrets.js
++      test/githubSecrets.test.ts
++
++    > 1 | import { SSMClient, GetParameterCommand } from "@aws-sdk/client-ssm";
++        | ^
++      2 |
++      3 | export interface GitHubSecrets {
++      4 |   clientId: string;
++
++      at Resolver._throwModNotFoundError (node_modules/jest-resolve/build/resolver.js:427:11)
++      at Object.<anonymous> (lib/utils/githubSecrets.ts:1:1)    
++      at Object.<anonymous> (test/githubSecrets.test.ts:3:1)    
++
++Test Suites: 2 failed, 2 total
++Tests:       0 total
++Snapshots:   0 total
++Time:        15.374 s
++Ran all test suites.
++Waiting for the debugger to disconnect...
++error Command failed with exit code 1.```. And I get this linting error: ```[{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/oauth_callback.ts",
++"owner": "typescript",
++"code": "2307",
++"severity": 8,
++"message": "Cannot find module 'aws-sdk' or its corresponding type declarations.",
++"source": "ts",
++"startLineNumber": 3,
++"startColumn": 48,
++"endLineNumber": 3,
++"endColumn": 57
++}]```
+
+# 2024-08-25 21:03:50.900993
++/run yarn jest --clearCache
+
+# 2024-08-25 21:03:57.114696
++/run yarn test
+
+# 2024-08-25 21:16:48.122046
++When I run `yarn deploy` I get this error: ``` yarn deploy
++yarn run v1.22.22
++$ yarn cpCdk && echo 'Starting TypeScript compilation' && yarn build && echo 'TypeScript compilation completed' && cdk deploy --region=us-east-1 --profile mark
++$ cp ../handterm/src/shared/endpoints.ts lambda/cdkshared/      
++'Starting TypeScript compilation' 
++$ tsc
++lambda/authentication/changePassword.ts:3:22 - error TS2307: Cannot find module 'aws-sdk' or its corresponding type declarations.
++
++3 import * as AWS from 'aws-sdk';
++                       ~~~~~~~~~
++
++lambda/authentication/githubAuthRedirect.ts:2:22 - error TS2307: Cannot find module 'aws-sdk' or its corresponding type declarations.
++
++2 import * as AWS from 'aws-sdk';
++                       ~~~~~~~~~
++
++lambda/authentication/oauth_callback.ts:76:25 - error TS2304: Cannot find name 'CognitoIdentityServiceProvider'.
++
++76     const cognito = new CognitoIdentityServiceProvider();    
++                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~       
++
++lambda/authentication/refreshToken.ts:2:22 - error TS2307: Cannot find module 'aws-sdk' or its corresponding type declarations. 
++
++2 import * as AWS from 'aws-sdk';
++                       ~~~~~~~~~
++
++lambda/authentication/signIn.ts:2:22 - error TS2307: Cannot find module 'aws-sdk' or its corresponding type declarations.       
++
++2 import * as AWS from 'aws-sdk';
++                       ~~~~~~~~~
++
++lambda/authentication/signUp.ts:3:22 - error TS2307: Cannot find module 'aws-sdk' or its corresponding type declarations.       
++
++3 import * as AWS from 'aws-sdk';
++                       ~~~~~~~~~
++
++lambda/userStorage/getFile.ts:3:22 - error TS2307: Cannot find module 'aws-sdk' or its corresponding type declarations.
++
++3 import * as AWS from 'aws-sdk';
++                       ~~~~~~~~~
++
++lambda/userStorage/getLog.ts:3:22 - error TS2307: Cannot find module 'aws-sdk' or its corresponding type declarations.
++
++3 import * as AWS from 'aws-sdk';
++                       ~~~~~~~~~
++
++lambda/userStorage/getLog.ts:27:22 - error TS7006: Parameter 'item' implicitly has an 'any' type.
++
++27             .filter((item) => item.Key !== undefined) // Filter out items without a Key
++                        ~~~~
++
++lambda/userStorage/getLog.ts:28:20 - error TS7006: Parameter 'a' implicitly has an 'any' type.
++
++28             .sort((a, b) => {
++                      ~
++
++lambda/userStorage/getLog.ts:28:23 - error TS7006: Parameter 'b' implicitly has an 'any' type.
++
++28             .sort((a, b) => {
++                         ~
++
++lambda/userStorage/getLog.ts:40:35 - error TS7006: Parameter 'keyItem' implicitly has an 'any' type.
++
++40             sortedKeys.map(async (keyItem) => {
++                                     ~~~~~~~
++
++lambda/userStorage/getUser.ts:2:22 - error TS2307: Cannot find module 'aws-sdk' or its corresponding type declarations.
++
++2 import * as AWS from 'aws-sdk';
++                       ~~~~~~~~~
++
++lambda/userStorage/listLog.ts:2:22 - error TS2307: Cannot find module 'aws-sdk' or its corresponding type declarations.
++
++2 import * as AWS from 'aws-sdk';
++                       ~~~~~~~~~
++
++lambda/userStorage/listLog.ts:27:41 - error TS7006: Parameter 'content' implicitly has an 'any' type.
++
++27         const sortedKeys = Contents.map(content => content.Key)
++                                           ~~~~~~~
++
++lambda/userStorage/listLog.ts:28:22 - error TS7006: Parameter 'key' implicitly has an 'any' type.
++
++28             .filter((key): key is string => key !== undefined) // This line ensures 'key' is treated as 'string'
++                        ~~~
++
++lambda/userStorage/listLog.ts:29:20 - error TS7006: Parameter 'a' implicitly has an 'any' type.
++
++29             .sort((a, b) => b.localeCompare(a)); // TypeScript now understands 'a' and 'b' are strings
++                      ~
++
++lambda/userStorage/listLog.ts:29:23 - error TS7006: Parameter 'b' implicitly has an 'any' type.
++
++29             .sort((a, b) => b.localeCompare(a)); // TypeScript now understands 'a' and 'b' are strings
++                         ~
++
++lambda/userStorage/putFile.ts:3:22 - error TS2307: Cannot find module 'aws-sdk' or its corresponding type declarations.
++
++3 import * as AWS from 'aws-sdk';
++                       ~~~~~~~~~
++
++lambda/userStorage/saveLog.ts:3:22 - error TS2307: Cannot find module 'aws-sdk' or its corresponding type declarations.
++
++3 import * as AWS from 'aws-sdk';
++                       ~~~~~~~~~
++
++lambda/userStorage/setUser.ts:1:22 - error TS2307: Cannot find module 'aws-sdk' or its corresponding type declarations.
++
++1 import * as AWS from 'aws-sdk';
++                       ~~~~~~~~~
++
++node_modules/aws-sdk-client-mock/dist/types/mockClient.d.ts:2:8 - error TS1259: Module '"C:/Users/xgenx/source/repos/handterm-cdk/node_modules/@types/sinon/index"' can only be default-imported using the 'esModuleInterop' flag
++
++2 import sinon, { SinonSandbox } from 'sinon';
++         ~~~~~
++
++  node_modules/@types/sinon/index.d.ts:1729:1
++    1729 export = Sinon;
++         ~~~~~~~~~~~~~~~
++    This module is declared with 'export =', and can only be used with a default import when using the 'esModuleInterop' flag.  
++
++
++Found 22 errors in 14 files.
++
++Errors  Files
++     1  lambda/authentication/changePassword.ts:3
++     1  lambda/authentication/githubAuthRedirect.ts:2
++     1  lambda/authentication/oauth_callback.ts:76
++     1  lambda/authentication/refreshToken.ts:2
++     1  lambda/authentication/signIn.ts:2
++     1  lambda/authentication/signUp.ts:3
++     1  lambda/userStorage/getFile.ts:3
++     5  lambda/userStorage/getLog.ts:3
++     1  lambda/userStorage/getUser.ts:2
++     5  lambda/userStorage/listLog.ts:2
++     1  lambda/userStorage/putFile.ts:3
++     1  lambda/userStorage/saveLog.ts:3
++     1  lambda/userStorage/setUser.ts:1
++     1  node_modules/aws-sdk-client-mock/dist/types/mockClient.d.ts:2
++error Command failed with exit code 2.```
+
+# 2024-08-26 06:34:16.123024
++I am getting these errors now: ```[{
++"resource": "/C:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/changePassword.ts",
++"owner": "typescript",
++"code": "2304",
++"severity": 8,
++"message": "Cannot find name 'AWS'.",
++"source": "ts",
++"startLineNumber": 5,
++"startColumn": 21,
++"endLineNumber": 5,
++"endColumn": 24
++},{
++"resource": "/C:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/githubAuthRedirect.ts",
++"owner": "typescript",
++"code": "2307",
++"severity": 8,
++"message": "Cannot find module 'aws-sdk' or its corresponding type declarations.",
++"source": "ts",
++"startLineNumber": 2,
++"startColumn": 22,
++"endLineNumber": 2,
++"endColumn": 31
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/oauth_callback.ts",
++"owner": "typescript",
++"code": "2339",
++"severity": 8,
++"message": "Property 'adminUpdateUserAttributes' does not exist on type 'CognitoIdentityProviderClient'.",
++"source": "ts",
++"startLineNumber": 82,
++"startColumn": 23,
++"endLineNumber": 82,
++"endColumn": 48
++}]```. You seem to keep removing the `aws-sdk` when you want to change it for a particular file, but you don't check if that library is being used by any other files: ```commit e688fbe207f86f45495f87f86e761bf57ce01093
++Author: Mark Stouffer (aider) <1802850+InTEGr8or@users.noreply.github.com>
++Date:   Sun Aug 25 20:34:33 2024 -0700
++
++    fix: Update AWS SDK dependencies and usage
++
++diff --git a/package.json b/package.json
++index 51cb383..eda41d6 100644
++--- a/package.json
+++++ b/package.json
++@@ -15,9 +15,9 @@
++   },
++   "dependencies": {
++     "@aws-sdk/client-cognito-identity-provider": "^3.425.0",       
+++    "@aws-sdk/client-ssm": "^3.0.0",^M
++     "@types/aws-lambda": "^8.10.140",
++     "aws-cdk-lib": "2.147.2",
++-    "aws-sdk": "^2.1450.0",
++     "constructs": "^10.0.0",
++     "dotenv": "^16.4.5",
++     "jsonwebtoken": "^9.0.2",```. That is a recurring problem.
+
+# 2024-08-26 07:03:09.246716
++I am getting these errors from `yarn test`: ``` yarn test                                             
++yarn run v1.22.22
++$ jest
++Debugger listening on ws://127.0.0.1:57845/a384488c-9cac-4461-9444-1ca00bfe3ca3
++For help, see: https://nodejs.org/en/docs/inspector
++Debugger attached.
++ PASS  test/githubSecrets.test.ts (10.279 s)
++   Console
++
++    console.log
++      Fetched GitHub Secrets: {"clientId":"test-client-id","clientSecret":"test-client-secret","issuerUrl":"https://test-issuer.com"}   
++
++      at getGitHubSecrets (lib/utils/githubSecrets.ts:15:13)        
++
++    console.error
++      Error fetching GitHub secrets: Error: Parameter not found     
++          at Object.<anonymous> (C:\Users\xgenx\source\repos\handterm-cdk\test\githubSecrets.test.ts:32:45)
++          at Promise.then.completed (C:\Users\xgenx\source\repos\handterm-cdk\node_modules\jest-circus\build\utils.js:298:28)
++          at new Promise (<anonymous>)
++          at callAsyncCircusFn (C:\Users\xgenx\source\repos\handterm-cdk\node_modules\jest-circus\build\utils.js:231:10)
++          at _callCircusTest (C:\Users\xgenx\source\repos\handterm-cdk\node_modules\jest-circus\build\run.js:316:40)
++          at processTicksAndRejections (node:internal/process/task_queues:95:5)
++          at _runTest (C:\Users\xgenx\source\repos\handterm-cdk\node_modules\jest-circus\build\run.js:252:3)
++          at _runTestsForDescribeBlock (C:\Users\xgenx\source\repos\handterm-cdk\node_modules\jest-circus\build\run.js:126:9)
++          at _runTestsForDescribeBlock (C:\Users\xgenx\source\repos\handterm-cdk\node_modules\jest-circus\build\run.js:121:9)
++          at run (C:\Users\xgenx\source\repos\handterm-cdk\node_modules\jest-circus\build\run.js:71:3)
++          at runAndTransformResultsToJestFormat (C:\Users\xgenx\source\repos\handterm-cdk\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
++          at jestAdapter (C:\Users\xgenx\source\repos\handterm-cdk\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
++          at runTestInternal (C:\Users\xgenx\source\repos\handterm-cdk\node_modules\jest-runner\build\runTest.js:367:16)
++          at runTest (C:\Users\xgenx\source\repos\handterm-cdk\node_modules\jest-runner\build\runTest.js:444:34)
++          at Object.worker (C:\Users\xgenx\source\repos\handterm-cdk\node_modules\jest-runner\build\testWorker.js:106:12)
++
++      26 |     };
++      27 |   } catch (error) {
++    > 28 |     console.error("Error fetching GitHub secrets:", error);
++         |             ^
++      29 |     throw new Error("GitHub secrets could not be retrieved from Parameter Store: " + error);
++      30 |   }
++      31 | }
++
++      at getGitHubSecrets (lib/utils/githubSecrets.ts:28:13)        
++      at Object.<anonymous> (test/githubSecrets.test.ts:34:5)       
++
++C:\Users\xgenx\source\repos\handterm-cdk\lib\cdk-stack.js:21
++        const { clientId, clientSecret, issuerUrl } = await (0, githubSecrets_1.getGitHubSecrets)();
++                ^
++
++TypeError: Cannot destructure property 'clientId' of '(intermediate value)' as it is undefined.
++    at HandTermCdkStack.initializeStack (C:\Users\xgenx\source\repos\handterm-cdk\lib\cdk-stack.ts:37:13)
++    at processTicksAndRejections (node:internal/process/task_queues:95:5)
++
++Node.js v20.12.1
++C:\Users\xgenx\source\repos\handterm-cdk\lib\cdk-stack.js:21
++        const { clientId, clientSecret, issuerUrl } = await (0, githubSecrets_1.getGitHubSecrets)();
++                ^
++
++TypeError: Cannot destructure property 'clientId' of '(intermediate value)' as it is undefined.
++    at HandTermCdkStack.initializeStack (C:\Users\xgenx\source\repos\handterm-cdk\lib\cdk-stack.ts:37:13)
++    at processTicksAndRejections (node:internal/process/task_queues:95:5)
++
++Node.js v20.12.1
++C:\Users\xgenx\source\repos\handterm-cdk\lib\cdk-stack.js:21
++        const { clientId, clientSecret, issuerUrl } = await (0, githubSecrets_1.getGitHubSecrets)();
++                ^
++
++TypeError: Cannot destructure property 'clientId' of '(intermediate value)' as it is undefined.
++    at HandTermCdkStack.initializeStack (C:\Users\xgenx\source\repos\handterm-cdk\lib\cdk-stack.ts:37:13)
++    at processTicksAndRejections (node:internal/process/task_queues:95:5)
++
++Node.js v20.12.1
++C:\Users\xgenx\source\repos\handterm-cdk\lib\cdk-stack.js:21
++        const { clientId, clientSecret, issuerUrl } = await (0, githubSecrets_1.getGitHubSecrets)();
++                ^
++
++TypeError: Cannot destructure property 'clientId' of '(intermediate value)' as it is undefined.
++    at HandTermCdkStack.initializeStack (C:\Users\xgenx\source\repos\handterm-cdk\lib\cdk-stack.ts:37:13)
++    at processTicksAndRejections (node:internal/process/task_queues:95:5)
++
++Node.js v20.12.1
++ FAIL  test/cdk.test.ts
++   Test suite failed to run
++                                                                    
++    Jest worker encountered 4 child process exceptions, exceeding retry limit                                                           
++                                                                    
++      at ChildProcessWorker.initialize (node_modules/jest-worker/build/workers/ChildProcessWorker.js:181:21)
++
++Test Suites: 1 failed, 1 passed, 2 total
++Tests:       2 passed, 2 total
++Snapshots:   0 total```
+
+# 2024-08-26 16:15:53.913517
++/run yarn test
+
+# 2024-08-26 16:18:32.213597
++/add lib\cdk-stack.ts
+
+# 2024-08-26 16:23:27.251479
++/run yarn test
+
+# 2024-08-26 16:49:24.724811
++/code
+
+# 2024-08-26 16:49:49.632168
++/code please apply the changes you described above.
+
+# 2024-08-26 16:58:20.263688
++You just reduced the `cdk-stack.ts` from a 479 line file to an 11 line file. Can you explain your thinking in doing that? What problem did you think you were solving? Did you consider how much functionality you would be removing?
+
+# 2024-08-26 17:30:00.950729
++I have reverted the erroneous changes you made to `cdk-stack.ts`. I have also removed all the tests because they were preventing me from deploying the changes. I am getting this error: ```[{
++"resource": "/C:/Users/xgenx/source/repos/handterm-cdk/lambda/userStorage/getLog.ts",
++"owner": "typescript",
++"code": "2345",
++"severity": 8,
++"message": "Argument of type '(a: { Key: string; }, b: { Key: string; }) => number' is not assignable to parameter of type '(a: Object, b: Object) => number'.\n  Types of parameters 'a' and 'a' are incompatible.\n    Type 'Object' is not assignable to type '{ Key: string; }'.\n      Types of property 'Key' are incompatible.\n        Type 'string | undefined' is not assignable to type 'string'.\n          Type 'undefined' is not assignable to type 'string'.",
++"source": "ts",
++"startLineNumber": 29,
++"startColumn": 19,
++"endLineNumber": 29,
++"endColumn": 64
++}]```
+
+# 2024-08-26 17:31:17.151053
++This is the content of the `getLog.ts`: ```// cdk/lambda/userStorage/getLog.ts
++
++import { S3Client, GetObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
++import { ENDPOINTS } from '../cdkshared/endpoints';
++import AWS from 'aws-sdk';
++const s3 = new AWS.S3();
++
++exports.handler = async (event: any) => {
++    const authorizer = event.requestContext.authorizer;
++    const userId = authorizer.lambda.userId;
++    const logDomain = event.queryStringParameters.key || '';
++    const limit = event.queryStringParameters.limit || 10;
++    const bucketName = ENDPOINTS.aws.s3.bucketName;
++    console.log('getLog received userId:', userId, 'logDomain:', event.queryStringParameters);
++    if (!userId) {
++        return { statusCode: 401, body: JSON.stringify({ message: 'Unauthorized' }) };
++    }
++
++    try {
++        console.log('userId:', userId, 'logDomain:', logDomain);
++        const listedObjects = await s3.listObjectsV2({
++            Bucket: bucketName,
++            Prefix: `user_data/${userId}/logs/${logDomain}`
++        }).promise();
++
++        // Ensure items have a key before sorting
++        const sortedKeys = (listedObjects.Contents || [])
++            .filter((item: { Key?: string }) => item.Key !== undefined) // Filter out items without a Key
++            .sort((a: { Key: string }, b: { Key: string }) => {
++                // Assuming both a.Key and b.Key exist due to filter above
++                const timeA = parseInt(a.Key!.split('/').pop() || '0', 10);
++                const timeB = parseInt(b.Key!.split('/').pop() || '0', 10);
++                return timeB - timeA; // Sort in descending order
++            })
++            .slice(0, limit); // Get the most recent 5 keys
++        
++        console.log('sortedKeys:', sortedKeys);
++        // Proceed with the rest of your code...
++
++        const contents = await Promise.all(
++            sortedKeys.map(async (keyItem) => {
++                // Key existence is guaranteed by the filter, but TypeScript doesn't infer this
++                const s3Response = await s3.getObject({
++                    Bucket: bucketName,
++                    Key: keyItem.Key!,
++                }).promise();
++                return s3Response.Body?.toString('utf-8');
++            })
++        );
++        console.log('contents:', contents);
++
++        return { statusCode: 200, body: JSON.stringify( contents ) };
++    } catch (err) {
++        console.error('Error:', err);
++        return { statusCode: 500, body: JSON.stringify(err) };
++    }
++};
++```
