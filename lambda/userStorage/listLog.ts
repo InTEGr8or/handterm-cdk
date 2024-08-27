@@ -1,9 +1,10 @@
 
-import * as AWS from 'aws-sdk';
+import { S3Client, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { ENDPOINTS } from '../cdkshared/endpoints';
-const s3 = new AWS.S3();
 
-exports.handler = async (event: any) => {
+const s3Client = new S3Client({ region: "us-east-1" });
+
+export const handler = async (event: any) => {
     console.log('event:', event, 'userId:', event.requestContext.authorizer.userId);
     const userId = event.requestContext.authorizer.lambda.userId;
     if (!userId) {
@@ -14,10 +15,11 @@ exports.handler = async (event: any) => {
     const logDomain = body.logDomain;
     const limit = body.limit || 10;
     try {
-        const { Contents } = await s3.listObjectsV2({
+        const command = new ListObjectsV2Command({
             Bucket: bucketName,
             Prefix: `user_data/${userId}/logs/${logDomain}`,
-        }).promise();
+        });
+        const { Contents } = await s3Client.send(command);
 
         if (!Contents) {
             return { statusCode: 404, body: JSON.stringify({ message: "No logs found." }) };
@@ -25,13 +27,11 @@ exports.handler = async (event: any) => {
 
         // Extract keys, ensure they are defined, and sort them
         const sortedKeys = Contents.map(content => content.Key)
-            .filter((key): key is string => key !== undefined) // This line ensures 'key' is treated as 'string'
-            .sort((a, b) => b.localeCompare(a)); // TypeScript now understands 'a' and 'b' are strings
+            .filter((key): key is string => key !== undefined)
+            .sort((a, b) => b.localeCompare(a));
 
-        // Slice the array to get the top 10 most recent keys
+        // Slice the array to get the top most recent keys
         const recentKeys = sortedKeys.slice(0, limit);
-
-        // Optionally, if you need to fetch the object details for these keys, you can do so here
 
         return { statusCode: 200, body: JSON.stringify({ body: recentKeys }) };
     } catch (err) {

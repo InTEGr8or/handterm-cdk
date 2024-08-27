@@ -1,21 +1,19 @@
 // cdk/lambda/userStorage/saveLog.ts
-
-import * as AWS from 'aws-sdk';
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { ENDPOINTS } from '../cdkshared/endpoints';
 
-const s3 = new AWS.S3();
+const s3Client = new S3Client({ region: "us-east-1" });
 
 let domain = 'logs';
 const bucketName = ENDPOINTS.aws.s3.bucketName;
 
-exports.handler = async (event: any) => {
+export const handler = async (event: any) => {
     const userId = event.requestContext.authorizer.lambda.userId;
     if (!userId) {
         return { statusCode: 401, body: JSON.stringify({ message: 'Unauthorized. userId not found.' }) };
     }
     const { key, content, extension } = JSON.parse(event.body); // Example payload
     console.log('saveLog called with userId:', userId, 'key:', key, 'extension:', extension);
-
 
     const fileExtension = extension || 'json';
     if (key.match(/@\w*/)) {
@@ -26,11 +24,12 @@ exports.handler = async (event: any) => {
     let keyPath = `user_data/${userId}/${domain}/${key.replace(/(l\d{4})-(\d{2})-(\d{2})/g, '$1/$2/$3').replace('_', '/')}_${contentKey}.${fileExtension}`;
 
     try {
-        await s3.putObject({
+        const command = new PutObjectCommand({
             Bucket: bucketName,
             Key: keyPath,
             Body: content,
-        }).promise();
+        });
+        await s3Client.send(command);
 
         return { statusCode: 200, body: JSON.stringify({ message: 'Log saved' }) };
     } catch (err) {

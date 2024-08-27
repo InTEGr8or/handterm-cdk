@@ -1,12 +1,11 @@
 // cdk/lambda/userStorage/putFile.ts
-
-import * as AWS from 'aws-sdk';
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { ENDPOINTS } from '../cdkshared/endpoints';
 
-const s3 = new AWS.S3();
+const s3Client = new S3Client({ region: "us-east-1" });
 const bucketName = ENDPOINTS.aws.s3.bucketName;
 
-exports.handler = async (event: any) => {
+export const handler = async (event: any) => {
     const body = JSON.parse(event.body);
     const key = body.key;
     const extension = body.extension || 'json';
@@ -26,11 +25,12 @@ exports.handler = async (event: any) => {
     const objectKey = `user_data/${userId}/${key}.${extension}`;
 
     try {
-        await s3.putObject({
+        const command = new PutObjectCommand({
             Bucket: bucketName,
             Key: objectKey,
             Body: content,
-        }).promise();
+        });
+        await s3Client.send(command);
 
         return { statusCode: 200, body: JSON.stringify({ message: `File ${key} saved` }) };
     } catch (err) {

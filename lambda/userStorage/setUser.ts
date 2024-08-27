@@ -1,11 +1,9 @@
-import * as AWS from 'aws-sdk';
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
-const s3 = new AWS.S3({ region: 'us-east-1' });
+const s3Client = new S3Client({ region: 'us-east-1' });
 
 export const handler = async (event: any) => {
   try {
-    // Assuming event.body contains the data to write, and userId is passed as part of the request
-    // For simplicity, not showing the authentication part here
     const userId = event.requestContext.authorizer.lambda.userId;
     if (!userId) {
       return { statusCode: 401, body: JSON.stringify({ message: 'Unauthorized' }) };
@@ -13,12 +11,13 @@ export const handler = async (event: any) => {
     const { profile } = JSON.parse(event.body);
     const objectKey = `user_data/${userId}/_index.md`;
 
-    // Write the content to the S3 object
-    await s3.putObject({
+    const command = new PutObjectCommand({
       Bucket: 'handterm',
       Key: objectKey,
       Body: profile, // Make sure this is in the correct format (e.g., a string or Buffer)
-    }).promise();
+    });
+
+    await s3Client.send(command);
 
     return {
       statusCode: 200,
