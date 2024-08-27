@@ -1,6 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { request } from 'https';
-import { CognitoIdentityProviderClient, AdminUpdateUserAttributesCommand, AdminGetUserCommand } from '@aws-sdk/client-cognito-identity-provider';
+import { CognitoIdentityProviderClient, AdminUpdateUserAttributesCommand, AdminGetUserCommand, AdminCreateUserCommand } from '@aws-sdk/client-cognito-identity-provider';
 
 interface TokenData {
   access_token?: string;
@@ -10,6 +10,7 @@ interface TokenData {
 interface GitHubUser {
   id: string;
   login: string;
+  email?: string;
 }
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
@@ -54,10 +55,38 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     const cognito = new CognitoIdentityProviderClient();
     const userPoolId = process.env.COGNITO_USER_POOL_ID!;
 
-    // Check if the user is already logged in to Cognito
-    const cognitoUserId = decodedState.cognitoUserId;
+    let cognitoUserId = decodedState.cognitoUserId;
+    let isNewUser = false;
+
     if (!cognitoUserId) {
-      return errorResponse(400, 'Cognito user ID not found in state.');
+      // User is not logged in, check if they exist in Cognito
+      try {
+        const userResponse = await cognito.send(new AdminGetUserCommand({
+          UserPoolId: userPoolId,
+          Username: githubUser.email || githubUser.id.toString(),
+        }));
+        cognitoUserId = userResponse.Username;
+      } catch (error) {
+        // User doesn't exist, create a new one if we have an email
+        if (githubUser.email) {
+          const createUserResponse = await cognito.send(new AdminCreateUserCommand({
+            UserPoolId: userPoolId,
+            Username: githubUser.email,
+            UserAttributes: [
+              { Name: 'email', Value: githubUser.email },
+              { Name: 'email_verified', Value: 'true' },
+            ],
+          }));
+          cognitoUserId = createUserResponse.User?.Username;
+          isNewUser = true;
+        } else {
+          return errorResponse(400, 'Unable to create user: No email provided by GitHub.');
+        }
+      }
+    }
+
+    if (!cognitoUserId) {
+      return errorResponse(500, 'Failed to get or create Cognito user.');
     }
 
     // Update the user attributes
@@ -75,6 +104,9 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     const redirectUrl = decodedState.redirectUrl || 'https://handterm.com';
     const redirectUrlWithParams = new URL(redirectUrl);
     redirectUrlWithParams.searchParams.append('githubLinked', 'true');
+    if (isNewUser) {
+      redirectUrlWithParams.searchParams.append('newUser', 'true');
+    }
 
     return {
       statusCode: 302,
@@ -83,6 +115,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       },
       body: JSON.stringify({
         message: 'GitHub account linked successfully',
+        isNewUser: isNewUser,
       }),
     };
   } catch (error) {
@@ -150,6 +183,7 @@ async function getGitHubUser(accessToken: string): Promise<GitHubUser> {
         resolve({
           id: userData.id.toString(),
           login: userData.login,
+          email: userData.email,
         });
       });
     });
