@@ -1,10 +1,10 @@
 // cdk/lambda/authentication/signUp.ts
 
-import * as AWS from 'aws-sdk';
+import { CognitoIdentityProviderClient, SignUpCommand } from "@aws-sdk/client-cognito-identity-provider";
 
-const cognito = new AWS.CognitoIdentityServiceProvider({ region: 'us-east-1' });
+const cognito = new CognitoIdentityProviderClient({ region: 'us-east-1' });
 
-exports.handler = async (event: { body: string; }) => {
+export const handler = async (event: { body: string; }) => {
   console.log('Signup received event:', event); // Log the incoming event
 
   const body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
@@ -30,7 +30,8 @@ exports.handler = async (event: { body: string; }) => {
       ],
     };
     body.params = params;
-    const data = await cognito.signUp(params).promise();
+    const command = new SignUpCommand(params);
+    const data = await cognito.send(command);
     console.log('SignUp success:', JSON.stringify(data)); // Log successful signup
     // Include CORS headers in the successful response
     return {

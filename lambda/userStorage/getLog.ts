@@ -2,10 +2,10 @@
 
 import { S3Client, GetObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { ENDPOINTS } from '../cdkshared/endpoints';
-import AWS from 'aws-sdk';
-const s3 = new AWS.S3();
 
-exports.handler = async (event: any) => {
+const s3 = new S3Client({ region: 'us-east-1' });
+
+export const handler = async (event: any) => {
     const authorizer = event.requestContext.authorizer;
     const userId = authorizer.lambda.userId;
     const logDomain = event.queryStringParameters.key || '';
@@ -18,10 +18,11 @@ exports.handler = async (event: any) => {
 
     try {
         console.log('userId:', userId, 'logDomain:', logDomain);
-        const listedObjects = await s3.listObjectsV2({
+        const listCommand = new ListObjectsV2Command({
             Bucket: bucketName,
             Prefix: `user_data/${userId}/logs/${logDomain}`
-        }).promise();
+        });
+        const listedObjects = await s3.send(listCommand);
 
         // Ensure items have a key before sorting
         const sortedKeys = (listedObjects.Contents || [])
@@ -40,11 +41,12 @@ exports.handler = async (event: any) => {
         const contents = await Promise.all(
             sortedKeys.map(async (keyItem) => {
                 // Key existence is guaranteed by the filter, but TypeScript doesn't infer this
-                const s3Response = await s3.getObject({
+                const getCommand = new GetObjectCommand({
                     Bucket: bucketName,
                     Key: keyItem.Key!,
-                }).promise();
-                return s3Response.Body?.toString('utf-8');
+                });
+                const s3Response = await s3.send(getCommand);
+                return await s3Response.Body?.transformToString();
             })
         );
         console.log('contents:', contents);
