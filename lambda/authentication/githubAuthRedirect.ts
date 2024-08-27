@@ -24,7 +24,7 @@ export const handler = async (event: APIGatewayProxyEvent):
   })).toString('base64');
 
   const githubAuthUrl =
-    `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri={redirectUri}&scope=read:user,user:email&state=${state}`;
+    `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=read:user,user:email&state=${state}`;
 
   console.log('Redirecting to:', githubAuthUrl);
 
