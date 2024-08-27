@@ -4803,3 +4803,26 @@
 
 # 2024-08-26 20:26:30.934928
 +/run curl -v https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/github_auth
+
+# 2024-08-26 20:32:52.629588
++The `github_auth` doesn't have the authorizer attached: ```    createLambdaIntegration({
++      scope: this,
++      id: 'GitHubAuthRedirectFunction',
++      handler: 'githubAuthRedirect.handler',
++      role: lambdaExecutionRole,
++      codePath: 'lambda/authentication',
++      environment: {
++        GITHUB_CLIENT_ID: clientId,
++        REDIRECT_URI: `${httpApi.url}oauth_callback`,
++      },
++      httpApi: httpApi,
++      path: '/github_auth',
++      methods: [HttpMethod.GET],
++    });```. I don't see any changes you've made to `githubAuthRedirect`.
+
+# 2024-08-26 20:44:07.690275
++I made that change, but now when I log in I get this error: ```Error fetching current user
++Request failed with status code 500```
+
+# 2024-08-26 20:47:01.670470
++Go ahead and make the change.
