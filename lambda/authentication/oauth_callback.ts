@@ -179,27 +179,36 @@ async function getGitHubUser(accessToken: string): Promise<GitHubUser> {
     path: '/user/emails',
   };
 
-  const emailData = await new Promise<any>((resolve, reject) => {
-    const req = request(emailOptions, (res) => {
-      let body = '';
-      res.on('data', (chunk) => { body += chunk; });
-      res.on('end', () => { 
-        console.log('Raw email data:', body);
-        resolve(JSON.parse(body)); 
-      });
-    });
-    req.on('error', (e) => { reject(e); });
-    req.end();
-  });
-
-  console.log('Parsed user data:', JSON.stringify(userData));
-  console.log('Parsed email data:', JSON.stringify(emailData));
-
   let primaryEmail = '';
-  if (Array.isArray(emailData)) {
-    primaryEmail = emailData.find(email => email.primary)?.email || emailData[0]?.email;
-  } else {
-    console.log('Email data is not an array:', typeof emailData);
+  try {
+    const emailData = await new Promise<any>((resolve, reject) => {
+      const req = request(emailOptions, (res) => {
+        let body = '';
+        res.on('data', (chunk) => { body += chunk; });
+        res.on('end', () => { 
+          console.log('Raw email data:', body);
+          resolve(JSON.parse(body)); 
+        });
+      });
+      req.on('error', (e) => { reject(e); });
+      req.end();
+    });
+
+    console.log('Parsed user data:', JSON.stringify(userData));
+    console.log('Parsed email data:', JSON.stringify(emailData));
+
+    if (Array.isArray(emailData)) {
+      primaryEmail = emailData.find(email => email.primary)?.email || emailData[0]?.email;
+    } else {
+      console.log('Email data is not an array:', typeof emailData);
+    }
+  } catch (error) {
+    console.error('Error fetching email data:', error);
+  }
+
+  if (!primaryEmail) {
+    console.log('Using fallback email');
+    primaryEmail = `${userData.login}@example.com`;
   }
 
   return {
