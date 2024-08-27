@@ -1,7 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { request } from 'https';
-import { CognitoIdentityProviderClient, AdminUpdateUserAttributesCommand, AdminCreateUserCommand, AdminSetUserPasswordCommand, AdminGetUserCommand } from '@aws-sdk/client-cognito-identity-provider';
-import { listRecentRepos } from './listRecentRepos';
+import { CognitoIdentityProviderClient, AdminUpdateUserAttributesCommand, AdminGetUserCommand } from '@aws-sdk/client-cognito-identity-provider';
 
 interface TokenData {
   access_token?: string;
@@ -11,7 +10,6 @@ interface TokenData {
 interface GitHubUser {
   id: string;
   login: string;
-  email?: string;
 }
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
@@ -57,44 +55,9 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     const userPoolId = process.env.COGNITO_USER_POOL_ID!;
 
     // Check if the user is already logged in to Cognito
-    let cognitoUserId = decodedState.cognitoUserId;
-    if (!cognitoUserId && githubUser.email) {
-      // If not logged in, try to find the user by email
-      try {
-        const getUserResponse = await cognito.send(new AdminGetUserCommand({
-          UserPoolId: userPoolId,
-          Username: githubUser.email,
-        }));
-        cognitoUserId = getUserResponse.Username;
-      } catch (error) {
-        console.log('User not found in Cognito');
-      }
-    }
-
-    if (!cognitoUserId && githubUser.email) {
-      console.log('Creating new Cognito user');
-      // Create a new user if not found and GitHub provided an email
-      const createUserResponse = await cognito.send(new AdminCreateUserCommand({
-        UserPoolId: userPoolId,
-        Username: githubUser.email,
-        UserAttributes: [
-          { Name: 'email', Value: githubUser.email },
-          { Name: 'email_verified', Value: 'true' },
-        ],
-      }));
-      cognitoUserId = createUserResponse.User?.Username;
-
-      // Set a temporary password for the new user
-      await cognito.send(new AdminSetUserPasswordCommand({
-        UserPoolId: userPoolId,
-        Username: cognitoUserId!,
-        Password: 'TemporaryPassword123!', // This should be changed by the user on first login
-        Permanent: true,
-      }));
-    }
-
+    const cognitoUserId = decodedState.cognitoUserId;
     if (!cognitoUserId) {
-      return errorResponse(400, 'Unable to create or find Cognito user.');
+      return errorResponse(400, 'Cognito user ID not found in state.');
     }
 
     // Update the user attributes
@@ -108,18 +71,10 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     }));
     console.log('User attributes updated successfully');
 
-    // Fetch recent repositories
-    const recentReposResult = await listRecentRepos(cognitoUserId);
-
-    // Check if recentReposResult is an array or an error object
-    const recentRepos = Array.isArray(recentReposResult) ? recentReposResult : [];
-
     // Construct the redirect URL
     const redirectUrl = decodedState.redirectUrl || 'https://handterm.com';
     const redirectUrlWithParams = new URL(redirectUrl);
-    redirectUrlWithParams.searchParams.append('userId', cognitoUserId);
-    redirectUrlWithParams.searchParams.append('message', 'GitHub account linked successfully');
-    redirectUrlWithParams.searchParams.append('recentRepos', JSON.stringify(recentRepos.slice(0, 5)));
+    redirectUrlWithParams.searchParams.append('githubLinked', 'true');
 
     return {
       statusCode: 302,
@@ -128,8 +83,6 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       },
       body: JSON.stringify({
         message: 'GitHub account linked successfully',
-        userId: cognitoUserId,
-        recentRepos: recentRepos.slice(0, 5),
       }),
     };
   } catch (error) {
@@ -137,8 +90,6 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     return errorResponse(500, 'An unexpected error occurred while handling the OAuth callback.');
   }
 };
-
-import { DescribeUserPoolCommand } from '@aws-sdk/client-cognito-identity-provider';
 
 async function getGitHubToken(code: string, clientId: string, clientSecret: string): Promise<TokenData> {
   return new Promise((resolve, reject) => {
@@ -190,62 +141,21 @@ async function getGitHubUser(accessToken: string): Promise<GitHubUser> {
     },
   };
 
-  // First, get the user data
-  const userData = await new Promise<any>((resolve, reject) => {
+  return new Promise<GitHubUser>((resolve, reject) => {
     const req = request(options, (res) => {
       let body = '';
       res.on('data', (chunk) => { body += chunk; });
       res.on('end', () => { 
-        console.log('Raw user data:', body);
-        resolve(JSON.parse(body)); 
+        const userData = JSON.parse(body);
+        resolve({
+          id: userData.id.toString(),
+          login: userData.login,
+        });
       });
     });
     req.on('error', (e) => { reject(e); });
     req.end();
   });
-
-  // Then, get the user's email
-  const emailOptions = {
-    ...options,
-    path: '/user/emails',
-  };
-
-  let primaryEmail: string | undefined;
-  try {
-    const emailData = await new Promise<any>((resolve, reject) => {
-      const req = request(emailOptions, (res) => {
-        let body = '';
-        res.on('data', (chunk) => { body += chunk; });
-        res.on('end', () => { 
-          console.log('Raw email data:', body);
-          resolve(JSON.parse(body)); 
-        });
-      });
-      req.on('error', (e) => { reject(e); });
-      req.end();
-    });
-
-    console.log('Parsed user data:', JSON.stringify(userData));
-    console.log('Parsed email data:', JSON.stringify(emailData));
-
-    if (Array.isArray(emailData)) {
-      primaryEmail = emailData.find(email => email.primary)?.email || emailData[0]?.email;
-    } else {
-      console.log('Email data is not an array:', typeof emailData);
-      // Use the email from the user data if available
-      primaryEmail = userData.email;
-    }
-  } catch (error) {
-    console.error('Error fetching email data:', error);
-    // Use the email from the user data if available
-    primaryEmail = userData.email;
-  }
-
-  return {
-    id: userData.id.toString(),
-    login: userData.login,
-    email: primaryEmail || `${userData.login}@example.com`,
-  };
 }
 
 function errorResponse(statusCode: number, message: string): APIGatewayProxyResult {
