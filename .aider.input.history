@@ -5037,3 +5037,60 @@
 
 # 2024-08-27 10:37:28.206977
 +`refreshToken` is still using `aws-sdk`.
+
+# 2024-08-27 10:38:35.464133
++/run yarn add @aws-sdk/client-cognito-identity-provider
+
+# 2024-08-27 10:39:49.374013
++/add lambda\authentication\preSignup.ts
+
+# 2024-08-27 10:40:00.099744
++/add lambda\userStorage\getFile.ts
+
+# 2024-08-27 10:40:23.161657
++`signUp` and `getFile` are still using `aws-sdk`
+
+# 2024-08-27 10:42:01.871527
++yarn build
+
+# 2024-08-27 10:42:20.822217
++/run yarn build
+
+# 2024-08-27 10:45:26.559921
++/drop lambda\authentication\preSignup.ts
+
+# 2024-08-27 10:45:37.140521
++/drop lambda\authentication\refreshToken.ts 
+
+# 2024-08-27 10:45:52.889823
++/drop lambda\userStorage\getFile.ts lambda\userStorage\getUser.ts
+
+# 2024-08-27 10:46:09.848354
++/add lambda\authentication\signUp.ts
+
+# 2024-08-27 10:46:32.925605
++/add lambda\userStorage\getLog.ts
+
+# 2024-08-27 10:48:29.954682
++`signUp` and `getLog` are both still using `aws-sdk`.
+
+# 2024-08-27 10:52:38.963764
++/run yarn build
+
+# 2024-08-27 10:54:53.624545
++/drop lambda\authentication\signUp.ts
+
+# 2024-08-27 10:55:04.711568
++/drop lambda\userStorage\getLog.ts
+
+# 2024-08-27 10:55:24.878185
++/drop lib\userStorage\getLog.ts
+
+# 2024-08-27 10:56:09.510155
++/add lambda\userStorage\listLog.ts lambda\userStorage\putFile.ts lambda\userStorage\saveLog.ts lambda\userStorage\setUser.ts
+
+# 2024-08-27 10:56:59.863896
++`listLog`, `putFile`, `saveLog`, and `setUser` are all still using 'aws-sdk'
+
+# 2024-08-27 11:01:04.126112
++/run yarn install

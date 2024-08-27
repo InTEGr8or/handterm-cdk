@@ -93,7 +93,7 @@
     "@smithy/util-utf8" "^2.0.0"
     tslib "^2.6.2"
 
-"@aws-sdk/client-cognito-identity-provider@^3.425.0":
+"@aws-sdk/client-cognito-identity-provider@^3.637.0":
   version "3.637.0"
   resolved "https://registry.yarnpkg.com/@aws-sdk/client-cognito-identity-provider/-/client-cognito-identity-provider-3.637.0.tgz#cbfe77f7f73a2cd3ef05fa8c36a64c881d144dbd"
   integrity sha512-udgyXL5ZQPTcXbzCq4plPxCEnYWGnC5+nWpCQAOcCACpA0rtQQ9OKabq/SiNO+6PVUMQFKRrZq6LS2p76mjl1w==
@@ -2062,7 +2062,7 @@ aws-sdk-client-mock@^4.0.1:
     sinon "^16.1.3"
     tslib "^2.1.0"
 
-aws-sdk@^2.1683.0, aws-sdk@^2.814.0:
+aws-sdk@^2.814.0:
   version "2.1683.0"
   resolved "https://registry.yarnpkg.com/aws-sdk/-/aws-sdk-2.1683.0.tgz#c97bf0de12a9a1c9b7413e482b72d76d81b58a5b"
   integrity sha512-uy53mN2oHU0Jx5tkH7qG6h/42DeMAQD5jMi/6294hVgGCa29MK/ZiFIOdkEJNS9tbB03RTabg+5i4c6DxBpG8g==
