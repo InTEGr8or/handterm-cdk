@@ -65,6 +65,7 @@ export class HandTermCdkStack extends Stack {
       autoVerify: { email: true },
       customAttributes: {
         'github_token': new cognito.StringAttribute({ mutable: true }),
+        'github_id': new cognito.StringAttribute({ mutable: true }),
       },
     });
 

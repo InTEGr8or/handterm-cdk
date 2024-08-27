@@ -96,28 +96,16 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       return errorResponse(400, 'Unable to create or find Cognito user.');
     }
 
-    // Check if the attributes exist in the schema before updating
-    const githubIdExists = await attributeExistsInSchema(cognito, userPoolId, 'custom:github_id');
-    const githubTokenExists = await attributeExistsInSchema(cognito, userPoolId, 'custom:github_token');
-
-    const userAttributes = [];
-    if (githubIdExists) {
-      userAttributes.push({ Name: 'custom:github_id', Value: githubUser.id.toString() });
-    }
-    if (githubTokenExists) {
-      userAttributes.push({ Name: 'custom:github_token', Value: tokenData.access_token });
-    }
-
-    if (userAttributes.length > 0) {
-      await cognito.send(new AdminUpdateUserAttributesCommand({
-        UserPoolId: userPoolId,
-        Username: cognitoUserId,
-        UserAttributes: userAttributes,
-      }));
-      console.log('User attributes updated successfully');
-    } else {
-      console.log('No attributes to update');
-    }
+    // Update the user attributes
+    await cognito.send(new AdminUpdateUserAttributesCommand({
+      UserPoolId: userPoolId,
+      Username: cognitoUserId,
+      UserAttributes: [
+        { Name: 'custom:github_id', Value: githubUser.id.toString() },
+        { Name: 'custom:github_token', Value: tokenData.access_token },
+      ],
+    }));
+    console.log('User attributes updated successfully');
 
     return {
       statusCode: 200,
@@ -249,13 +237,3 @@ function errorResponse(statusCode: number, message: string): APIGatewayProxyResu
   };
 }
 
-// Function to check if an attribute exists in the user pool schema
-async function attributeExistsInSchema(cognito: CognitoIdentityProviderClient, userPoolId: string, attributeName: string): Promise<boolean> {
-  try {
-    const { SchemaAttributes } = await cognito.send(new DescribeUserPoolCommand({ UserPoolId: userPoolId }));
-    return SchemaAttributes?.some(attr => attr.Name === attributeName) || false;
-  } catch (error) {
-    console.error(`Error checking schema for attribute ${attributeName}:`, error);
-    return false;
-  }
-}
