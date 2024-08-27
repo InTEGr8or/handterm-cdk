@@ -1,7 +1,7 @@
 import { HttpApi, HttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
 import { LayerVersion } from 'aws-cdk-lib/aws-lambda';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
-import { Runtime, Function as LambdaFunction, Code } from 'aws-cdk-lib/aws-lambda';
+import { Runtime, Function as LambdaFunction, Code, BundlingOptions } from 'aws-cdk-lib/aws-lambda';
 import { Role } from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
 import { HttpLambdaAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
@@ -18,15 +18,19 @@ interface LambdaIntegrationProps {
   methods: HttpMethod[];
   authorizer?: HttpLambdaAuthorizer;
   layers?: LayerVersion[];
+  bundling?: BundlingOptions;
 }
 
 export function createLambdaIntegration(props: LambdaIntegrationProps) {
   const lambdaFunction = new LambdaFunction(props.scope, props.id, {
-    runtime: Runtime.NODEJS_16_X,
+    runtime: Runtime.NODEJS_18_X,
     handler: props.handler,
     role: props.role,
-    code: Code.fromAsset(props.codePath),
+    code: Code.fromAsset(props.codePath, {
+      bundling: props.bundling,
+    }),
     environment: props.environment,
+    layers: props.layers,
   });
 
   const integration = new HttpLambdaIntegration(`${props.id}-integration`, lambdaFunction);
