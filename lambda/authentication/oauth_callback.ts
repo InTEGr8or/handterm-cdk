@@ -109,7 +109,10 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     console.log('User attributes updated successfully');
 
     // Fetch recent repositories
-    const recentRepos = await listRecentRepos(cognitoUserId);
+    const recentReposResult = await listRecentRepos(cognitoUserId);
+
+    // Check if recentReposResult is an array or an error object
+    const recentRepos = Array.isArray(recentReposResult) ? recentReposResult : [];
 
     // Construct the redirect URL
     const redirectUrl = decodedState.redirectUrl || 'https://handterm.com';
