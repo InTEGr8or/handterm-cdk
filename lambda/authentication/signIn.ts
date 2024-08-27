@@ -1,8 +1,8 @@
 // cdk/lambda/authentication/signIn.ts
-import * as AWS from 'aws-sdk';
-const cognito = new AWS.CognitoIdentityServiceProvider({ region: 'us-east-1' });
+import { CognitoIdentityProviderClient, InitiateAuthCommand } from "@aws-sdk/client-cognito-identity-provider";
+const cognito = new CognitoIdentityProviderClient({ region: 'us-east-1' });
 
-exports.handler = async (event: { body: string }) => {
+export const handler = async (event: { body: string }) => {
   const body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
   console.log('SignIn body:', body);
   try {
@@ -21,7 +21,8 @@ exports.handler = async (event: { body: string }) => {
       },
     };
     body.params = params;
-    const data = await cognito.initiateAuth(params).promise();
+    const command = new InitiateAuthCommand(params);
+    const data = await cognito.send(command);
 
     console.log('SignIn success:', JSON.stringify(data));
 
