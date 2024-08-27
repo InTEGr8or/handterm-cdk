@@ -63,24 +63,25 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       try {
         const userResponse = await cognito.send(new AdminGetUserCommand({
           UserPoolId: userPoolId,
-          Username: githubUser.email || githubUser.id.toString(),
+          Username: githubUser.id.toString(),
         }));
         cognitoUserId = userResponse.Username;
       } catch (error) {
-        // User doesn't exist, create a new one if we have an email
-        if (githubUser.email) {
+        console.log('User not found in Cognito, attempting to create');
+        // User doesn't exist, create a new one with GitHub ID as username
+        try {
           const createUserResponse = await cognito.send(new AdminCreateUserCommand({
             UserPoolId: userPoolId,
-            Username: githubUser.email,
+            Username: githubUser.id.toString(),
             UserAttributes: [
-              { Name: 'email', Value: githubUser.email },
-              { Name: 'email_verified', Value: 'true' },
+              { Name: 'custom:github_id', Value: githubUser.id.toString() },
             ],
           }));
           cognitoUserId = createUserResponse.User?.Username;
           isNewUser = true;
-        } else {
-          return errorResponse(400, 'Unable to create user: No email provided by GitHub.');
+        } catch (createError) {
+          console.error('Error creating user:', createError);
+          return errorResponse(500, 'Failed to create new user in Cognito.');
         }
       }
     }
