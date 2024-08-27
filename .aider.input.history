@@ -4416,3 +4416,390 @@
 +    }
 +};
 +```
+
+# 2024-08-26 17:35:59.435575
++/drop lambda\userStorage\getLog.ts
+
+# 2024-08-26 17:36:08.506789
++/drop lib\userStorage\getLog.ts
+
+# 2024-08-26 18:55:55.223042
++/add get-logs.ps1
+
+# 2024-08-26 18:57:52.495686
++I want to pass `get-logs` a function name such as `getUser`, and I want it to print out the first matching function name, and then I want to to print out the last 10 log events from the most recent log stream on that Lambda function.
+
+# 2024-08-26 18:58:22.345747
++/run .\get-logs.ps1 -FunctionName getUser
+
+# 2024-08-26 18:59:08.541534
++/run . .\get-logs.ps1 -FunctionName getUser
+
+# 2024-08-26 19:02:15.451950
++I get this error: ``` . .\get-logs.ps1
++
++cmdlet get-logs.ps1 at command pipeline position 1
++Supply values for the following parameters:
++FunctionName: getUser
++ConvertFrom-Json: C:\Users\xgenx\source\repos\handterm-cdk\get-logs.ps1:11:7
++Line |
++  11 |      | ConvertFrom-Json `
++     |        ~~~~~~~~~~~~~~~~
++     | Conversion from JSON failed with error: Input string '-'
++     | is not a valid number. Path '', line 1, position 1.```. We should not assume that the output is in JSON format since that is configurable.
+
+# 2024-08-26 19:02:37.464286
++/run param (
+
+# 2024-08-26 19:02:37.517517
++/run [Parameter(Mandatory=$true)]
+
+# 2024-08-26 19:02:37.591893
++/run [string]$FunctionName
+
+# 2024-08-26 19:02:37.640145
++/run )
+
+# 2024-08-26 19:02:37.671229
++/run $stackName = "HandTermCdkStack"
+
+# 2024-08-26 19:02:37.715342
++/run $lambdaFunctions = aws lambda list-functions --output text --query "Functions[?contains(FunctionName, '$stackName') && contains(FunctionName, '$FunctionName')].FunctionName"
+
+# 2024-08-26 19:02:37.775501
++/run if (-not $lambdaFunctions) {
+
+# 2024-08-26 19:02:37.849292
++/run Write-Host "No Lambda function found matching the name $FunctionName"
+
+# 2024-08-26 19:02:37.906381
++/run exit
+
+# 2024-08-26 19:02:37.941632
++/run }
+
+# 2024-08-26 19:02:37.984012
++/run $lambdaFunctionName = ($lambdaFunctions -split '\s+')[0]
+
+# 2024-08-26 19:02:38.031085
++/run Write-Host "Matching Lambda function: $lambdaFunctionName"
+
+# 2024-08-26 19:02:38.075222
++/run $latestLogStream = aws logs describe-log-streams `
+
+# 2024-08-26 19:02:38.122413
++/run --log-group-name "/aws/lambda/$lambdaFunctionName" `
+
+# 2024-08-26 19:02:38.163235
++/run --order-by LastEventTime `
+
+# 2024-08-26 19:02:38.213262
++/run --descending `
+
+# 2024-08-26 19:02:38.257142
++/run --max-items 1 `
+
+# 2024-08-26 19:02:38.302031
++/run --output text `
+
+# 2024-08-26 19:02:38.346784
++/run --query "logStreams[0].logStreamName"
+
+# 2024-08-26 19:02:38.393607
++/run if (-not $latestLogStream) {
+
+# 2024-08-26 19:02:38.461353
++/run Write-Host "No log streams found for Lambda function $lambdaFunctionName"
+
+# 2024-08-26 19:02:38.518251
++/run exit
+
+# 2024-08-26 19:02:38.542799
++/run }
+
+# 2024-08-26 19:02:38.597567
++/run Write-Host "Latest log stream: $latestLogStream"
+
+# 2024-08-26 19:02:38.640851
++/run $logEvents = aws logs get-log-events `
+
+# 2024-08-26 19:02:38.701688
++/run --log-group-name "/aws/lambda/$lambdaFunctionName" `
+
+# 2024-08-26 19:02:38.738258
++/run --log-stream-name "$latestLogStream" `
+
+# 2024-08-26 19:02:38.783255
++/run --limit 10 `
+
+# 2024-08-26 19:02:38.842437
++/run --output text `
+
+# 2024-08-26 19:02:38.880130
++/run --query "events[*].message"
+
+# 2024-08-26 19:02:38.925148
++/run Write-Host "Last 10 log events:"
+
+# 2024-08-26 19:02:38.969338
++/run $logEvents -split '\s+' | ForEach-Object { Write-Host $_ }
+
+# 2024-08-26 19:02:42.052319
++/run .\get-logs.ps1 -FunctionName getUser
+
+# 2024-08-26 19:05:48.861602
++This right here: ```$lambdaFunctionName = aws lambda list-functions `
++    | ConvertFrom-Json ``` still assumes that the machine is configured for default JSON output. We should not make that assumption. We should add `--output json`. Also, this is in PowerShell, so a `. ` should preceed the file name to invoke the file.
+
+# 2024-08-26 19:06:03.643400
++/run param (
+
+# 2024-08-26 19:06:03.741686
++/run [Parameter(Mandatory=$true)]
+
+# 2024-08-26 19:06:03.793221
++/run [string]$FunctionName
+
+# 2024-08-26 19:06:03.827646
++/run )
+
+# 2024-08-26 19:06:03.854356
++/run $stackName = "HandTermCdkStack"
+
+# 2024-08-26 19:06:03.889913
++/run $lambdaFunctions = aws lambda list-functions --output json | ConvertFrom-Json
+
+# 2024-08-26 19:06:03.937539
++/run $matchingFunction = $lambdaFunctions.Functions | Where-Object { $_.FunctionName -like "*$stackName*$FunctionName*" } | Select-Object -First 1
+
+# 2024-08-26 19:06:03.993632
++/run if (-not $matchingFunction) {
+
+# 2024-08-26 19:06:04.070577
++/run Write-Host "No Lambda function found matching the name $FunctionName"
+
+# 2024-08-26 19:06:04.132790
++/run exit
+
+# 2024-08-26 19:06:04.183729
++/run }
+
+# 2024-08-26 19:06:04.271806
++/run $lambdaFunctionName = $matchingFunction.FunctionName
+
+# 2024-08-26 19:06:04.338041
++/run Write-Host "Matching Lambda function: $lambdaFunctionName"
+
+# 2024-08-26 19:06:04.381853
++/run $latestLogStream = aws logs describe-log-streams `
+
+# 2024-08-26 19:06:04.447248
++/run --log-group-name "/aws/lambda/$lambdaFunctionName" `
+
+# 2024-08-26 19:06:04.523768
++/run --order-by LastEventTime `
+
+# 2024-08-26 19:06:04.593572
++/run --descending `
+
+# 2024-08-26 19:06:04.637556
++/run --max-items 1 `
+
+# 2024-08-26 19:06:04.676655
++/run --output json | ConvertFrom-Json
+
+# 2024-08-26 19:06:04.725475
++/run if (-not $latestLogStream.logStreams) {
+
+# 2024-08-26 19:06:04.781281
++/run Write-Host "No log streams found for Lambda function $lambdaFunctionName"
+
+# 2024-08-26 19:06:04.826974
++/run exit
+
+# 2024-08-26 19:06:04.856173
++/run }
+
+# 2024-08-26 19:06:04.898533
++/run $latestLogStreamName = $latestLogStream.logStreams[0].logStreamName
+
+# 2024-08-26 19:06:04.956321
++/run Write-Host "Latest log stream: $latestLogStreamName"
+
+# 2024-08-26 19:06:05.004605
++/run $logEvents = aws logs get-log-events `
+
+# 2024-08-26 19:06:05.043271
++/run --log-group-name "/aws/lambda/$lambdaFunctionName" `
+
+# 2024-08-26 19:06:05.081613
++/run --log-stream-name "$latestLogStreamName" `
+
+# 2024-08-26 19:06:05.128479
++/run --limit 10 `
+
+# 2024-08-26 19:06:05.172193
++/run --output json | ConvertFrom-Json
+
+# 2024-08-26 19:06:05.212947
++/run Write-Host "Last 10 log events:"
+
+# 2024-08-26 19:06:05.255501
++/run $logEvents.events | ForEach-Object { Write-Host $_.message }
+
+# 2024-08-26 19:06:08.216313
++/run . .\get-logs.ps1 -FunctionName getUser
+
+# 2024-08-26 19:14:46.374871
++It is working. I am getting results like this: ```2024-08-27T01:19:04.526Z        dfed0365-8814-43ed-8441-e0c4edec832c    INFO objectKey: user_data/e4485438-e0d1-7098-10fe-cd1dd7c7885d/_index.md
++
++2024-08-27T01:19:04.526Z        dfed0365-8814-43ed-8441-e0c4edec832c    INFO BUCKET_NAME: handterm
++
++2024-08-27T01:19:04.526Z        dfed0365-8814-43ed-8441-e0c4edec832c    INFO Attempting to check if object exists```. I would like to wrap the timestamps in green color coding.
+
+# 2024-08-26 19:15:02.431935
++/run param (
+
+# 2024-08-26 19:15:02.482356
++/run [Parameter(Mandatory=$true)]
+
+# 2024-08-26 19:15:02.525404
++/run [string]$FunctionName
+
+# 2024-08-26 19:15:02.564252
++/run )
+
+# 2024-08-26 19:15:02.588203
++/run $stackName = "HandTermCdkStack"
+
+# 2024-08-26 19:15:02.623653
++/run $lambdaFunctions = aws lambda list-functions --output json | ConvertFrom-Json
+
+# 2024-08-26 19:15:02.667542
++/run $matchingFunction = $lambdaFunctions.Functions | Where-Object { $_.FunctionName -like "*$stackName*$FunctionName*" } | Select-Object -First 1
+
+# 2024-08-26 19:15:02.716163
++/run if (-not $matchingFunction) {
+
+# 2024-08-26 19:15:02.751126
++/run Write-Host "No Lambda function found matching the name $FunctionName"
+
+# 2024-08-26 19:15:02.795822
++/run exit
+
+# 2024-08-26 19:15:02.834485
++/run }
+
+# 2024-08-26 19:15:02.898413
++/run $lambdaFunctionName = $matchingFunction.FunctionName
+
+# 2024-08-26 19:15:03.096443
++/run Write-Host "Matching Lambda function: $lambdaFunctionName"
+
+# 2024-08-26 19:15:03.138124
++/run $latestLogStream = aws logs describe-log-streams `
+
+# 2024-08-26 19:15:03.178720
++/run --log-group-name "/aws/lambda/$lambdaFunctionName" `
+
+# 2024-08-26 19:15:03.215174
++/run --order-by LastEventTime `
+
+# 2024-08-26 19:15:03.254404
++/run --descending `
+
+# 2024-08-26 19:15:03.296454
++/run --max-items 1 `
+
+# 2024-08-26 19:15:03.336367
++/run --output json | ConvertFrom-Json
+
+# 2024-08-26 19:15:03.376110
++/run if (-not $latestLogStream.logStreams) {
+
+# 2024-08-26 19:15:03.421642
++/run Write-Host "No log streams found for Lambda function $lambdaFunctionName"
+
+# 2024-08-26 19:15:03.456887
++/run exit
+
+# 2024-08-26 19:15:03.483993
++/run }
+
+# 2024-08-26 19:15:03.518300
++/run $latestLogStreamName = $latestLogStream.logStreams[0].logStreamName
+
+# 2024-08-26 19:15:03.558597
++/run Write-Host "Latest log stream: $latestLogStreamName"
+
+# 2024-08-26 19:15:03.598094
++/run $logEvents = aws logs get-log-events `
+
+# 2024-08-26 19:15:03.635966
++/run --log-group-name "/aws/lambda/$lambdaFunctionName" `
+
+# 2024-08-26 19:15:03.670425
++/run --log-stream-name "$latestLogStreamName" `
+
+# 2024-08-26 19:15:03.715243
++/run --limit 10 `
+
+# 2024-08-26 19:15:03.755865
++/run --output json | ConvertFrom-Json
+
+# 2024-08-26 19:15:03.800338
++/run Write-Host "Last 10 log events:"
+
+# 2024-08-26 19:15:03.839176
++/run $logEvents.events | ForEach-Object {
+
+# 2024-08-26 19:15:03.910649
++/run $timestamp = $_.timestamp
+
+# 2024-08-26 19:15:04.003981
++/run $message = $_.message
+
+# 2024-08-26 19:15:04.081212
++/run if ($message -match '^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)') {
+
+# 2024-08-26 19:15:04.135674
++/run $timestampPart = $matches[1]
+
+# 2024-08-26 19:15:04.202723
++/run $restOfMessage = $message.Substring($timestampPart.Length)
+
+# 2024-08-26 19:15:04.294448
++/run Write-Host "$([char]0x1b)[32m$timestampPart$([char]0x1b)[0m$restOfMessage"
+
+# 2024-08-26 19:15:04.334507
++/run } else {
+
+# 2024-08-26 19:15:04.391688
++/run Write-Host $message
+
+# 2024-08-26 19:15:04.439475
++/run }
+
+# 2024-08-26 19:15:04.473004
++/run }
+
+# 2024-08-26 19:15:08.816868
++/run . .\get-logs.ps1 -FunctionName getUser
+
+# 2024-08-26 19:38:34.391755
++/drop get-logs.ps1
+
+# 2024-08-26 19:38:45.668843
++/drop lib\utils\githubSecrets.ts
+
+# 2024-08-26 19:39:17.113188
++/chat-mode
+
+# 2024-08-26 20:25:15.290300
++When I run the GitHub authorization process when I'm logged in to my Cognito account, I get redirected here: `https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/github_auth` and it tells me: `{"message":"No valid Authorization header provided"}`. What is the best way to troubleshoot this?
+
+# 2024-08-26 20:25:50.629104
++/run curl -v https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/github_auth
+
+# 2024-08-26 20:26:30.934928
++/run curl -v https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/github_auth

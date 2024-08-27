@@ -1,13 +1,14 @@
 param (
-    [Parameter(Mandatory=$true)]
-    [string]$FunctionName
+    [Parameter(Mandatory=$true, Position=0, HelpMessage="The name of the Lambda function", ValueFromPipeline=$true)]
+    [string]$FunctionName,
+    [Parameter(Mandatory=$false, Position=1)][int]$Limit = 10
 )
 
 # Define the base name of your stack
 $stackName = "HandTermCdkStack"
 
 # Use AWS CLI to list all Lambda functions and filter by the pattern
-$lambdaFunctionName = aws lambda list-functions `
+$lambdaFunctionName = aws lambda list-functions --output json `
     | ConvertFrom-Json `
     | Select-Object -ExpandProperty Functions `
     | Where-Object { $_.FunctionName -like "*$stackName*$FunctionName*" } `
@@ -26,6 +27,7 @@ $latestLogStream = aws logs describe-log-streams `
     --order-by LastEventTime `
     --descending `
     --max-items 1 `
+    --output json `
     | ConvertFrom-Json `
     | Select-Object -ExpandProperty logStreams `
     | Select-Object -First 1 -ExpandProperty logStreamName
@@ -41,10 +43,13 @@ Write-Host "Latest log stream: $latestLogStream"
 $logEvents = aws logs get-log-events `
     --log-group-name "/aws/lambda/$lambdaFunctionName" `
     --log-stream-name "$latestLogStream" `
-    --limit 10 `
+    --limit $Limit `
+    --output json `
     | ConvertFrom-Json `
     | Select-Object -ExpandProperty events `
-    | ForEach-Object { $_.message }
+    | ForEach-Object {
+        $_.message -Replace "^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)", "$([char]0x1b)[32m`$1$([char]0x1b)[0m"
+    }
 
-Write-Host "Last 10 log events:"
+Write-Host "Last $Limit log events:"
 $logEvents | ForEach-Object { Write-Host $_ }

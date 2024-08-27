@@ -1,6 +1,7 @@
 // cdk/lambda/userStorage/getFile.ts
 
 import * as AWS from 'aws-sdk';
+import { ENDPOINTS } from '../cdkshared/endpoints';
 
 const s3 = new AWS.S3({ region: 'us-east-1' });
 
@@ -23,7 +24,7 @@ export const handler = async (event: any) => {
     // Check if the file exists
     try{
         await s3.headObject({
-            Bucket: 'handterm',
+            Bucket: ENDPOINTS.aws.s3.bucketName,
             Key: objectKey
         }).promise();
     }catch(err){
@@ -35,7 +36,7 @@ export const handler = async (event: any) => {
     }
 
     const s3Response = await s3.getObject({
-        Bucket: 'handterm',
+        Bucket: ENDPOINTS.aws.s3.bucketName,
         Key: objectKey
     }).promise();
 
