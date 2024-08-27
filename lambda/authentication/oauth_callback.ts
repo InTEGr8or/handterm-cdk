@@ -1,6 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { request } from 'https';
-import { CognitoIdentityProviderClient, AdminUpdateUserAttributesCommand, AdminGetUserCommand, AdminCreateUserCommand } from '@aws-sdk/client-cognito-identity-provider';
+import { CognitoIdentityProviderClient, AdminUpdateUserAttributesCommand, AdminGetUserCommand, AdminCreateUserCommand, ListUsersCommand } from '@aws-sdk/client-cognito-identity-provider';
 
 interface TokenData {
   access_token?: string;
@@ -59,17 +59,17 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     let isNewUser = false;
 
     if (!cognitoUserId) {
-      // User is not logged in, check if they exist in Cognito
+      // User is not logged in, check if they exist in Cognito by GitHub ID
       try {
-        const userResponse = await cognito.send(new AdminGetUserCommand({
+        const listUsersResponse = await cognito.send(new ListUsersCommand({
           UserPoolId: userPoolId,
-          Username: githubUser.id.toString(),
+          Filter: `custom:github_id = "${githubUser.id}"`,
         }));
-        cognitoUserId = userResponse.Username;
-      } catch (error) {
-        console.log('User not found in Cognito, attempting to create');
-        // User doesn't exist, create a new one with GitHub ID as username
-        try {
+        
+        if (listUsersResponse.Users && listUsersResponse.Users.length > 0) {
+          cognitoUserId = listUsersResponse.Users[0].Username;
+        } else {
+          // User doesn't exist, create a new one with GitHub ID as username
           const createUserResponse = await cognito.send(new AdminCreateUserCommand({
             UserPoolId: userPoolId,
             Username: githubUser.id.toString(),
@@ -79,10 +79,10 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
           }));
           cognitoUserId = createUserResponse.User?.Username;
           isNewUser = true;
-        } catch (createError) {
-          console.error('Error creating user:', createError);
-          return errorResponse(500, 'Failed to create new user in Cognito.');
         }
+      } catch (error) {
+        console.error('Error finding or creating user:', error);
+        return errorResponse(500, 'Failed to find or create user in Cognito.');
       }
     }
 
