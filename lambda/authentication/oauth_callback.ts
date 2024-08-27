@@ -10,7 +10,7 @@ interface TokenData {
 interface GitHubUser {
   id: string;
   login: string;
-  email: string;
+  email?: string;
 }
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
@@ -55,17 +55,24 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     const cognito = new CognitoIdentityProviderClient();
     const userPoolId = process.env.COGNITO_USER_POOL_ID!;
 
-    // Check if the user already exists in Cognito
-    let cognitoUserId;
-    try {
-      const listUsersResponse = await cognito.send(new AdminGetUserCommand({
-        UserPoolId: userPoolId,
-        Username: githubUser.email,
-      }));
-      cognitoUserId = listUsersResponse.Username;
-    } catch (error) {
-      console.log('User not found in Cognito, creating new user');
-      // Create a new user if not found
+    // Check if the user is already logged in to Cognito
+    let cognitoUserId = decodedState.cognitoUserId;
+    if (!cognitoUserId && githubUser.email) {
+      // If not logged in, try to find the user by email
+      try {
+        const getUserResponse = await cognito.send(new AdminGetUserCommand({
+          UserPoolId: userPoolId,
+          Username: githubUser.email,
+        }));
+        cognitoUserId = getUserResponse.Username;
+      } catch (error) {
+        console.log('User not found in Cognito');
+      }
+    }
+
+    if (!cognitoUserId && githubUser.email) {
+      console.log('Creating new Cognito user');
+      // Create a new user if not found and GitHub provided an email
       const createUserResponse = await cognito.send(new AdminCreateUserCommand({
         UserPoolId: userPoolId,
         Username: githubUser.email,
@@ -85,10 +92,14 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       }));
     }
 
+    if (!cognitoUserId) {
+      return errorResponse(400, 'Unable to create or find Cognito user.');
+    }
+
     // Update user attributes
     await cognito.send(new AdminUpdateUserAttributesCommand({
       UserPoolId: userPoolId,
-      Username: cognitoUserId!,
+      Username: cognitoUserId,
       UserAttributes: [
         { Name: 'custom:github_id', Value: githubUser.id.toString() },
         { Name: 'custom:github_token', Value: tokenData.access_token },
@@ -179,7 +190,7 @@ async function getGitHubUser(accessToken: string): Promise<GitHubUser> {
     path: '/user/emails',
   };
 
-  let primaryEmail = '';
+  let primaryEmail: string | undefined;
   try {
     const emailData = await new Promise<any>((resolve, reject) => {
       const req = request(emailOptions, (res) => {
@@ -206,15 +217,10 @@ async function getGitHubUser(accessToken: string): Promise<GitHubUser> {
     console.error('Error fetching email data:', error);
   }
 
-  if (!primaryEmail) {
-    console.log('Using fallback email');
-    primaryEmail = `${userData.login}@example.com`;
-  }
-
   return {
     id: userData.id.toString(),
     login: userData.login,
-    email: primaryEmail || `github_${userData.id}@example.com`,
+    email: primaryEmail,
   };
 }
 
