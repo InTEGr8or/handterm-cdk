@@ -1,11 +1,11 @@
 // cdk/lambda/userStorage/getFile.ts
 
-import * as AWS from 'aws-sdk';
+import { S3Client, HeadObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { ENDPOINTS } from '../cdkshared/endpoints';
 
 const bucketName = 'handterm';
 
-const s3 = new AWS.S3({ region: 'us-east-1' });
+const s3Client = new S3Client({ region: 'us-east-1' });
 
 export const handler = async (event: any) => {
 
@@ -25,10 +25,10 @@ export const handler = async (event: any) => {
     const objectKey = `user_data/${userId}/${key}.${extension}`;
     // Check if the file exists
     try{
-        await s3.headObject({
+        await s3Client.send(new HeadObjectCommand({
             Bucket: bucketName,
             Key: objectKey
-        }).promise();
+        }));
     }catch(err){
         console.error('Error:', err);
         return {
@@ -37,12 +37,12 @@ export const handler = async (event: any) => {
         };
     }
 
-    const s3Response = await s3.getObject({
+    const s3Response = await s3Client.send(new GetObjectCommand({
         Bucket: bucketName,
         Key: objectKey
-    }).promise();
+    }));
 
-    const fileContent = s3Response.Body?.toString('utf-8');
+    const fileContent = await s3Response.Body?.transformToString('utf-8');
 
     console.log('fileContent: ', fileContent);
     return {
