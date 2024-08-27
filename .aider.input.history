@@ -5094,3 +5094,123 @@
 
 # 2024-08-27 11:01:04.126112
 +/run yarn install
+
+# 2024-08-27 11:16:34.719223
++I have deployed the CDK. Now when I go through the GitHub authentication process, I get redirected here: `https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/oauth_callback?code=0b9640f2e87e783a71de&state=eyJ0aW1lc3RhbXAiOjE3MjQ3ODE5OTgxNDB9`, and then I get this error in the browser: `{"message":"An unexpected error occurred while handling the OAuth callback."}`, and this in the CloudWatch logs: ```2024-08-27T18:07:30.338Z        4979c017-fa61-4081-af1e-121691c4bb9b    INFO Parsed email data: {"message":"Resource not accessible by integration","documentation_url":"https://docs.github.com/rest/users/emails#list-email-addresses-for-the-authenticated-user","status":"403"}
++
++2024-08-27T18:07:30.338Z        4979c017-fa61-4081-af1e-121691c4bb9b    INFO Email data is not an array: object
++
++2024-08-27T18:07:30.339Z        4979c017-fa61-4081-af1e-121691c4bb9b    INFO GitHub user data: {"id":"1802850","login":"InTEGr8or","email":"github_1802850@example.com"}
++
++2024-08-27T18:07:30.930Z        4979c017-fa61-4081-af1e-121691c4bb9b    INFO User not found in Cognito, creating new user
++
++2024-08-27T18:07:31.691Z        4979c017-fa61-4081-af1e-121691c4bb9b    ERRORUnhandled error in OAuth callback: AccessDeniedException: User: arn:aws:sts::318364255844:assumed-role/HandTermCdkStack-LambdaExecutionRoleD5C26073-z98LSirMNrpo/HandTermCdkStack-OAuthCallbackFunction09B806B4-UMTMQ0tgg127 is not authorized to perform: cognito-idp:AdminSetUserPassword on resource: arn:aws:cognito-idp:us-east-1:318364255844:userpool/us-east-1_TL47OLcyI because no identity-based policy allows the cognito-idp:AdminSetUserPassword action
++    at throwDefaultError (/var/runtime/node_modules/@aws-sdk/node_modules/@smithy/smithy-client/dist-cjs/index.js:839:20)
++    at /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/smithy-client/dist-cjs/index.js:848:5
++    at de_CommandError (/var/runtime/node_modules/@aws-sdk/client-cognito-identity-provider/dist-cjs/index.js:3888:14)
++    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
++    at async /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/middleware-serde/dist-cjs/index.js:35:20
++    at async /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/core/dist-cjs/index.js:165:18
++    at async /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/middleware-retry/dist-cjs/index.js:320:38
++    at async /var/runtime/node_modules/@aws-sdk/middleware-logger/dist-cjs/index.js:34:22
++    at async Runtime.handler (/var/task/oauth_callback.js:60:13) {
++  '$fault': 'client',
++  '$metadata': {
++    httpStatusCode: 400,
++    requestId: 'fda722f9-ad88-4704-8ad3-d6e5e9be01be',
++    extendedRequestId: undefined,
++    cfId: undefined,
++    attempts: 1,
++    totalRetryDelay: 0
++  },
++  __type: 'AccessDeniedException'
++}
++
++END RequestId: 4979c017-fa61-4081-af1e-121691c4bb9b
++
++REPORT RequestId: 4979c017-fa61-4081-af1e-121691c4bb9b  Duration: 2180.64 ms Billed Duration: 2181 ms Memory Size: 128 MB     Max Memory Used: 88 MB  Init Duration: 340.99 ms```
+
+# 2024-08-27 11:19:41.617288
++/run yarn deploy
+
+# 2024-08-27 11:35:13.457114
++Now I am getting this error in the CloudWatch log: ```2024-08-27T18:28:32.922Z        0d68fa98-c81e-4b41-b0af-071366092b6c    INFO Parsed email data: {"message":"Resource not accessible by integration","documentation_url":"https://docs.github.com/rest/users/emails#list-email-addresses-for-the-authenticated-user","status":"403"}
++
++2024-08-27T18:28:32.922Z        0d68fa98-c81e-4b41-b0af-071366092b6c    INFO Email data is not an array: object
++
++2024-08-27T18:28:32.922Z        0d68fa98-c81e-4b41-b0af-071366092b6c    INFO Using fallback email
++
++2024-08-27T18:28:32.922Z        0d68fa98-c81e-4b41-b0af-071366092b6c    INFO GitHub user data: {"id":"1802850","login":"InTEGr8or","email":"InTEGr8or@example.com"}
++
++2024-08-27T18:28:33.477Z        0d68fa98-c81e-4b41-b0af-071366092b6c    INFO User not found in Cognito, creating new user
++
++2024-08-27T18:28:34.334Z        0d68fa98-c81e-4b41-b0af-071366092b6c    ERRORUnhandled error in OAuth callback: InvalidParameterException: user.custom:github_id: Attribute does not exist in the schema.
++
++    at de_InvalidParameterExceptionRes (/var/runtime/node_modules/@aws-sdk/client-cognito-identity-provider/dist-cjs/index.js:4015:21)
++    at de_CommandError (/var/runtime/node_modules/@aws-sdk/client-cognito-identity-provider/dist-cjs/index.js:3768:19)
++    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
++    at async /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/middleware-serde/dist-cjs/index.js:35:20
++    at async /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/core/dist-cjs/index.js:165:18
++    at async /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/middleware-retry/dist-cjs/index.js:320:38
++    at async /var/runtime/node_modules/@aws-sdk/middleware-logger/dist-cjs/index.js:34:22
++    at async Runtime.handler (/var/task/oauth_callback.js:68:9) {
++  '$fault': 'client',
++  '$metadata': {
++    httpStatusCode: 400,
++    requestId: '80c59003-e7e1-4446-9c5b-1a4e4bf7a599',
++    extendedRequestId: undefined,
++    cfId: undefined,
++    attempts: 1,
++    totalRetryDelay: 0
++  },
++  __type: 'InvalidParameterException'
++}```. I only want to create a new Cognito user if the GitHub auth returns an amail and the user is not logged in to Cognito. If the user is logged in to Cognito, I want the GitHub associated with the Cognito user whether GitHub provides an email or not, since the Cognito user already has an email associated.
+
+# 2024-08-27 11:38:26.203308
++/run cdk deploy --region=us-east-1 --profile mark
+
+# 2024-08-27 11:41:15.576686
++Now I am getting this error: ```2024-08-27T18:40:28.132Z        b8f080bb-a496-4a4e-a205-33eb2808a94f    INFO Parsed email data: {"message":"Resource not accessible by integration","documentation_url":"https://docs.github.com/rest/users/emails#list-email-addresses-for-the-authenticated-user","status":"403"}
++
++2024-08-27T18:40:28.132Z        b8f080bb-a496-4a4e-a205-33eb2808a94f    INFO Email data is not an array: object
++
++2024-08-27T18:40:28.132Z        b8f080bb-a496-4a4e-a205-33eb2808a94f    INFO Using fallback email
++
++2024-08-27T18:40:28.132Z        b8f080bb-a496-4a4e-a205-33eb2808a94f    INFO GitHub user data: {"id":"1802850","login":"InTEGr8or","email":"InTEGr8or@example.com"}
++
++2024-08-27T18:40:28.835Z        b8f080bb-a496-4a4e-a205-33eb2808a94f    ERRORUnhandled error in OAuth callback: InvalidParameterException: user.custom:github_id: Attribute does not exist in the schema.
++
++    at de_InvalidParameterExceptionRes (/var/runtime/node_modules/@aws-sdk/client-cognito-identity-provider/dist-cjs/index.js:4015:21)
++    at de_CommandError (/var/runtime/node_modules/@aws-sdk/client-cognito-identity-provider/dist-cjs/index.js:3768:19)
++    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
++    at async /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/middleware-serde/dist-cjs/index.js:35:20
++    at async /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/core/dist-cjs/index.js:165:18
++    at async /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/middleware-retry/dist-cjs/index.js:320:38
++    at async /var/runtime/node_modules/@aws-sdk/middleware-logger/dist-cjs/index.js:34:22
++    at async Runtime.handler (/var/task/oauth_callback.js:68:9) {
++  '$fault': 'client',
++  '$metadata': {
++    httpStatusCode: 400,
++    requestId: 'db812b45-4875-4c90-9427-9d78691fba37',
++    extendedRequestId: undefined,
++    cfId: undefined,
++    attempts: 1,
++    totalRetryDelay: 0
++  },
++  __type: 'InvalidParameterException'
++}```
+
+# 2024-08-27 11:54:52.513595
++/run aws cognito-idp add-custom-attributes --user-pool-id YOUR_USER_POOL_ID --custom-attributes AttributeName=custom:github_id,AttributeDataType=String AttributeName=custom:github_token,AttributeDataType=String
+
+# 2024-08-27 12:01:07.768839
++Shouldn't the addition of custom attribues be done through the CDK that we are working on, rather than running a side-effect AWS CLI command?
+
+# 2024-08-27 12:04:34.781463
++/run yarn deploy
+
+# 2024-08-27 12:20:58.631094
++Ok, I think that worked. Now I am getting this response from `oauth_callback/`: `{"message":"GitHub account linked successfully","userId":"a4289488-f081-7075-5779-9d1f742cc96a"}`. Now I would like to redirect the user back to the source URL that the GitHub authentication was initiated from and to show them a list of their 5 most recently edited GitHub repos in the Output. I already have a `lambda/authentication/listRecentRepos.ts` which we might be able to use. Or we can create a new one.
+
+# 2024-08-27 12:21:45.622469
++/run yarn deploy
