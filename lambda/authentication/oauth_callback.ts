@@ -61,14 +61,19 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     if (!cognitoUserId) {
       // User is not logged in, check if they exist in Cognito by GitHub ID
       try {
+        console.log('Searching for user with GitHub ID:', githubUser.id);
         const listUsersResponse = await cognito.send(new ListUsersCommand({
           UserPoolId: userPoolId,
           Filter: `custom:github_id = "${githubUser.id}"`,
         }));
         
+        console.log('ListUsers response:', JSON.stringify(listUsersResponse, null, 2));
+        
         if (listUsersResponse.Users && listUsersResponse.Users.length > 0) {
           cognitoUserId = listUsersResponse.Users[0].Username;
+          console.log('Existing user found:', cognitoUserId);
         } else {
+          console.log('User not found, creating new user');
           // User doesn't exist, create a new one with GitHub ID as username
           const createUserResponse = await cognito.send(new AdminCreateUserCommand({
             UserPoolId: userPoolId,
@@ -79,9 +84,14 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
           }));
           cognitoUserId = createUserResponse.User?.Username;
           isNewUser = true;
+          console.log('New user created:', cognitoUserId);
         }
       } catch (error) {
         console.error('Error finding or creating user:', error);
+        if (error instanceof Error) {
+          console.error('Error details:', error.message);
+          console.error('Error stack:', error.stack);
+        }
         return errorResponse(500, 'Failed to find or create user in Cognito.');
       }
     }
