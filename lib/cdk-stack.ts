@@ -43,29 +43,7 @@ export class HandTermCdkStack extends Stack {
       throw new Error('Failed to initialize stack due to missing GitHub secrets');
     }
 
-    // Cognito User Pool
-    const userPool = new cognito.UserPool(this, 'HandTermUserPool', {
-      userPoolName: 'HandTermUserPool',
-      selfSignUpEnabled: true,
-      userVerification: {
-        emailSubject: 'Verify your email for our app!',
-        emailBody: 'Hello {username}, Thanks for signing up to our app! Your verification code is {####}',
-        emailStyle: cognito.VerificationEmailStyle.CODE,
-      },
-      signInAliases: {
-        email: true
-      },
-      passwordPolicy: {
-        minLength: 8,
-        requireUppercase: true,
-        requireLowercase: true,
-        requireDigits: true,
-        requireSymbols: true,
-      },
-      autoVerify: { email: true },
-    });
-
-    // Add custom attributes directly to the UserPool
+    // Cognito User Pool with custom attributes
     const userPool = new cognito.UserPool(this, 'HandTermUserPool', {
       userPoolName: 'HandTermUserPool',
       selfSignUpEnabled: true,
