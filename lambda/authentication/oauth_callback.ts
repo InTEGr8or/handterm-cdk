@@ -84,19 +84,22 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         } catch (error) {
           if (error instanceof Error && error.name === 'UserNotFoundException') {
             console.log('User not found, creating new user');
-          const createUserCommand = new AdminCreateUserCommand({
-            UserPoolId: userPoolId,
-            Username: githubUser.id.toString(),
-            UserAttributes: [
-              { Name: 'custom:github_id', Value: githubUser.id.toString() },
-            ],
-          });
-          console.log('AdminCreateUserCommand:', JSON.stringify(createUserCommand, null, 2));
-          
-          const createUserResponse = await cognito.send(createUserCommand);
-          cognitoUserId = createUserResponse.User?.Username;
-          isNewUser = true;
-          console.log('New user created:', cognitoUserId);
+            const createUserCommand = new AdminCreateUserCommand({
+              UserPoolId: userPoolId,
+              Username: githubUser.id.toString(),
+              UserAttributes: [
+                { Name: 'custom:github_id', Value: githubUser.id.toString() },
+              ],
+            });
+            console.log('AdminCreateUserCommand:', JSON.stringify(createUserCommand, null, 2));
+            
+            const createUserResponse = await cognito.send(createUserCommand);
+            cognitoUserId = createUserResponse.User?.Username;
+            isNewUser = true;
+            console.log('New user created:', cognitoUserId);
+          } else {
+            throw error; // Re-throw if it's not a UserNotFoundException
+          }
         }
       } catch (error) {
         console.error('Error finding or creating user:', error);
