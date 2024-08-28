@@ -65,25 +65,30 @@ export class HandTermCdkStack extends Stack {
       autoVerify: { email: true },
     });
 
-    // Add custom attributes separately
-    new cognito.CfnUserPoolCustomAttributes(this, 'UserPoolCustomAttributes', {
-      userPoolId: userPool.userPoolId,
-      customAttributes: [
-        {
-          name: 'github_token',
-          attributeDataType: 'String',
-          mutable: true,
-        },
-        {
-          name: 'github_id',
-          attributeDataType: 'String',
-          mutable: true,
-          stringAttributeConstraints: {
-            minLength: '1',
-            maxLength: '256',
-          },
-        },
-      ],
+    // Add custom attributes directly to the UserPool
+    const userPool = new cognito.UserPool(this, 'HandTermUserPool', {
+      userPoolName: 'HandTermUserPool',
+      selfSignUpEnabled: true,
+      userVerification: {
+        emailSubject: 'Verify your email for our app!',
+        emailBody: 'Hello {username}, Thanks for signing up to our app! Your verification code is {####}',
+        emailStyle: cognito.VerificationEmailStyle.CODE,
+      },
+      signInAliases: {
+        email: true
+      },
+      passwordPolicy: {
+        minLength: 8,
+        requireUppercase: true,
+        requireLowercase: true,
+        requireDigits: true,
+        requireSymbols: true,
+      },
+      autoVerify: { email: true },
+      customAttributes: {
+        github_token: new cognito.StringAttribute({ mutable: true }),
+        github_id: new cognito.StringAttribute({ mutable: true }),
+      },
     });
 
     new cognito.CfnUserPoolIdentityProvider(this, 'GitHubIdentityProvider', {
