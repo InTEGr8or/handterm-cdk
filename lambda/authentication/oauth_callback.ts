@@ -1,6 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { request } from 'https';
-import { CognitoIdentityProviderClient, AdminUpdateUserAttributesCommand, AdminGetUserCommand, AdminCreateUserCommand, ListUsersCommand } from '@aws-sdk/client-cognito-identity-provider';
+import { CognitoIdentityProviderClient, AdminUpdateUserAttributesCommand, AdminCreateUserCommand, AdminSetUserPasswordCommand, AdminGetUserCommand } from '@aws-sdk/client-cognito-identity-provider';
 
 interface TokenData {
   access_token?: string;
@@ -15,15 +15,6 @@ interface GitHubUser {
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   console.log('OAuth callback received:', JSON.stringify(event, null, 2));
-
-  // Check if this is a GitHub webhook event
-  if (event.headers['x-github-event']) {
-    console.log('Received GitHub webhook event. Ignoring.');
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ message: 'GitHub webhook event received and ignored' }),
-    };
-  }
 
   try {
     const code = event.queryStringParameters?.code;
@@ -64,90 +55,63 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     const cognito = new CognitoIdentityProviderClient();
     const userPoolId = process.env.COGNITO_USER_POOL_ID!;
 
+    // Check if the user is already logged in to Cognito
     let cognitoUserId = decodedState.cognitoUserId;
-    let isNewUser = false;
-
-    if (!cognitoUserId) {
-      // User is not logged in, check if they exist in Cognito by GitHub ID
+    if (!cognitoUserId && githubUser.email) {
+      // If not logged in, try to find the user by email
       try {
-        console.log('Searching for user with GitHub ID:', githubUser.id);
-        const listUsersCommand = new ListUsersCommand({
+        const getUserResponse = await cognito.send(new AdminGetUserCommand({
           UserPoolId: userPoolId,
-          Filter: `custom:github_id = "${githubUser.id}"`,
-        });
-        console.log('ListUsersCommand:', JSON.stringify(listUsersCommand, null, 2));
-        
-        const listUsersResponse = await cognito.send(listUsersCommand);
-        console.log('ListUsersResponse:', JSON.stringify(listUsersResponse, null, 2));
-        
-        if (listUsersResponse.Users && listUsersResponse.Users.length > 0) {
-          cognitoUserId = listUsersResponse.Users[0].Username;
-          console.log('Existing user found:', cognitoUserId);
-        } else {
-          console.log('User not found, creating new user');
-          const email = githubUser.email || `${githubUser.login}@example.com`;
-          const createUserCommand = new AdminCreateUserCommand({
-            UserPoolId: userPoolId,
-            Username: email,
-            UserAttributes: [
-              { Name: 'email', Value: email },
-              { Name: 'custom:github_id', Value: githubUser.id.toString() },
-            ],
-          });
-          console.log('AdminCreateUserCommand:', JSON.stringify(createUserCommand, null, 2));
-          
-          const createUserResponse = await cognito.send(createUserCommand);
-          cognitoUserId = createUserResponse.User?.Username;
-          isNewUser = true;
-          console.log('New user created:', cognitoUserId);
-        }
+          Username: githubUser.email,
+        }));
+        cognitoUserId = getUserResponse.Username;
       } catch (error) {
-        console.error('Error finding or creating user:', error);
-        if (error instanceof Error) {
-          console.error('Error name:', error.name);
-          console.error('Error message:', error.message);
-          console.error('Error stack:', error.stack);
-        }
-        return errorResponse(500, 'Failed to find or create user in Cognito.');
+        console.log('User not found in Cognito');
       }
     }
 
+    if (!cognitoUserId && githubUser.email) {
+      console.log('Creating new Cognito user');
+      // Create a new user if not found and GitHub provided an email
+      const createUserResponse = await cognito.send(new AdminCreateUserCommand({
+        UserPoolId: userPoolId,
+        Username: githubUser.email,
+        UserAttributes: [
+          { Name: 'email', Value: githubUser.email },
+          { Name: 'email_verified', Value: 'true' },
+        ],
+      }));
+      cognitoUserId = createUserResponse.User?.Username;
+
+      // Set a temporary password for the new user
+      await cognito.send(new AdminSetUserPasswordCommand({
+        UserPoolId: userPoolId,
+        Username: cognitoUserId!,
+        Password: 'TemporaryPassword123!', // This should be changed by the user on first login
+        Permanent: true,
+      }));
+    }
+
     if (!cognitoUserId) {
-      return errorResponse(500, 'Failed to get or create Cognito user.');
+      return errorResponse(400, 'Unable to create or find Cognito user.');
     }
 
     // Update the user attributes
-    try {
-      await cognito.send(new AdminUpdateUserAttributesCommand({
-        UserPoolId: userPoolId,
-        Username: cognitoUserId,
-        UserAttributes: [
-          { Name: 'custom:github_id', Value: githubUser.id.toString() },
-          { Name: 'custom:github_token', Value: tokenData.access_token },
-        ],
-      }));
-    } catch (error) {
-      console.error('Error updating user attributes:', error);
-      return errorResponse(500, 'Failed to update user attributes in Cognito.');
-    }
+    await cognito.send(new AdminUpdateUserAttributesCommand({
+      UserPoolId: userPoolId,
+      Username: cognitoUserId,
+      UserAttributes: [
+        { Name: 'custom:github_id', Value: githubUser.id.toString() },
+        { Name: 'custom:github_token', Value: tokenData.access_token },
+      ],
+    }));
     console.log('User attributes updated successfully');
 
-    // Construct the redirect URL
-    const redirectUrl = decodedState.redirectUrl || 'https://handterm.com';
-    const redirectUrlWithParams = new URL(redirectUrl);
-    redirectUrlWithParams.searchParams.append('githubLinked', 'true');
-    if (isNewUser) {
-      redirectUrlWithParams.searchParams.append('newUser', 'true');
-    }
-
     return {
-      statusCode: 302,
-      headers: {
-        Location: redirectUrlWithParams.toString(),
-      },
+      statusCode: 200,
       body: JSON.stringify({
         message: 'GitHub account linked successfully',
-        isNewUser: isNewUser,
+        userId: cognitoUserId,
       }),
     };
   } catch (error) {
@@ -155,6 +119,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     return errorResponse(500, 'An unexpected error occurred while handling the OAuth callback.');
   }
 };
+
+import { DescribeUserPoolCommand } from '@aws-sdk/client-cognito-identity-provider';
 
 async function getGitHubToken(code: string, clientId: string, clientSecret: string): Promise<TokenData> {
   return new Promise((resolve, reject) => {
@@ -206,72 +172,62 @@ async function getGitHubUser(accessToken: string): Promise<GitHubUser> {
     },
   };
 
-  return new Promise<GitHubUser>((resolve, reject) => {
+  // First, get the user data
+  const userData = await new Promise<any>((resolve, reject) => {
     const req = request(options, (res) => {
       let body = '';
       res.on('data', (chunk) => { body += chunk; });
-      res.on('end', async () => { 
-        const userData = JSON.parse(body);
-        const email = await getGitHubUserEmail(accessToken, userData.login);
-        
-        resolve({
-          id: userData.id.toString(),
-          login: userData.login,
-          email: email,
-        });
+      res.on('end', () => { 
+        console.log('Raw user data:', body);
+        resolve(JSON.parse(body)); 
       });
     });
     req.on('error', (e) => { reject(e); });
     req.end();
   });
-}
 
-async function getGitHubUserEmail(accessToken: string, login: string): Promise<string> {
-  const options = {
-    hostname: 'api.github.com',
+  // Then, get the user's email
+  const emailOptions = {
+    ...options,
     path: '/user/emails',
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'User-Agent': 'AWS Lambda',
-      'Accept': 'application/vnd.github.v3+json',
-    },
   };
 
-  return new Promise<string>((resolve) => {
-    const req = request(options, (res) => {
-      let body = '';
-      res.on('data', (chunk) => { body += chunk; });
-      res.on('end', () => { 
-        try {
-          const emails = JSON.parse(body);
-          console.log('GitHub emails response:', JSON.stringify(emails));
-          
-          if (Array.isArray(emails)) {
-            const primaryEmail = emails.find((email: any) => email.primary);
-            if (primaryEmail) {
-              resolve(primaryEmail.email);
-            } else {
-              console.warn('No primary email found, using fallback');
-              resolve(`${login}@users.noreply.github.com`);
-            }
-          } else {
-            console.error('Unexpected response format from GitHub emails API:', emails);
-            resolve(`${login}@users.noreply.github.com`);
-          }
-        } catch (error) {
-          console.error('Error parsing GitHub emails response:', error);
-          console.error('Raw response body:', body);
-          resolve(`${login}@users.noreply.github.com`);
-        }
+  let primaryEmail: string | undefined;
+  try {
+    const emailData = await new Promise<any>((resolve, reject) => {
+      const req = request(emailOptions, (res) => {
+        let body = '';
+        res.on('data', (chunk) => { body += chunk; });
+        res.on('end', () => { 
+          console.log('Raw email data:', body);
+          resolve(JSON.parse(body)); 
+        });
       });
+      req.on('error', (e) => { reject(e); });
+      req.end();
     });
-    req.on('error', (e) => {
-      console.error('Error fetching GitHub user email:', e);
-      resolve(`${login}@users.noreply.github.com`);
-    });
-    req.end();
-  });
+
+    console.log('Parsed user data:', JSON.stringify(userData));
+    console.log('Parsed email data:', JSON.stringify(emailData));
+
+    if (Array.isArray(emailData)) {
+      primaryEmail = emailData.find(email => email.primary)?.email || emailData[0]?.email;
+    } else {
+      console.log('Email data is not an array:', typeof emailData);
+      // Use the email from the user data if available
+      primaryEmail = userData.email;
+    }
+  } catch (error) {
+    console.error('Error fetching email data:', error);
+    // Use the email from the user data if available
+    primaryEmail = userData.email;
+  }
+
+  return {
+    id: userData.id.toString(),
+    login: userData.login,
+    email: primaryEmail || `${userData.login}@example.com`,
+  };
 }
 
 function errorResponse(statusCode: number, message: string): APIGatewayProxyResult {
