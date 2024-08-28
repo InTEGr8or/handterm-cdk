@@ -235,7 +235,7 @@ async function getGitHubUserEmail(accessToken: string): Promise<string | undefin
     path: '/user/emails',
     method: 'GET',
     headers: {
-      'Authorization': `token ${accessToken}`,
+      'Authorization': `Bearer ${accessToken}`,
       'User-Agent': 'AWS Lambda',
       'Accept': 'application/vnd.github.v3+json',
     },
@@ -246,12 +246,28 @@ async function getGitHubUserEmail(accessToken: string): Promise<string | undefin
       let body = '';
       res.on('data', (chunk) => { body += chunk; });
       res.on('end', () => { 
-        const emails = JSON.parse(body);
-        const primaryEmail = emails.find((email: any) => email.primary);
-        resolve(primaryEmail ? primaryEmail.email : undefined);
+        try {
+          const emails = JSON.parse(body);
+          console.log('GitHub emails response:', JSON.stringify(emails));
+          
+          if (Array.isArray(emails)) {
+            const primaryEmail = emails.find((email: any) => email.primary);
+            resolve(primaryEmail ? primaryEmail.email : undefined);
+          } else {
+            console.error('Unexpected response format from GitHub emails API:', emails);
+            resolve(undefined);
+          }
+        } catch (error) {
+          console.error('Error parsing GitHub emails response:', error);
+          console.error('Raw response body:', body);
+          resolve(undefined);
+        }
       });
     });
-    req.on('error', (e) => { reject(e); });
+    req.on('error', (e) => {
+      console.error('Error fetching GitHub user email:', e);
+      reject(e);
+    });
     req.end();
   });
 }
