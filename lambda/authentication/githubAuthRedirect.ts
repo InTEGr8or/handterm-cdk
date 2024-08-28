@@ -19,7 +19,7 @@ export const handler = async (event: APIGatewayProxyEvent):
     };
   }
 
-  const redirectUrl = event.queryStringParameters?.redirectUrl || 'https://default-redirect-url.com';
+  const redirectUrl = event.queryStringParameters?.redirectUrl || 'https://handterm.com';
   const state = Buffer.from(JSON.stringify({
     timestamp: Date.now(),
     redirectUrl,
