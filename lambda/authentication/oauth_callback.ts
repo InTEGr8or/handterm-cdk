@@ -16,6 +16,15 @@ interface GitHubUser {
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   console.log('OAuth callback received:', JSON.stringify(event, null, 2));
 
+  // Check if this is a GitHub webhook event
+  if (event.headers['x-github-event']) {
+    console.log('Received GitHub webhook event. Ignoring.');
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ message: 'GitHub webhook event received and ignored' }),
+    };
+  }
+
   try {
     const code = event.queryStringParameters?.code;
     const state = event.queryStringParameters?.state;
