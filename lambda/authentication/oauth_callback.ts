@@ -74,6 +74,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         const listUsersCommand = new ListUsersCommand({
           UserPoolId: userPoolId,
           Filter: `custom:github_id = "${githubUser.id}"`,
+          Limit: 1, // Add this line to limit the results to 1 user
         });
         console.log('ListUsersCommand:', JSON.stringify(listUsersCommand, null, 2));
         
