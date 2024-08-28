@@ -71,21 +71,19 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       // User is not logged in, check if they exist in Cognito by GitHub ID
       try {
         console.log('Searching for user with GitHub ID:', githubUser.id);
-        const listUsersCommand = new ListUsersCommand({
-          UserPoolId: userPoolId,
-          Filter: `custom:github_id = "${githubUser.id}"`,
-          Limit: 1, // Add this line to limit the results to 1 user
-        });
-        console.log('ListUsersCommand:', JSON.stringify(listUsersCommand, null, 2));
-        
-        const listUsersResponse = await cognito.send(listUsersCommand);
-        console.log('ListUsers response:', JSON.stringify(listUsersResponse, null, 2));
-        
-        if (listUsersResponse.Users && listUsersResponse.Users.length > 0) {
-          cognitoUserId = listUsersResponse.Users[0].Username;
+        try {
+          const getUserCommand = new AdminGetUserCommand({
+            UserPoolId: userPoolId,
+            Username: githubUser.id.toString(),
+          });
+          console.log('AdminGetUserCommand:', JSON.stringify(getUserCommand, null, 2));
+          
+          const getUserResponse = await cognito.send(getUserCommand);
+          cognitoUserId = getUserResponse.Username;
           console.log('Existing user found:', cognitoUserId);
-        } else {
-          console.log('User not found, creating new user');
+        } catch (error) {
+          if (error instanceof Error && error.name === 'UserNotFoundException') {
+            console.log('User not found, creating new user');
           const createUserCommand = new AdminCreateUserCommand({
             UserPoolId: userPoolId,
             Username: githubUser.id.toString(),
