@@ -107,13 +107,13 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     }));
     console.log('User attributes updated successfully');
 
-    const redirectUrl = decodedState.redirectUrl || 'https://handterm.com';
+    const refererUrl = decodeURIComponent(decodedState.refererUrl) || 'https://handterm.com';
     const githubUsername = githubUser.login;
 
     return {
       statusCode: 302,
       headers: {
-        'Location': `${redirectUrl}?githubAuth=success&githubUsername=${encodeURIComponent(githubUsername)}`,
+        'Location': `${refererUrl}?githubAuth=success&githubUsername=${encodeURIComponent(githubUsername)}`,
       },
       body: JSON.stringify({
         message: 'GitHub account linked successfully. Redirecting...',

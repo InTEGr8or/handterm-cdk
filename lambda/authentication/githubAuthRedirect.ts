@@ -19,10 +19,10 @@ export const handler = async (event: APIGatewayProxyEvent):
     };
   }
 
-  const redirectUrl = event.queryStringParameters?.redirectUrl || 'https://handterm.com';
+  const refererUrl = event.headers.referer || 'https://handterm.com';
   const state = Buffer.from(JSON.stringify({
     timestamp: Date.now(),
-    redirectUrl,
+    refererUrl: encodeURIComponent(refererUrl),
   })).toString('base64');
 
   const githubAuthUrl =
