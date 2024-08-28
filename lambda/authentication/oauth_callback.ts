@@ -127,10 +127,16 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     }));
     console.log('User attributes updated successfully');
 
+    const redirectUrl = decodedState.redirectUrl || 'https://default-redirect-url.com';
+    const githubUsername = githubUser.login;
+    
     return {
-      statusCode: 200,
+      statusCode: 302,
+      headers: {
+        'Location': `${redirectUrl}?githubAuth=success&githubUsername=${encodeURIComponent(githubUsername)}`,
+      },
       body: JSON.stringify({
-        message: 'GitHub account linked successfully',
+        message: 'GitHub account linked successfully. Redirecting...',
         userId: cognitoUserId,
       }),
     };
