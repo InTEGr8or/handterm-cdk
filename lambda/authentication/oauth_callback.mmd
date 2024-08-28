@@ -1,0 +1,22 @@
+sequenceDiagram
+     participant User
+     participant React App
+     participant GitHub
+     participant OAuth Callback
+     participant Cognito
+
+     User->>React App: Initiates GitHub login
+     React App->>GitHub: Redirects to GitHub login
+     GitHub->>User: Prompts for authorization
+     User->>GitHub: Authorizes app
+     GitHub->>OAuth Callback: Redirects with code and state
+     OAuth Callback->>GitHub: Exchanges code for access token
+     GitHub->>OAuth Callback: Returns access token
+     OAuth Callback->>GitHub: Requests user data
+     GitHub->>OAuth Callback: Returns user data
+     OAuth Callback->>Cognito: Checks if user exists
+     Cognito->>OAuth Callback: User does exist
+     OAuth Callback->>Cognito: Updates user attributes
+     Cognito->>OAuth Callback: Confirms update
+     OAuth Callback->>React App: Redirects with githubLinked=true
+     React App->>User: Updates UI to show linked status

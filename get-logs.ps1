@@ -20,10 +20,11 @@ if (-not $lambdaFunctionName) {
 }
 
 Write-Host "Matching Lambda function: $lambdaFunctionName"
+$logGroupName = "/aws/lambda/$lambdaFunctionName"
 
 # Describe the log streams for the Lambda function and get the most recent one
 $latestLogStream = aws logs describe-log-streams `
-    --log-group-name "/aws/lambda/$lambdaFunctionName" `
+    --log-group-name "$logGroupName" `
     --order-by LastEventTime `
     --descending `
     --max-items 1 `
@@ -41,7 +42,7 @@ Write-Host "Latest log stream: $latestLogStream"
 
 # Retrieve the log events from the latest log stream
 $logEvents = aws logs get-log-events `
-    --log-group-name "/aws/lambda/$lambdaFunctionName" `
+    --log-group-name "$logGroupName" `
     --log-stream-name "$latestLogStream" `
     --limit $Limit `
     --output json `
@@ -53,12 +54,9 @@ $logEvents = aws logs get-log-events `
 
 Write-Host "Last $Limit log events:"
 $logEvents | ForEach-Object { Write-Host $_ }
-param(
-    [Parameter(Mandatory=$true)]
-    [string]$FunctionName
-)
 
-$logGroupName = "/aws/lambda/HandTermCdkStack-$FunctionName"
-$filterPattern = "[timestamp, requestId, level=INFO, message]"
+# $logGroupName = "/aws/lambda/HandTermCdkStack-$FunctionName"
+# $filterPattern = "[timestamp, requestId, level=INFO, message]"
+# $startTime = (Get-Date).AddDays(-1).ToUniversalTime().ticks
 
-aws logs filter-log-events --log-group-name $logGroupName --filter-pattern $filterPattern --start-time (Get-Date).AddHours(-1).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ") --query 'events[*].message' --output text
+# aws logs filter-log-events --log-group-name $logGroupName --filter-pattern $filterPattern --start-time  $startTime --query 'events[*].message' --output text
