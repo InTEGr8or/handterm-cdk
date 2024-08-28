@@ -53,3 +53,12 @@ $logEvents = aws logs get-log-events `
 
 Write-Host "Last $Limit log events:"
 $logEvents | ForEach-Object { Write-Host $_ }
+param(
+    [Parameter(Mandatory=$true)]
+    [string]$FunctionName
+)
+
+$logGroupName = "/aws/lambda/HandTermCdkStack-$FunctionName"
+$filterPattern = "[timestamp, requestId, level=INFO, message]"
+
+aws logs filter-log-events --log-group-name $logGroupName --filter-pattern $filterPattern --start-time (Get-Date).AddHours(-1).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ") --query 'events[*].message' --output text
