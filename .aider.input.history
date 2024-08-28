@@ -5825,3 +5825,144 @@
 
 # 2024-08-27 20:17:32.487581
 +/ls
+
+# 2024-08-27 20:24:42.383728
++Now I am getging: `{"message":"Failed to find or create user in Cognito."}` and this: ```2024-08-28T03:23:20.903Z        ab567d56-7fd6-4a6b-8ae3-c182ddcb661b    ERROR      Unexpected response format from GitHub emails API: {
++  message: 'Resource not accessible by integration',
++  documentation_url: 'https://docs.github.com/rest/users/emails#list-email-addresses-for-the-authenticated-user',
++  status: '403'
++}
++
++2024-08-28T03:23:20.903Z        ab567d56-7fd6-4a6b-8ae3-c182ddcb661b    INFO       GitHub user data: {"id":"1802850","login":"InTEGr8or","email":"InTEGr8or@users.noreply.github.com"}
++
++2024-08-28T03:23:20.904Z        ab567d56-7fd6-4a6b-8ae3-c182ddcb661b    INFO       Searching for user with GitHub ID: 1802850
++
++2024-08-28T03:23:20.925Z        ab567d56-7fd6-4a6b-8ae3-c182ddcb661b    INFO       ListUsersCommand: {
++  "middlewareStack": {},
++  "input": {
++    "UserPoolId": "us-east-1_TL47OLcyI",
++    "Filter": "custom:github_id = \"1802850\""
++  }
++}
++
++2024-08-28T03:23:21.145Z        ab567d56-7fd6-4a6b-8ae3-c182ddcb661b    ERROR      Error finding or creating user: InvalidParameterException: Input fails to satisfy the constraints.
++    at de_InvalidParameterExceptionRes (/var/runtime/node_modules/@aws-sdk/client-cognito-identity-provider/dist-cjs/index.js:4015:21)
++    at de_CommandError (/var/runtime/node_modules/@aws-sdk/client-cognito-identity-provider/dist-cjs/index.js:3768:19)
++    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
++    at async /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/middleware-serde/dist-cjs/index.js:35:20
++    at async /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/core/dist-cjs/index.js:165:18
++    at async /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/middleware-retry/dist-cjs/index.js:320:38
++    at async /var/runtime/node_modules/@aws-sdk/middleware-logger/dist-cjs/index.js:34:22
++    at async Runtime.handler (/var/task/oauth_callback.js:57:43) {
++  '$fault': 'client',
++  '$metadata': {
++    httpStatusCode: 400,
++    requestId: 'baeb0bd1-8746-498a-b6a3-f3e78877aa5e',
++    extendedRequestId: undefined,
++    cfId: undefined,
++    attempts: 1,
++    totalRetryDelay: 0
++  },
++  __type: 'InvalidParameterException'
++}
++
++2024-08-28T03:23:21.145Z        ab567d56-7fd6-4a6b-8ae3-c182ddcb661b    ERROR      Error name: InvalidParameterException
++
++2024-08-28T03:23:21.145Z        ab567d56-7fd6-4a6b-8ae3-c182ddcb661b    ERROR      Error message: Input fails to satisfy the constraints.
++
++2024-08-28T03:23:21.145Z        ab567d56-7fd6-4a6b-8ae3-c182ddcb661b    ERROR      Error stack: InvalidParameterException: Input fails to satisfy the constraints.
++    at de_InvalidParameterExceptionRes (/var/runtime/node_modules/@aws-sdk/client-cognito-identity-provider/dist-cjs/index.js:4015:21)
++    at de_CommandError (/var/runtime/node_modules/@aws-sdk/client-cognito-identity-provider/dist-cjs/index.js:3768:19)
++    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
++    at async /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/middleware-serde/dist-cjs/index.js:35:20
++    at async /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/core/dist-cjs/index.js:165:18
++    at async /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/middleware-retry/dist-cjs/index.js:320:38
++    at async /var/runtime/node_modules/@aws-sdk/middleware-logger/dist-cjs/index.js:34:22
++    at async Runtime.handler (/var/task/oauth_callback.js:57:43)```
+
+# 2024-08-27 20:40:06.624515
++I have reverted `oauth_callback.ts` and now I get `{"message":"GitHub account linked successfully","userId":"a4289488-f081-7075-5779-9d1f742cc96a"}`. I would like to keep that working, but I am getting these linting errors: ```[{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/oauth_callback.ts",
++"owner": "typescript",
++"code": "2552",
++"severity": 8,
++"message": "Cannot find name 'ListUsersCommand'. Did you mean 'listUsersCommand'?",
++"source": "ts",
++"startLineNumber": 65,
++"startColumn": 38,
++"endLineNumber": 65,
++"endColumn": 54,
++"relatedInformation": [
++{
++"startLineNumber": 65,
++"startColumn": 15,
++"endLineNumber": 65,
++"endColumn": 31,
++"message": "'listUsersCommand' is declared here.",
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/oauth_callback.ts"
++}
++]
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/oauth_callback.ts",
++"owner": "typescript",
++"code": "2339",
++"severity": 8,
++"message": "Property 'Users' does not exist on type 'ServiceOutputTypes'.\n  Property 'Users' does not exist on type 'AddCustomAttributesCommandOutput'.",
++"source": "ts",
++"startLineNumber": 74,
++"startColumn": 31,
++"endLineNumber": 74,
++"endColumn": 36
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/oauth_callback.ts",
++"owner": "typescript",
++"code": "2339",
++"severity": 8,
++"message": "Property 'Users' does not exist on type 'ServiceOutputTypes'.\n  Property 'Users' does not exist on type 'AddCustomAttributesCommandOutput'.",
++"source": "ts",
++"startLineNumber": 74,
++"startColumn": 58,
++"endLineNumber": 74,
++"endColumn": 63
++},{
++"resource": "/c:/Users/xgenx/source/repos/handterm-cdk/lambda/authentication/oauth_callback.ts",
++"owner": "typescript",
++"code": "2339",
++"severity": 8,
++"message": "Property 'Users' does not exist on type 'ServiceOutputTypes'.\n  Property 'Users' does not exist on type 'AddCustomAttributesCommandOutput'.",
++"source": "ts",
++"startLineNumber": 75,
++"startColumn": 45,
++"endLineNumber": 75,
++"endColumn": 50
++}]```
+
+# 2024-08-27 20:41:28.502075
++/run yarn deploy
+
+# 2024-08-27 20:46:46.325647
++Is it possilbe to create a `.http` file that handles the GitHub authentication process?
+
+# 2024-08-27 20:48:08.644073
++/drop github_auth.http
+
+# 2024-08-27 20:49:28.073792
++/ls
+
+# 2024-08-27 20:49:43.880839
++/drop lambda\authentication\oauth_callback_not_logged_in.mmd
+
+# 2024-08-27 20:50:08.413753
++/drop get-logs.ps1
+
+# 2024-08-27 20:55:55.328742
++In the scheme of `oauth`, I want to redirect back to the source url when we get to this point: ```    return {
++      statusCode: 200,
++      body: JSON.stringify({
++        message: 'GitHub account linked successfully',
++        userId: cognitoUserId,
++      }),
++    };```, and I want to pass an indicator that GitHub authentication worked. Maybe I should pass the GitHub username. The application at the other URL will need to make a request to get a list of GitHub repos. 
+
+# 2024-08-27 21:26:39.429513
++The `redirectUrl` seems to be used for the AWS Cognito URL. That is not the main app URL, which is a static webset hosted on GitHub pages. I think we need to grab a separate `refererUrl` from the `event.headers.referer` in the `githubAuthRedirect.handler`. I think we need to `encodeURIComponent` of the `refererUrl` and pass it in the `githubAuthUrl` and redirect back to that URL in the `oauth_callback` on a successful connection.
