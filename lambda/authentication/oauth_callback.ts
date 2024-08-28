@@ -78,6 +78,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         console.log('ListUsersCommand:', JSON.stringify(listUsersCommand, null, 2));
         
         const listUsersResponse = await cognito.send(listUsersCommand);
+        console.log('ListUsersResponse:', JSON.stringify(listUsersResponse, null, 2));
+        
         if (listUsersResponse.Users && listUsersResponse.Users.length > 0) {
           cognitoUserId = listUsersResponse.Users[0].Username;
           console.log('Existing user found:', cognitoUserId);
@@ -210,12 +212,7 @@ async function getGitHubUser(accessToken: string): Promise<GitHubUser> {
       res.on('data', (chunk) => { body += chunk; });
       res.on('end', async () => { 
         const userData = JSON.parse(body);
-        let email = userData.email;
-        
-        // If email is not public, fetch it separately
-        if (!email) {
-          email = await getGitHubUserEmail(accessToken);
-        }
+        const email = await getGitHubUserEmail(accessToken, userData.login);
         
         resolve({
           id: userData.id.toString(),
@@ -229,7 +226,7 @@ async function getGitHubUser(accessToken: string): Promise<GitHubUser> {
   });
 }
 
-async function getGitHubUserEmail(accessToken: string): Promise<string | undefined> {
+async function getGitHubUserEmail(accessToken: string, login: string): Promise<string> {
   const options = {
     hostname: 'api.github.com',
     path: '/user/emails',
@@ -241,7 +238,7 @@ async function getGitHubUserEmail(accessToken: string): Promise<string | undefin
     },
   };
 
-  return new Promise<string | undefined>((resolve, reject) => {
+  return new Promise<string>((resolve) => {
     const req = request(options, (res) => {
       let body = '';
       res.on('data', (chunk) => { body += chunk; });
@@ -252,21 +249,26 @@ async function getGitHubUserEmail(accessToken: string): Promise<string | undefin
           
           if (Array.isArray(emails)) {
             const primaryEmail = emails.find((email: any) => email.primary);
-            resolve(primaryEmail ? primaryEmail.email : undefined);
+            if (primaryEmail) {
+              resolve(primaryEmail.email);
+            } else {
+              console.warn('No primary email found, using fallback');
+              resolve(`${login}@users.noreply.github.com`);
+            }
           } else {
             console.error('Unexpected response format from GitHub emails API:', emails);
-            resolve(undefined);
+            resolve(`${login}@users.noreply.github.com`);
           }
         } catch (error) {
           console.error('Error parsing GitHub emails response:', error);
           console.error('Raw response body:', body);
-          resolve(undefined);
+          resolve(`${login}@users.noreply.github.com`);
         }
       });
     });
     req.on('error', (e) => {
       console.error('Error fetching GitHub user email:', e);
-      reject(e);
+      resolve(`${login}@users.noreply.github.com`);
     });
     req.end();
   });
