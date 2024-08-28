@@ -1,6 +1,14 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { request } from 'https';
-import { CognitoIdentityProviderClient, AdminUpdateUserAttributesCommand, AdminCreateUserCommand, AdminSetUserPasswordCommand, AdminGetUserCommand } from '@aws-sdk/client-cognito-identity-provider';
+import { 
+  CognitoIdentityProviderClient, 
+  AdminUpdateUserAttributesCommand, 
+  AdminCreateUserCommand, 
+  AdminSetUserPasswordCommand, 
+  AdminGetUserCommand,
+  ListUsersCommand,
+  ListUsersCommandOutput
+} from '@aws-sdk/client-cognito-identity-provider';
 
 interface TokenData {
   access_token?: string;
@@ -68,7 +76,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         });
         console.log('ListUsersCommand:', JSON.stringify(listUsersCommand, null, 2));
         
-        const listUsersResponse = await cognito.send(listUsersCommand);
+        const listUsersResponse = await cognito.send(listUsersCommand) as ListUsersCommandOutput;
         console.log('ListUsersResponse:', JSON.stringify(listUsersResponse, null, 2));
         
         if (listUsersResponse.Users && listUsersResponse.Users.length > 0) {
