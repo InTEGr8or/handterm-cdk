@@ -1,0 +1,17 @@
+### Step 1: Initiate GitHub OAuth flow
+GET https://github.com/login/oauth/authorize?client_id={{client_id}}&redirect_uri={{redirect_uri}}&scope=user:email
+
+### Step 2: GitHub redirects to your callback URL (simulate this by making a request to your API)
+GET {{api_url}}/oauth_callback?code={{code}}&state={{state}}
+
+### Step 3: Get user information (requires access token)
+GET https://api.github.com/user
+Authorization: token {{access_token}}
+
+### Variables
+@client_id = YOUR_GITHUB_CLIENT_ID
+@redirect_uri = https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/oauth_callback
+@api_url = https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com
+@code = YOUR_AUTHORIZATION_CODE
+@state = YOUR_STATE_VALUE
+@access_token = YOUR_ACCESS_TOKEN
