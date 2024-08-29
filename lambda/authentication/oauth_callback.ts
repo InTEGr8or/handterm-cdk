@@ -17,6 +17,10 @@ interface TokenData {
 interface GitHubUser {
   id: string;
   login: string;
+  name?: string;
+  avatar_url?: string;
+  gravatar_id?: string;
+  gists_url?: string;
   email?: string;
 }
 

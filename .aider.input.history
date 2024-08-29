@@ -6408,3 +6408,281 @@
 
 # 2024-08-29 08:45:52.539737
 +/add C:\Users\xgenx\source\repos\handterm\src\components\HandTerm.tsx
+
+# 2024-08-29 10:09:49.252642
++/add lib\cdk-stack.ts lambda\authentication\oauth_callback.ts lambda\authentication\listRecentRepos.ts
+
+# 2024-08-29 10:11:36.531275
++I want to troubleshoot this Cognito CDK. It would be easier If I could remove a few unused users. I have already ran `aws cognito-idp list-users --user-pool-id us-east-1_TL47OLcyI` and have a list of uesrs. How can I delete one using the AWS CLI?
+
+# 2024-08-29 10:36:29.888514
++When I try to link my GitHub account now I get this response in the browser at `oauth_callback`: ```{
++    "message": "Unauthorized"
++}```, and I get this in the CloudWatch log for that function: ```2024-08-29T15:21:44.755Z        952e4257-39a2-4c10-a9b8-38aa47defa24 INFO     OAuth callback received: {
++  "version": "2.0",
++  "routeKey": "GET /oauth_callback",
++  "rawPath": "/oauth_callback",
++  "rawQueryString": "code=e5faba4fe6caad1c1bd3&state=eyJ0aW1lc3RhbXAiOjE3MjQ3OTI2MzAwNjl9",
++  "headers": {
++    "accept": "*/*",
++    "baggage": "sentry-environment=production,sentry-public_key=e6210d6b5d3246c29d5667b356d11c63,sentry-release=ha_github_commits_consumer@411658,sentry-trace_id=5d73633e2f2445e98d2161dfd9f72a9f",
++    "content-length": "0",
++    "host": "x7jzrjfuv8.execute-api.us-east-1.amazonaws.com",
++    "range": "bytes: 0-22",
++    "traceparent": "00-7e8733bbb4f0f85157d55d4e248ec661-5f6159c1aa10f961-00",
++    "user-agent": "Mozilla/5.0 (compatible)",
++    "x-amzn-trace-id": "Root=1-66d09208-68f6fa1b7cb53a7c7fedef83",    
++    "x-forwarded-for": "54.198.55.229",
++    "x-forwarded-port": "443",
++    "x-forwarded-proto": "https"
++  },
++  "queryStringParameters": {
++    "code": "e5faba4fe6caad1c1bd3",
++    "state": "eyJ0aW1lc3RhbXAiOjE3MjQ3OTI2MzAwNjl9"
++  },
++  "requestContext": {
++    "accountId": "318364255844",
++    "apiId": "x7jzrjfuv8",
++    "domainName": "x7jzrjfuv8.execute-api.us-east-1.amazonaws.com",   
++    "domainPrefix": "x7jzrjfuv8",
++    "http": {
++      "method": "GET",
++      "path": "/oauth_callback",
++      "protocol": "HTTP/1.1",
++      "sourceIp": "54.198.55.229",
++      "userAgent": "Mozilla/5.0 (compatible)"
++    },
++    "requestId": "dRvBUgirIAMEMSA=",
++    "routeKey": "GET /oauth_callback",
++    "stage": "$default",
++    "time": "29/Aug/2024:15:21:44 +0000",
++    "timeEpoch": 1724944904159
++  },
++  "isBase64Encoded": false
++}
++
++2024-08-29T15:21:44.756Z        952e4257-39a2-4c10-a9b8-38aa47defa24 INFO     Decoded state: { timestamp: 1724792630069 }
++
++2024-08-29T15:21:45.102Z        952e4257-39a2-4c10-a9b8-38aa47defa24 ERROR    Error getting GitHub token: bad_verification_code```
+
+# 2024-08-29 10:56:35.387230
++Ok, now it successfully authenticated with GitHub, but it added a new user instead of attaching the GitHub auth to the user I am logged into Cognito with, `mark+1@whywe.tech`: ``` aws cognito-idp list-users --user-pool-id us-east-1_TL47OLcyI                                                                 
++- Users:
++  - Attributes:
++    - Name: email
++      Value: mark+2@whywe.tech
++    - Name: email_verified
++      Value: 'false'
++    - Name: sub
++      Value: e4e8e4b8-80c1-7014-03e6-7699fbaf2606
++    Enabled: true
++    UserCreateDate: '2024-07-01T11:59:32.287000-07:00'
++    UserLastModifiedDate: '2024-07-01T11:59:32.287000-07:00'
++    UserStatus: UNCONFIRMED
++    Username: e4e8e4b8-80c1-7014-03e6-7699fbaf2606
++  - Attributes:
++    - Name: email
++      Value: InTEGr8or@example.com
++    - Name: email_verified
++      Value: 'true'
++    - Name: custom:github_token
++      Value: ghu_VBQX8tjZNbDFvytWLwuYhyceaTD10t3L9APu
++    - Name: custom:github_id
++      Value: '1802850'
++    - Name: sub
++      Value: e4185498-4011-708c-5c8d-0ca297d5cb9b
++    Enabled: true
++    UserCreateDate: '2024-08-29T10:51:19.067000-07:00'
++    UserLastModifiedDate: '2024-08-29T10:51:19.786000-07:00'
++    UserStatus: CONFIRMED
++    Username: e4185498-4011-708c-5c8d-0ca297d5cb9b
++  - Attributes:
++    - Name: email
++      Value: mark+1@whywe.tech
++    - Name: email_verified
++      Value: 'false'
++    - Name: sub
++      Value: e4485438-e0d1-7098-10fe-cd1dd7c7885d
++    Enabled: true
++    UserCreateDate: '2024-07-01T11:56:55.959000-07:00'
++    UserLastModifiedDate: '2024-08-17T07:05:02.131000-07:00'
++    UserStatus: CONFIRMED
++    Username: e4485438-e0d1-7098-10fe-cd1dd7c7885d```. I don't wan't to create a new user if I am already logged in and I don't want any fake emails like this: `InTEGr8or@example.com`. 
+
+# 2024-08-29 11:09:29.514254
++I've put this at the top of the `oauth_callback`: ```/* AUTHENTICATION WORKFLOW
++  1. If the user is already authenticated with Cognito, attack the oauth account to the current user.
++  2. If the user is not authenticated, AND the oauth account provides an email address, create a new user in Cognito using the provided email.
++  3. If the user is not authenticated, AND the oauth account does not provide an email address, return an error message to the user about the missing email.
++*/
++```. Please review that. Let me know if it makes sense, and if it does, implement it in code so I can deploy and test it.
+
+# 2024-08-29 11:26:50.885197
++Now I am getting `{"message":"Unauthorized: No token provided"}` at `/github_auth`, which is coming from the `githubAuthRedirect.ts` line 29. I don't see an error in the log: ```Matching Lambda function: HandTermCdkStack-GitHubAuthRedirectFunction9618A4D-N3DYRBSsytR8
++Latest log stream: 2024/08/29/[$LATEST]029c2d94ab4744b4a84d60a4b1b659d0
++Last 10 log events:
++INIT_START Runtime Version: nodejs:18.v33       Runtime Version ARN: arn:aws:lambda:us-east-1::runtime:b7500cbab7a13e2ee74c533d5f8cf7ca697047a4f35fad455d19cc4fa6ff8b84
++
++START RequestId: 6bf17af6-2fbd-49d1-ac6f-5f9773d080c3 Version: $LATEST
++
++2024-08-29T18:16:57.780Z        6bf17af6-2fbd-49d1-ac6f-5f9773d080c3 INFO     Event: {
++  "version": "2.0",
++  "routeKey": "GET /github_auth",
++  "rawPath": "/github_auth",
++  "rawQueryString": "",
++  "headers": {
++    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
++    "accept-encoding": "gzip, deflate, br, zstd",
++    "accept-language": "en-US,en;q=0.9",
++    "content-length": "0",
++    "host": "x7jzrjfuv8.execute-api.us-east-1.amazonaws.com",
++    "priority": "u=0, i",
++    "referer": "http://localhost:5173/",
++    "sec-ch-ua": "\"Not)A;Brand\";v=\"99\", \"Microsoft Edge\";v=\"127\", \"Chromium\";v=\"127\"",
++    "sec-ch-ua-mobile": "?0",
++    "sec-ch-ua-platform": "\"Windows\"",
++    "sec-fetch-dest": "document",
++    "sec-fetch-mode": "navigate",
++    "sec-fetch-site": "cross-site",
++    "sec-fetch-user": "?1",
++    "upgrade-insecure-requests": "1",
++    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 Edg/127.0.0.0",
++    "x-amzn-trace-id": "Root=1-66d0bb19-6e287746483cb67014f88551",    
++    "x-forwarded-for": "104.32.208.200",
++    "x-forwarded-port": "443",
++    "x-forwarded-proto": "https"
++  },
++  "requestContext": {
++    "accountId": "318364255844",
++    "apiId": "x7jzrjfuv8",
++    "domainName": "x7jzrjfuv8.execute-api.us-east-1.amazonaws.com",   
++    "domainPrefix": "x7jzrjfuv8",
++    "http": {
++      "method": "GET",
++      "path": "/github_auth",
++      "protocol": "HTTP/1.1",
++      "sourceIp": "104.32.208.200",
++      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 Edg/127.0.0.0"
++    },
++    "requestId": "dSIsBheuIAMEYJg=",
++    "routeKey": "GET /github_auth",
++    "stage": "$default",
++    "time": "29/Aug/2024:18:16:57 +0000",
++    "timeEpoch": 1724955417420
++  },
++  "isBase64Encoded": false
++}
++
++END RequestId: 6bf17af6-2fbd-49d1-ac6f-5f9773d080c3```
+
+# 2024-08-29 11:35:40.829024
++The current code still seems to be creating a new Cognito user, even while a current user is logged in during the OAuth process. ```aws cognito-idp list-users --user-pool-id us-east-1_TL47OLcyI
++- Users:
++  - Attributes:
++    - Name: email
++      Value: mark+1@whywe.tech
++    - Name: email_verified
++      Value: 'false'
++    - Name: sub
++      Value: e4485438-e0d1-7098-10fe-cd1dd7c7885d
++    Enabled: true
++    UserCreateDate: '2024-07-01T11:56:55.959000-07:00'
++    UserLastModifiedDate: '2024-08-17T07:05:02.131000-07:00'
++    UserStatus: CONFIRMED
++    Username: e4485438-e0d1-7098-10fe-cd1dd7c7885d
++  - Attributes:
++    - Name: email
++      Value: InTEGr8or@example.com
++    - Name: email_verified
++      Value: 'true'
++    - Name: custom:github_token
++      Value: ghu_4hgWt2IwtvPsje00h0jnSdYhA9EeCv3EKOnW
++    - Name: custom:github_id
++      Value: '1802850'
++    - Name: sub
++      Value: 04586498-3081-70f3-5918-43857d646708
++    Enabled: true
++    UserCreateDate: '2024-08-29T11:30:15.873000-07:00'
++    UserLastModifiedDate: '2024-08-29T11:30:16.305000-07:00'
++    UserStatus: FORCE_CHANGE_PASSWORD
++    Username: 04586498-3081-70f3-5918-43857d646708
++  - Attributes:
++    - Name: email
++      Value: mark+2@whywe.tech
++    - Name: email_verified
++      Value: 'false'
++    - Name: sub
++      Value: e4e8e4b8-80c1-7014-03e6-7699fbaf2606
++    Enabled: true
++    UserCreateDate: '2024-07-01T11:59:32.287000-07:00'
++    UserLastModifiedDate: '2024-07-01T11:59:32.287000-07:00'
++    UserStatus: UNCONFIRMED
++    Username: e4e8e4b8-80c1-7014-03e6-7699fbaf2606```
+
+# 2024-08-29 11:38:45.617375
++/ls
+
+# 2024-08-29 11:38:55.665613
++/add package.json
+
+# 2024-08-29 11:41:45.333417
++/ask I still see code like this: ```  return {
++    id: userData.id.toString(),
++    login: userData.login,
++    email: primaryEmail || `${userData.login}@example.com`,
++  };```. What will happen with the `@example.com` email? I don't think that is a real email address. I don't want any fake email addresses to be added to the system.
+
+# 2024-08-29 11:44:16.464016
++/ask Why can't we just do this: ```  return {
++    id: userData.id.toString(),
++    login: userData.login,
++    email: primaryEmail,
++  };```? Won't it already be undefined without us setting it that way?
+
+# 2024-08-29 14:39:00.436180
++I have deployed the latest CDK code. Now I am still getting this error in the browser: `{"message":"GitHub token not found. Please connect your GitHub account.","availableAttributes":["email","email_verified","sub"],"error":"GITHUB_TOKEN_NOT_FOUND"}`. 
+
+# 2024-08-29 14:48:27.859666
++Now I am getting this error from `oauth_callback/`: ```2024-08-29T21:45:03.492Z        39e8e426-8376-46f6-ac4a-5f173eefe06d INFO     Email data is not an array: object
++
++2024-08-29T21:45:03.492Z        39e8e426-8376-46f6-ac4a-5f173eefe06d INFO     GitHub user data: {"id":"1802850","login":"InTEGr8or","email":null}
++
++2024-08-29T21:45:04.059Z        39e8e426-8376-46f6-ac4a-5f173eefe06d ERROR    Error handling user: InvalidParameterException: Input fails to satisfy the constraints.
++    at de_InvalidParameterExceptionRes (/var/runtime/node_modules/@aws-sdk/client-cognito-identity-provider/dist-cjs/index.js:4015:21)      
++    at de_CommandError (/var/runtime/node_modules/@aws-sdk/client-cognito-identity-provider/dist-cjs/index.js:3768:19)
++    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
++    at async /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/middleware-serde/dist-cjs/index.js:35:20
++    at async /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/core/dist-cjs/index.js:165:18
++    at async /var/runtime/node_modules/@aws-sdk/node_modules/@smithy/middleware-retry/dist-cjs/index.js:320:38
++    at async /var/runtime/node_modules/@aws-sdk/middleware-logger/dist-cjs/index.js:34:22
++    at async Runtime.handler (/var/task/oauth_callback.js:75:43) {    
++  '$fault': 'client',
++  '$metadata': {
++    httpStatusCode: 400,
++    requestId: 'f78d4930-4893-44d3-a733-2d88681f1028',
++    extendedRequestId: undefined,
++    cfId: undefined,
++    attempts: 1,
++    totalRetryDelay: 0
++  },
++  __type: 'InvalidParameterException'
++}
++```
+
+# 2024-08-29 14:51:49.569677
++/undo
+
+# 2024-08-29 14:56:54.713827
++From your most recent changes it looks like you are trying to create a fake email address again, but this time at `placeholder.com` instead of `example.com` like you were doing before when we decided we don't want that. Please read the `AUTHENTICATION WORKFLOW` at the top of the `oauth_callback.ts` and review the code to ensure it is following those four points in the `AUTHENTICATION WORKFLOW`. 
+
+# 2024-08-29 14:59:24.874169
++/LS
+
+# 2024-08-29 14:59:28.531868
++/ls
+
+# 2024-08-29 14:59:39.086330
++/drop lambda\authentication\oauth_callback.ts
+
+# 2024-08-29 14:59:48.658109
++/add lambda\authentication\oauth_callback.ts
