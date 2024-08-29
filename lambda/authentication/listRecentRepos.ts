@@ -15,21 +15,27 @@ export const listRecentRepos = async (userSub: string): Promise<any[] | { status
 
   try {
     // Retrieve the GitHub token from Cognito
+    console.log('Retrieving GitHub token for user:', userSub);
     const command = new AdminGetUserCommand({
       UserPoolId: process.env.COGNITO_USER_POOL_ID!,
       Username: userSub,
     });
     const userResponse = await cognito.send(command);
 
+    console.log('User attributes:', JSON.stringify(userResponse.UserAttributes, null, 2));
+
     const githubToken = userResponse.UserAttributes?.find((attr: { Name?: string; Value?: string }) => attr.Name === 'custom:github_token')?.Value;
 
     if (!githubToken) {
       console.error('GitHub token not found for user:', userSub);
+      console.log('Available attributes:', userResponse.UserAttributes?.map(attr => attr.Name).join(', '));
       return {
         statusCode: 400,
-        body: JSON.stringify({ message: 'GitHub token not found' }),
+        body: JSON.stringify({ message: 'GitHub token not found', availableAttributes: userResponse.UserAttributes?.map(attr => attr.Name) }),
       };
     }
+
+    console.log('GitHub token retrieved successfully');
 
     // Use the GitHub token to fetch recent repos
     const response = await new Promise<string>((resolve, reject) => {
