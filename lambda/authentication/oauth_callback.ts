@@ -280,13 +280,9 @@ async function getGitHubUser(accessToken: string): Promise<GitHubUser> {
       primaryEmail = emailData.find(email => email.primary)?.email || emailData[0]?.email;
     } else {
       console.log('Email data is not an array:', typeof emailData);
-      // Use the email from the user data if available
-      primaryEmail = userData.email;
     }
   } catch (error) {
     console.error('Error fetching email data:', error);
-    // Use the email from the user data if available
-    primaryEmail = userData.email;
   }
 
   return {
