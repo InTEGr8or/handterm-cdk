@@ -31,7 +31,11 @@ export const listRecentRepos = async (userSub: string): Promise<any[] | { status
       console.log('Available attributes:', userResponse.UserAttributes?.map(attr => attr.Name).join(', '));
       return {
         statusCode: 400,
-        body: JSON.stringify({ message: 'GitHub token not found', availableAttributes: userResponse.UserAttributes?.map(attr => attr.Name) }),
+        body: JSON.stringify({ 
+          message: 'GitHub token not found. Please connect your GitHub account.',
+          availableAttributes: userResponse.UserAttributes?.map(attr => attr.Name),
+          error: 'GITHUB_TOKEN_NOT_FOUND'
+        }),
       };
     }
 
