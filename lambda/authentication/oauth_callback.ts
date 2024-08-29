@@ -25,7 +25,10 @@ interface GitHubUser {
 }
 
 async function isUserAuthenticated(decodedState: any): Promise<boolean> {
-  return !!decodedState.cognitoUserId;
+  console.log('Checking user authentication. Decoded state:', JSON.stringify(decodedState));
+  const isAuthenticated = !!decodedState.cognitoUserId;
+  console.log('Is user authenticated:', isAuthenticated);
+  return isAuthenticated;
 }
 
 async function getGitHubUserData(accessToken: string): Promise<GitHubUser> {
