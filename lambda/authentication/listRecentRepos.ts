@@ -61,13 +61,24 @@ export const listRecentRepos = async (userSub: string): Promise<any[] | { status
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   try {
-    const userSub = event.requestContext.authorizer?.claims.sub;
+    console.log('Event:', JSON.stringify(event, null, 2));
+    
+    const authorizer = event.requestContext.authorizer;
+    console.log('Authorizer:', JSON.stringify(authorizer, null, 2));
+    
+    const claims = authorizer?.claims || authorizer?.jwt?.claims;
+    console.log('Claims:', JSON.stringify(claims, null, 2));
+    
+    const userSub = claims?.sub;
+    
     if (!userSub) {
+      console.error('User sub not found in the event');
       return {
         statusCode: 401,
-        body: JSON.stringify({ message: 'Unauthorized' }),
+        body: JSON.stringify({ message: 'Unauthorized: User sub not found' }),
       };
     }
+    
     const repos = await listRecentRepos(userSub);
     return {
       statusCode: 200,
@@ -77,7 +88,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     console.error('Error:', error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ message: 'Internal server error' }),
+      body: JSON.stringify({ message: 'Internal server error', error: (error as Error).message }),
     };
   }
 };
