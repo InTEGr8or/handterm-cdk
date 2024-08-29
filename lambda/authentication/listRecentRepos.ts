@@ -82,18 +82,17 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       };
     }
 
-    const claims = authorizer.claims || authorizer.jwt?.claims;
-    console.log('Claims:', JSON.stringify(claims, null, 2));
-    
-    if (!claims) {
-      console.error('Claims are missing');
-      return {
-        statusCode: 401,
-        body: JSON.stringify({ message: 'Unauthorized: Missing claims' }),
-      };
+    let userSub: string | undefined;
+
+    if (authorizer.lambda && authorizer.lambda.userId) {
+      userSub = authorizer.lambda.userId;
+    } else if (authorizer.claims && authorizer.claims.sub) {
+      userSub = authorizer.claims.sub;
+    } else if (authorizer.jwt && authorizer.jwt.claims && authorizer.jwt.claims.sub) {
+      userSub = authorizer.jwt.claims.sub;
     }
 
-    const userSub = claims.sub;
+    console.log('User Sub:', userSub);
     
     if (!userSub) {
       console.error('User sub not found in the claims');
