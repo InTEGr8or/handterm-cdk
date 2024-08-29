@@ -468,7 +468,8 @@ export class HandTermCdkStack extends Stack {
       httpApi: httpApi,
       path: '/oauth_callback',
       methods: [HttpMethod.GET, HttpMethod.POST],
-      authorizer: lambdaAuthorizer,
+      // Temporarily remove the authorizer
+      // authorizer: lambdaAuthorizer,
     });
 
     new CfnOutput(this, 'ApiEndpoint', { value: httpApi.url || '' });

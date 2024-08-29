@@ -46,10 +46,15 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
     if (tokenData.error) {
       console.error('Error getting GitHub token:', tokenData.error);
-      return errorResponse(400, 'Failed to exchange authorization code for access token.');
+      return errorResponse(400, `Failed to exchange authorization code for access token: ${tokenData.error}`);
     }
 
-    const githubUser = await getGitHubUser(tokenData.access_token!);
+    if (!tokenData.access_token) {
+      console.error('No access token received from GitHub');
+      return errorResponse(400, 'No access token received from GitHub');
+    }
+
+    const githubUser = await getGitHubUser(tokenData.access_token);
     console.log('GitHub user data:', JSON.stringify(githubUser));
 
     const cognito = new CognitoIdentityProviderClient();
@@ -160,11 +165,13 @@ async function getGitHubToken(code: string, clientId: string, clientSecret: stri
         body += chunk;
       });
       res.on('end', () => {
+        console.log('GitHub token response:', body);
         resolve(JSON.parse(body) as TokenData);
       });
     });
 
     req.on('error', (e) => {
+      console.error('Error in getGitHubToken:', e);
       reject(e);
     });
 
@@ -195,7 +202,10 @@ async function getGitHubUser(accessToken: string): Promise<GitHubUser> {
         resolve(JSON.parse(body)); 
       });
     });
-    req.on('error', (e) => { reject(e); });
+    req.on('error', (e) => { 
+      console.error('Error fetching GitHub user data:', e);
+      reject(e); 
+    });
     req.end();
   });
 
@@ -216,7 +226,10 @@ async function getGitHubUser(accessToken: string): Promise<GitHubUser> {
           resolve(JSON.parse(body)); 
         });
       });
-      req.on('error', (e) => { reject(e); });
+      req.on('error', (e) => { 
+        console.error('Error fetching GitHub email data:', e);
+        reject(e); 
+      });
       req.end();
     });
 
