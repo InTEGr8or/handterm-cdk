@@ -246,7 +246,6 @@ async function getGitHubUser(accessToken: string): Promise<GitHubUser> {
     },
   };
 
-  // First, get the user data
   const userData = await new Promise<any>((resolve, reject) => {
     const req = request(options, (res) => {
       let body = '';
@@ -263,46 +262,12 @@ async function getGitHubUser(accessToken: string): Promise<GitHubUser> {
     req.end();
   });
 
-  // Then, get the user's email
-  const emailOptions = {
-    ...options,
-    path: '/user/emails',
-  };
-
-  let primaryEmail: string | undefined;
-  try {
-    const emailData = await new Promise<any>((resolve, reject) => {
-      const req = request(emailOptions, (res) => {
-        let body = '';
-        res.on('data', (chunk) => { body += chunk; });
-        res.on('end', () => { 
-          console.log('Raw email data:', body);
-          resolve(JSON.parse(body)); 
-        });
-      });
-      req.on('error', (e) => { 
-        console.error('Error fetching GitHub email data:', e);
-        reject(e); 
-      });
-      req.end();
-    });
-
-    console.log('Parsed user data:', JSON.stringify(userData));
-    console.log('Parsed email data:', JSON.stringify(emailData));
-
-    if (Array.isArray(emailData)) {
-      primaryEmail = emailData.find(email => email.primary)?.email || emailData[0]?.email;
-    } else {
-      console.log('Email data is not an array:', typeof emailData);
-    }
-  } catch (error) {
-    console.error('Error fetching email data:', error);
-  }
+  console.log('Parsed user data:', JSON.stringify(userData));
 
   return {
     id: userData.id.toString(),
     login: userData.login,
-    email: primaryEmail,
+    email: userData.email,
   };
 }
 
