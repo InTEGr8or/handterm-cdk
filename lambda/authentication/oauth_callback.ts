@@ -144,7 +144,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     console.log('GitHub user data:', JSON.stringify(githubUser));
 
     const isAuthenticated = await isUserAuthenticated(decodedState);
-    const githubEmail = await getGitHubEmail(tokenData.access_token);
+    const githubEmail = githubUser.email;
 
     let cognitoUserId: string;
 
