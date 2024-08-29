@@ -222,13 +222,14 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     const githubUser = await getGitHubUserData(tokenData.access_token);
     console.log('GitHub user data:', JSON.stringify(githubUser));
 
+    console.log('Decoded state:', JSON.stringify(decodedState));
     const isAuthenticated = await isUserAuthenticated(decodedState);
-    const githubEmail = getGitHubEmail(tokenData.access_token);
+    const githubEmail = await getGitHubEmail(tokenData.access_token);
 
     let cognitoUserId: string;
 
     if (isAuthenticated) {
-      console.log('EXISTING COGNITO USER WORKFLOW.');
+      console.log('EXISTING COGNITO USER WORKFLOW. CognitoUserId:', decodedState.cognitoUserId);
       await attachGitHubAccountToUser(decodedState.cognitoUserId, githubUser, tokenData.access_token);
       cognitoUserId = decodedState.cognitoUserId;
     } else {
