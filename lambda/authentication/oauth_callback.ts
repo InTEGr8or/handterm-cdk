@@ -62,43 +62,19 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
     // Check if the user is already logged in to Cognito
     let cognitoUserId = decodedState.cognitoUserId;
-    if (!cognitoUserId && githubUser.email) {
-      // If not logged in, try to find the user by email
-      try {
-        const getUserResponse = await cognito.send(new AdminGetUserCommand({
-          UserPoolId: userPoolId,
-          Username: githubUser.email,
-        }));
-        cognitoUserId = getUserResponse.Username;
-      } catch (error) {
-        console.log('User not found in Cognito');
-      }
-    }
-
-    if (!cognitoUserId && githubUser.email) {
-      console.log('Creating new Cognito user');
-      // Create a new user if not found and GitHub provided an email
-      const createUserResponse = await cognito.send(new AdminCreateUserCommand({
-        UserPoolId: userPoolId,
-        Username: githubUser.email,
-        UserAttributes: [
-          { Name: 'email', Value: githubUser.email },
-          { Name: 'email_verified', Value: 'true' },
-        ],
-      }));
-      cognitoUserId = createUserResponse.User?.Username;
-
-      // Set a temporary password for the new user
-      await cognito.send(new AdminSetUserPasswordCommand({
-        UserPoolId: userPoolId,
-        Username: cognitoUserId!,
-        Password: 'TemporaryPassword123!', // This should be changed by the user on first login
-        Permanent: true,
-      }));
-    }
-
     if (!cognitoUserId) {
-      return errorResponse(400, 'Unable to create or find Cognito user.');
+      return errorResponse(400, 'No Cognito user ID provided in the state. User must be logged in to link GitHub account.');
+    }
+
+    // Verify that the Cognito user exists
+    try {
+      await cognito.send(new AdminGetUserCommand({
+        UserPoolId: userPoolId,
+        Username: cognitoUserId,
+      }));
+    } catch (error) {
+      console.error('Error verifying Cognito user:', error);
+      return errorResponse(400, 'Invalid Cognito user ID provided.');
     }
 
     // Update the user attributes
