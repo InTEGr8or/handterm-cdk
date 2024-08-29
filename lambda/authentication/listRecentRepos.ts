@@ -63,16 +63,40 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
   try {
     console.log('Event:', JSON.stringify(event, null, 2));
     
+    if (!event.requestContext) {
+      console.error('Request context is missing');
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ message: 'Bad Request: Missing request context' }),
+      };
+    }
+
     const authorizer = event.requestContext.authorizer;
     console.log('Authorizer:', JSON.stringify(authorizer, null, 2));
     
-    const claims = authorizer?.claims || authorizer?.jwt?.claims;
+    if (!authorizer) {
+      console.error('Authorizer is missing');
+      return {
+        statusCode: 401,
+        body: JSON.stringify({ message: 'Unauthorized: Missing authorizer' }),
+      };
+    }
+
+    const claims = authorizer.claims || authorizer.jwt?.claims;
     console.log('Claims:', JSON.stringify(claims, null, 2));
     
-    const userSub = claims?.sub;
+    if (!claims) {
+      console.error('Claims are missing');
+      return {
+        statusCode: 401,
+        body: JSON.stringify({ message: 'Unauthorized: Missing claims' }),
+      };
+    }
+
+    const userSub = claims.sub;
     
     if (!userSub) {
-      console.error('User sub not found in the event');
+      console.error('User sub not found in the claims');
       return {
         statusCode: 401,
         body: JSON.stringify({ message: 'Unauthorized: User sub not found' }),
