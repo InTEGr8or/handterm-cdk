@@ -2,6 +2,12 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { request } from 'https';
 import { CognitoIdentityProviderClient, AdminUpdateUserAttributesCommand, AdminCreateUserCommand, AdminSetUserPasswordCommand, AdminGetUserCommand } from '@aws-sdk/client-cognito-identity-provider';
 
+/* AUTHENTICATION WORKFLOW
+  1. If the user is already authenticated with Cognito, attach the oauth account to the current user.
+  2. If the user is not authenticated, AND the oauth account provides an email address, create a new user in Cognito using the provided email.
+  3. If the user is not authenticated, AND the oauth account does not provide an email address, return an error message to the user about the missing email.
+*/
+
 interface TokenData {
   access_token?: string;
   error?: string;
