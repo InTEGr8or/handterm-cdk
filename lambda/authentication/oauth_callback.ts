@@ -1,6 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { request } from 'https';
-import { CognitoIdentityProviderClient, AdminUpdateUserAttributesCommand, AdminCreateUserCommand, AdminSetUserPasswordCommand, AdminGetUserCommand } from '@aws-sdk/client-cognito-identity-provider';
+import { CognitoIdentityProviderClient, AdminUpdateUserAttributesCommand, AdminCreateUserCommand, AdminSetUserPasswordCommand, AdminGetUserCommand, ListUsersCommand } from '@aws-sdk/client-cognito-identity-provider';
 
 /* AUTHENTICATION WORKFLOW
   1. If the user is already authenticated with Cognito, attach the oauth account to the current user.
@@ -86,37 +86,55 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         return errorResponse(500, 'Failed to attach GitHub account to existing user');
       }
     } else {
-      // User is not authenticated
-      if (!githubUser.email) {
-        return errorResponse(400, 'GitHub account does not provide an email address. Unable to create a new user.');
-      }
-
-      // Create a new Cognito user
+      // User is not authenticated, check if a user with this GitHub ID already exists
       try {
-        const createUserResponse = await cognito.send(new AdminCreateUserCommand({
+        const listUsersResponse = await cognito.send(new ListUsersCommand({
           UserPoolId: userPoolId,
-          Username: githubUser.email,
-          UserAttributes: [
-            { Name: 'email', Value: githubUser.email },
-            { Name: 'email_verified', Value: 'true' },
-            { Name: 'custom:github_id', Value: githubUser.id.toString() },
-            { Name: 'custom:github_token', Value: tokenData.access_token },
-          ],
-          MessageAction: 'SUPPRESS',
+          Filter: `custom:github_id = "${githubUser.id}"`,
         }));
-        cognitoUserId = createUserResponse.User?.Username;
-        console.log('New user created:', cognitoUserId);
 
-        // Set a temporary password for the new user
-        await cognito.send(new AdminSetUserPasswordCommand({
-          UserPoolId: userPoolId,
-          Username: cognitoUserId!,
-          Password: generateTemporaryPassword(),
-          Permanent: false,
-        }));
+        if (listUsersResponse.Users && listUsersResponse.Users.length > 0) {
+          // User with this GitHub ID already exists, update their attributes
+          cognitoUserId = listUsersResponse.Users[0].Username;
+          await cognito.send(new AdminUpdateUserAttributesCommand({
+            UserPoolId: userPoolId,
+            Username: cognitoUserId!,
+            UserAttributes: [
+              { Name: 'custom:github_token', Value: tokenData.access_token },
+            ],
+          }));
+          console.log('Existing user updated with new GitHub token');
+        } else {
+          // No user with this GitHub ID exists, create a new user
+          if (!githubUser.email) {
+            return errorResponse(400, 'GitHub account does not provide an email address. Unable to create a new user.');
+          }
+
+          const createUserResponse = await cognito.send(new AdminCreateUserCommand({
+            UserPoolId: userPoolId,
+            Username: githubUser.email,
+            UserAttributes: [
+              { Name: 'email', Value: githubUser.email },
+              { Name: 'email_verified', Value: 'true' },
+              { Name: 'custom:github_id', Value: githubUser.id.toString() },
+              { Name: 'custom:github_token', Value: tokenData.access_token },
+            ],
+            MessageAction: 'SUPPRESS',
+          }));
+          cognitoUserId = createUserResponse.User?.Username;
+          console.log('New user created:', cognitoUserId);
+
+          // Set a temporary password for the new user
+          await cognito.send(new AdminSetUserPasswordCommand({
+            UserPoolId: userPoolId,
+            Username: cognitoUserId!,
+            Password: generateTemporaryPassword(),
+            Permanent: false,
+          }));
+        }
       } catch (error) {
-        console.error('Error creating new user:', error);
-        return errorResponse(500, 'Failed to create a new user');
+        console.error('Error handling user:', error);
+        return errorResponse(500, 'Failed to handle user');
       }
     }
 
