@@ -463,10 +463,12 @@ export class HandTermCdkStack extends Stack {
         GITHUB_CLIENT_ID: clientId,
         GITHUB_CLIENT_SECRET: clientSecret,
         COGNITO_USER_POOL_ID: userPool.userPoolId,
+        FRONTEND_URL: 'https://your-frontend-url.com', // Replace with your actual frontend URL
       },
       httpApi: httpApi,
       path: '/oauth_callback',
       methods: [HttpMethod.GET, HttpMethod.POST],
+      authorizer: lambdaAuthorizer,
     });
 
     new CfnOutput(this, 'ApiEndpoint', { value: httpApi.url || '' });
