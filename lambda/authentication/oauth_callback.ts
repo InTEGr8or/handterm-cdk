@@ -24,6 +24,81 @@ interface GitHubUser {
   email?: string;
 }
 
+async function isUserAuthenticated(decodedState: any): Promise<boolean> {
+  return !!decodedState.cognitoUserId;
+}
+
+async function getGitHubEmail(accessToken: string): Promise<string | undefined> {
+  const githubUser = await getGitHubUser(accessToken);
+  return githubUser.email;
+}
+
+async function attachGitHubAccountToUser(cognitoUserId: string, githubUser: GitHubUser, accessToken: string): Promise<void> {
+  const cognito = new CognitoIdentityProviderClient();
+  const userPoolId = process.env.COGNITO_USER_POOL_ID!;
+
+  await cognito.send(new AdminUpdateUserAttributesCommand({
+    UserPoolId: userPoolId,
+    Username: cognitoUserId,
+    UserAttributes: [
+      { Name: 'custom:github_id', Value: githubUser.id.toString() },
+      { Name: 'custom:github_token', Value: accessToken },
+    ],
+  }));
+}
+
+async function createNewUser(githubUser: GitHubUser, accessToken: string): Promise<string> {
+  const cognito = new CognitoIdentityProviderClient();
+  const userPoolId = process.env.COGNITO_USER_POOL_ID!;
+
+  const createUserResponse = await cognito.send(new AdminCreateUserCommand({
+    UserPoolId: userPoolId,
+    Username: githubUser.email!,
+    UserAttributes: [
+      { Name: 'email', Value: githubUser.email! },
+      { Name: 'email_verified', Value: 'true' },
+      { Name: 'custom:github_id', Value: githubUser.id.toString() },
+      { Name: 'custom:github_token', Value: accessToken },
+    ],
+    MessageAction: 'SUPPRESS',
+  }));
+
+  const cognitoUserId = createUserResponse.User?.Username!;
+
+  await cognito.send(new AdminSetUserPasswordCommand({
+    UserPoolId: userPoolId,
+    Username: cognitoUserId,
+    Password: generateTemporaryPassword(),
+    Permanent: false,
+  }));
+
+  return cognitoUserId;
+}
+
+async function handleExistingGitHubUser(githubId: string, accessToken: string): Promise<string | null> {
+  const cognito = new CognitoIdentityProviderClient();
+  const userPoolId = process.env.COGNITO_USER_POOL_ID!;
+
+  const listUsersResponse = await cognito.send(new ListUsersCommand({
+    UserPoolId: userPoolId,
+    Filter: `custom:github_id = "${githubId}"`,
+  }));
+
+  if (listUsersResponse.Users && listUsersResponse.Users.length > 0) {
+    const existingUser = listUsersResponse.Users[0];
+    await cognito.send(new AdminUpdateUserAttributesCommand({
+      UserPoolId: userPoolId,
+      Username: existingUser.Username!,
+      UserAttributes: [
+        { Name: 'custom:github_token', Value: accessToken },
+      ],
+    }));
+    return existingUser.Username!;
+  }
+
+  return null;
+}
+
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   console.log('OAuth callback received:', JSON.stringify(event, null, 2));
 
@@ -68,95 +143,30 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     const githubUser = await getGitHubUser(tokenData.access_token);
     console.log('GitHub user data:', JSON.stringify(githubUser));
 
-    const cognito = new CognitoIdentityProviderClient();
-    const userPoolId = process.env.COGNITO_USER_POOL_ID!;
+    const isAuthenticated = await isUserAuthenticated(decodedState);
+    const githubEmail = await getGitHubEmail(tokenData.access_token);
 
-    // Check if the user is already logged in to Cognito
-    let cognitoUserId = decodedState.cognitoUserId;
-    
-    if (cognitoUserId) {
-      // User is authenticated, attach GitHub account to current user
-      try {
-        console.log('Updating user attributes for existing user:', cognitoUserId);
-        console.log('GitHub ID:', githubUser.id.toString());
-        console.log('GitHub Token:', tokenData.access_token);
-        
-        const updateResult = await cognito.send(new AdminUpdateUserAttributesCommand({
-          UserPoolId: userPoolId,
-          Username: cognitoUserId,
-          UserAttributes: [
-            { Name: 'custom:github_id', Value: githubUser.id.toString() },
-            { Name: 'custom:github_token', Value: tokenData.access_token },
-          ],
-        }));
-        
-        console.log('Update result:', JSON.stringify(updateResult, null, 2));
-        console.log('GitHub account attached to existing user');
-        
-        // Verify the update
-        const verifyUser = await cognito.send(new AdminGetUserCommand({
-          UserPoolId: userPoolId,
-          Username: cognitoUserId,
-        }));
-        console.log('User after update:', JSON.stringify(verifyUser, null, 2));
-      } catch (error) {
-        console.error('Error attaching GitHub account to existing user:', error);
-        return errorResponse(500, 'Failed to attach GitHub account to existing user');
-      }
+    let cognitoUserId: string;
+
+    if (isAuthenticated) {
+      await attachGitHubAccountToUser(decodedState.cognitoUserId, githubUser, tokenData.access_token);
+      cognitoUserId = decodedState.cognitoUserId;
     } else {
-      // User is not authenticated, check if a user with this GitHub ID already exists
-      try {
-        const listUsersResponse = await cognito.send(new ListUsersCommand({
-          UserPoolId: userPoolId,
-          Filter: `custom:github_id = "${githubUser.id}"`,
-        }));
+      if (!githubEmail) {
+        return errorResponse(400, 'GitHub account does not provide an email address. Unable to create a new user.');
+      }
 
-        if (listUsersResponse.Users && listUsersResponse.Users.length > 0) {
-          // User with this GitHub ID already exists, update their attributes
-          cognitoUserId = listUsersResponse.Users[0].Username;
-          await cognito.send(new AdminUpdateUserAttributesCommand({
-            UserPoolId: userPoolId,
-            Username: cognitoUserId!,
-            UserAttributes: [
-              { Name: 'custom:github_token', Value: tokenData.access_token },
-            ],
-          }));
-          console.log('Existing user updated with new GitHub token');
-        } else {
-          // No user with this GitHub ID exists, create a new user
-          if (!githubUser.email) {
-            return errorResponse(400, 'GitHub account does not provide an email address. Unable to create a new user.');
-          }
-
-          const createUserResponse = await cognito.send(new AdminCreateUserCommand({
-            UserPoolId: userPoolId,
-            Username: githubUser.email,
-            UserAttributes: [
-              { Name: 'email', Value: githubUser.email },
-              { Name: 'email_verified', Value: 'true' },
-              { Name: 'custom:github_id', Value: githubUser.id.toString() },
-              { Name: 'custom:github_token', Value: tokenData.access_token },
-            ],
-            MessageAction: 'SUPPRESS',
-          }));
-          cognitoUserId = createUserResponse.User?.Username;
-          console.log('New user created:', cognitoUserId);
-
-          // Set a temporary password for the new user
-          await cognito.send(new AdminSetUserPasswordCommand({
-            UserPoolId: userPoolId,
-            Username: cognitoUserId!,
-            Password: generateTemporaryPassword(),
-            Permanent: false,
-          }));
-        }
-      } catch (error) {
-        console.error('Error handling user:', error);
-        return errorResponse(500, 'Failed to handle user');
+      const existingUser = await handleExistingGitHubUser(githubUser.id, tokenData.access_token);
+      if (existingUser) {
+        cognitoUserId = existingUser;
+      } else {
+        cognitoUserId = await createNewUser(githubUser, tokenData.access_token);
       }
     }
 
     // Fetch the updated user data
+    const cognito = new CognitoIdentityProviderClient();
+    const userPoolId = process.env.COGNITO_USER_POOL_ID!;
     const updatedUserResponse = await cognito.send(new AdminGetUserCommand({
       UserPoolId: userPoolId,
       Username: cognitoUserId,
