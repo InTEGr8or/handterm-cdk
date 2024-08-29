@@ -22,6 +22,7 @@ export const listRecentRepos = async (userSub: string): Promise<any[] | { status
     });
     const userResponse = await cognito.send(command);
 
+    console.log('User response:', JSON.stringify(userResponse, null, 2));
     console.log('User attributes:', JSON.stringify(userResponse.UserAttributes, null, 2));
 
     const githubToken = userResponse.UserAttributes?.find((attr: { Name?: string; Value?: string }) => attr.Name === 'custom:github_token')?.Value;

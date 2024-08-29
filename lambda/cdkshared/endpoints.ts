@@ -26,6 +26,7 @@ export const ENDPOINTS = {
         GetUser: '/getUser',
         SetUser: '/setUser',
         GetFile: '/getFile',
-        PutFile: '/putFile'
+        PutFile: '/putFile',
+        ListRecentRepos: '/list-recent-repos'
     }
 } as const

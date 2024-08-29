@@ -5966,3 +5966,445 @@
 
 # 2024-08-27 21:26:39.429513
 +The `redirectUrl` seems to be used for the AWS Cognito URL. That is not the main app URL, which is a static webset hosted on GitHub pages. I think we need to grab a separate `refererUrl` from the `event.headers.referer` in the `githubAuthRedirect.handler`. I think we need to `encodeURIComponent` of the `refererUrl` and pass it in the `githubAuthUrl` and redirect back to that URL in the `oauth_callback` on a successful connection.
+
+# 2024-08-28 19:38:25.001013
++/exit
+
+# 2024-08-28 19:45:49.653820
++/add lambda/authentication/listRecentRepos.ts
+
+# 2024-08-28 19:46:14.807502
++/add lib\cdk-stack.ts
+
+# 2024-08-28 19:47:26.168014
++When I call the `/list-recent-repos` endpoint, I get this error: ```2024-08-29T02:25:54.523Z        e53e2372-6e20-4504-97e1-dfe01fac1514  ERROR   Error: TypeError: Cannot read properties of undefined (reading 'sub')
++    at Runtime.handler (/var/task/listRecentRepos.js:58:64)
++    at Runtime.handleOnceNonStreaming (file:///var/runtime/index.mjs:1173:29)```
+
+# 2024-08-28 19:47:46.184332
++/run cdk synth
+
+# 2024-08-28 19:53:14.164155
++When I call the `/list-recent-repos` endpoint, I get this error: ```2024-08-29T02:25:54.523Z        e53e2372-6e20-4504-97e1-dfe01fac1514  ERROR   Error: TypeError: Cannot read properties of undefined (reading 'sub')
++    at Runtime.handler (/var/task/listRecentRepos.js:58:64)
++    at Runtime.handleOnceNonStreaming (file:///var/runtime/index.mjs:1173:29)```
+
+# 2024-08-28 20:12:33.653838
++Ok, now I am getting this error in the browser: ```useAuth.ts:227 
++ Error fetching recent repos: 
++AxiosError {message: 'Request failed with status code 401', name: 'AxiosError', code: 'ERR_BAD_REQUEST', config: {}, request: XMLHttpRequest, }
++code
++: 
++"ERR_BAD_REQUEST"
++config
++: 
++{transitional: {}, adapter: Array(3), transformRequest: Array(1), transformResponse: Array(1), timeout: 0, }
++message
++: 
++"Request failed with status code 401"
++name
++: 
++"AxiosError"
++request
++: 
++XMLHttpRequest {onreadystatechange: null, readyState: 4, timeout: 0, withCredentials: true, upload: XMLHttpRequestUpload, }
++response
++: 
++{data: {}, status: 401, statusText: '', headers: AxiosHeaders, config: {}, }```, and this in the log: ```
++2024-08-29T03:09:40.533Z        15180c2e-fe53-4249-b617-eb3ab1122fd7  INFO    Event: {
++  "version": "2.0",
++  "routeKey": "GET /list-recent-repos",
++  "rawPath": "/list-recent-repos",
++  "rawQueryString": "",
++  "headers": {
++    "accept": "application/json, text/plain, */*",
++    "accept-encoding": "gzip, deflate, br, zstd",
++    "accept-language": "en-US,en;q=0.9",
++    "authorization": "Bearer eyJraWQiOiJ2cG52eTk5ZVZlVTFJMU5YUWlcL3RlVmc5NSszbVwvc3pQUjloNzJQMm53ZFU9IiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJlNDQ4NTQzOC1lMGQxLTcwOTgtMTBmZS1jZDFkZDdjNzg4NWQiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAudXMtZWFzdC0xLmFtYXpvbmF3cy5jb21cL3VzLWVhc3QtMV9UTDQ3T0xjeUkiLCJjbGllbnRfaWQiOiJmZTBxZjdiOXFtNmYxdDY2ZG5udGdtMDdxIiwib3JpZ2luX2p0aSI6ImYzMjdlMTM2LTQ0YjEtNDljNy04YWI5LTc2MTA2MTY0N2ZmMCIsImV2ZW50X2lkIjoiZDM0OGRmMzEtNWU4MC00OGNmLTkwM2ItNmY2N2UzN2IyOGE5IiwidG9rZW5fdXNlIjoiYWNjZXNzIiwic2NvcGUiOiJhd3MuY29nbml0by5zaWduaW4udXNlci5hZG1pbiIsImF1dGhfdGltZSI6MTcyNDkwMDkxMywiZXhwIjoxNzI0OTA0NTEzLCJpYXQiOjE3MjQ5MDA5MTQsImp0aSI6ImNlYWZiZDdkLWE5NmUtNDk5OC1iYzk5LWM3MWE4MzU1Y2E1YyIsInVzZXJuYW1lIjoiZTQ0ODU0MzgtZTBkMS03MDk4LTEwZmUtY2QxZGQ3Yzc4ODVkIn0.UXZImp0Ve6u5sIouEGebIUtXSaZrU9yCj1COqDfDBgWti1HnEiLFEyXXEujkyf0e6YVr8Lkm1qY6uv1PZCWcD9s4Pj1AR1rHFkZ3027wS-h_58eWtvVQnCYzIQAmfUB9DxVpgzZythTBmo4sKfjHfs7_ggbZqrKZ9GE39UzhBZ22AKy88De8Et-HSP3GWbk3vltGmmBwdKYKYqD_PoPemYKA8P2aN8pu94ClS9sgW9PJakkNSub3y5TpmRfajzJl40dRNQJB4qDs4f0-Hpifti16oFd3PABhy_zd-gMjaDAMW4T-bq7PeO6-YE6LplHk4VnSKPFQMwBh3yUVihYiKg",
++    "content-length": "0",
++    "host": "x7jzrjfuv8.execute-api.us-east-1.amazonaws.com", 
++    "origin": "http://localhost:5173",
++    "priority": "u=1, i",
++    "referer": "http://localhost:5173/",
++    "sec-ch-ua": "\"Not)A;Brand\";v=\"99\", \"Microsoft Edge\";v=\"127\", \"Chromium\";v=\"127\"",
++    "sec-ch-ua-mobile": "?0",
++    "sec-ch-ua-platform": "\"Windows\"",
++    "sec-fetch-dest": "empty",
++    "sec-fetch-mode": "cors",
++    "sec-fetch-site": "cross-site",
++    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 Edg/127.0.0.0",
++    "x-amzn-trace-id": "Root=1-66cfe672-736f0b740a3ef72e1d43d2e5",
++    "x-forwarded-for": "104.32.208.200",
++    "x-forwarded-port": "443",
++    "x-forwarded-proto": "https"
++  },
++  "requestContext": {
++    "accountId": "318364255844",
++    "apiId": "x7jzrjfuv8",
++    "authorizer": {
++      "lambda": {
++        "userId": "e4485438-e0d1-7098-10fe-cd1dd7c7885d"      
++      }
++    },
++    "domainName": "x7jzrjfuv8.execute-api.us-east-1.amazonaws.com",
++    "domainPrefix": "x7jzrjfuv8",
++    "http": {
++      "method": "GET",
++      "path": "/list-recent-repos",
++      "protocol": "HTTP/1.1",
++      "sourceIp": "104.32.208.200",
++      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 Edg/127.0.0.0"
++    },
++    "requestId": "dQDx-jHjoAMEbqg=",
++    "routeKey": "GET /list-recent-repos",
++    "stage": "$default",
++    "time": "29/Aug/2024:03:09:38 +0000",
++    "timeEpoch": 1724900978734
++  },
++  "isBase64Encoded": false
++}
++
++2024-08-29T03:09:40.533Z        15180c2e-fe53-4249-b617-eb3ab1122fd7  INFO    Authorizer: {
++  "lambda": {
++    "userId": "e4485438-e0d1-7098-10fe-cd1dd7c7885d"
++  }
++}
++
++2024-08-29T03:09:40.550Z        15180c2e-fe53-4249-b617-eb3ab1122fd7  INFO    Claims: undefined
++
++2024-08-29T03:09:40.551Z        15180c2e-fe53-4249-b617-eb3ab1122fd7  ERROR   Claims are missing```
+
+# 2024-08-28 20:14:09.277946
++/add lib\cdk-stack.ts
+
+# 2024-08-28 20:15:53.208110
++The Lambda is part of a larger CDK stack that include Cognito features.
+
+# 2024-08-28 20:18:50.974788
++Why are you suggesting I use `aws lambda update-function-code`? Shouldn't the changes be deployed via `cdk deploy` which I have configured in my `package.json` scripts section? Is `update-function-code` faster?
+
+# 2024-08-28 20:19:09.256610
++/run yarn deploy
+
+# 2024-08-28 20:31:02.267710
++Now I am getting this in the CloudWatch log: ```2024-08-29T03:29:21.601Z        d81ef992-25f1-478d-a263-669dc4940fd0  INFO    Event: {
++  "version": "2.0",
++  "routeKey": "GET /list-recent-repos",
++  "rawPath": "/list-recent-repos",
++  "rawQueryString": "",
++  "headers": {
++    "accept": "application/json, text/plain, */*",
++    "accept-encoding": "gzip, deflate, br, zstd",
++    "accept-language": "en-US,en;q=0.9",
++    "authorization": "Bearer eyJraWQiOiJ2cG52eTk5ZVZlVTFJMU5YUWlcL3RlVmc5NSszbVwvc3pQUjloNzJQMm53ZFU9IiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJlNDQ4NTQzOC1lMGQxLTcwOTgtMTBmZS1jZDFkZDdjNzg4NWQiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAudXMtZWFzdC0xLmFtYXpvbmF3cy5jb21cL3VzLWVhc3QtMV9UTDQ3T0xjeUkiLCJjbGllbnRfaWQiOiJmZTBxZjdiOXFtNmYxdDY2ZG5udGdtMDdxIiwib3JpZ2luX2p0aSI6ImYzMjdlMTM2LTQ0YjEtNDljNy04YWI5LTc2MTA2MTY0N2ZmMCIsImV2ZW50X2lkIjoiZDM0OGRmMzEtNWU4MC00OGNmLTkwM2ItNmY2N2UzN2IyOGE5IiwidG9rZW5fdXNlIjoiYWNjZXNzIiwic2NvcGUiOiJhd3MuY29nbml0by5zaWduaW4udXNlci5hZG1pbiIsImF1dGhfdGltZSI6MTcyNDkwMDkxMywiZXhwIjoxNzI0OTA0NTEzLCJpYXQiOjE3MjQ5MDA5MTQsImp0aSI6ImNlYWZiZDdkLWE5NmUtNDk5OC1iYzk5LWM3MWE4MzU1Y2E1YyIsInVzZXJuYW1lIjoiZTQ0ODU0MzgtZTBkMS03MDk4LTEwZmUtY2QxZGQ3Yzc4ODVkIn0.UXZImp0Ve6u5sIouEGebIUtXSaZrU9yCj1COqDfDBgWti1HnEiLFEyXXEujkyf0e6YVr8Lkm1qY6uv1PZCWcD9s4Pj1AR1rHFkZ3027wS-h_58eWtvVQnCYzIQAmfUB9DxVpgzZythTBmo4sKfjHfs7_ggbZqrKZ9GE39UzhBZ22AKy88De8Et-HSP3GWbk3vltGmmBwdKYKYqD_PoPemYKA8P2aN8pu94ClS9sgW9PJakkNSub3y5TpmRfajzJl40dRNQJB4qDs4f0-Hpifti16oFd3PABhy_zd-gMjaDAMW4T-bq7PeO6-YE6LplHk4VnSKPFQMwBh3yUVihYiKg",
++    "content-length": "0",
++    "host": "x7jzrjfuv8.execute-api.us-east-1.amazonaws.com", 
++    "origin": "http://localhost:5173",
++    "priority": "u=1, i",
++    "referer": "http://localhost:5173/",
++    "sec-ch-ua": "\"Not)A;Brand\";v=\"99\", \"Microsoft Edge\";v=\"127\", \"Chromium\";v=\"127\"",
++    "sec-ch-ua-mobile": "?0",
++    "sec-ch-ua-platform": "\"Windows\"",
++    "sec-fetch-dest": "empty",
++    "sec-fetch-mode": "cors",
++    "sec-fetch-site": "cross-site",
++    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 Edg/127.0.0.0",
++    "x-amzn-trace-id": "Root=1-66cfeb0f-605507b71b554be921509987",
++    "x-forwarded-for": "104.32.208.200",
++    "x-forwarded-port": "443",
++    "x-forwarded-proto": "https"
++  },
++  "requestContext": {
++    "accountId": "318364255844",
++    "apiId": "x7jzrjfuv8",
++    "authorizer": {
++      "lambda": {
++        "userId": "e4485438-e0d1-7098-10fe-cd1dd7c7885d"      
++      }
++    },
++    "domainName": "x7jzrjfuv8.execute-api.us-east-1.amazonaws.com",
++    "domainPrefix": "x7jzrjfuv8",
++    "http": {
++      "method": "GET",
++      "path": "/list-recent-repos",
++      "protocol": "HTTP/1.1",
++      "sourceIp": "104.32.208.200",
++      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 Edg/127.0.0.0"
++    },
++    "requestId": "dQGqgi4RIAMEV0A=",
++    "routeKey": "GET /list-recent-repos",
++    "stage": "$default",
++    "time": "29/Aug/2024:03:29:19 +0000",
++    "timeEpoch": 1724902159732
++  },
++  "isBase64Encoded": false
++}
++
++2024-08-29T03:29:21.602Z        d81ef992-25f1-478d-a263-669dc4940fd0  INFO    Authorizer: {
++  "lambda": {
++    "userId": "e4485438-e0d1-7098-10fe-cd1dd7c7885d"
++  }
++}
++
++2024-08-29T03:29:21.602Z        d81ef992-25f1-478d-a263-669dc4940fd0  INFO    User Sub: e4485438-e0d1-7098-10fe-cd1dd7c7885d
++
++2024-08-29T03:29:21.602Z        d81ef992-25f1-478d-a263-669dc4940fd0  ERROR   Invalid user sub format: e4485438-e0d1-7098-10fe-cd1dd7c7885d```
+
+# 2024-08-28 20:33:24.951582
++Again, this is a CDK project. We should not be deploying with `update-function-code`, unless you can explain to me why that might be a good idea.
+
+# 2024-08-28 21:38:22.331139
++I'm getting this in the CloudWatch: ```2024-08-29T04:16:00.574Z        68d0ddf8-dab9-40e4-bf1b-3a116ab35e9e  INFO    Event: {
++  "version": "2.0",
++  "routeKey": "GET /list-recent-repos",
++  "rawPath": "/list-recent-repos",
++  "rawQueryString": "",
++  "headers": {
++    "accept": "application/json, text/plain, */*",
++    "accept-encoding": "gzip, deflate, br, zstd",
++    "accept-language": "en-US,en;q=0.9",
++    "authorization": "Bearer eyJraWQiOiJ2cG52eTk5ZVZlVTFJMU5YUWlcL3RlVmc5NSszbVwvc3pQUjloNzJQMm53ZFU9IiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJlNDQ4NTQzOC1lMGQxLTcwOTgtMTBmZS1jZDFkZDdjNzg4NWQiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAudXMtZWFzdC0xLmFtYXpvbmF3cy5jb21cL3VzLWVhc3QtMV9UTDQ3T0xjeUkiLCJjbGllbnRfaWQiOiJmZTBxZjdiOXFtNmYxdDY2ZG5udGdtMDdxIiwib3JpZ2luX2p0aSI6ImYzMjdlMTM2LTQ0YjEtNDljNy04YWI5LTc2MTA2MTY0N2ZmMCIsImV2ZW50X2lkIjoiZDM0OGRmMzEtNWU4MC00OGNmLTkwM2ItNmY2N2UzN2IyOGE5IiwidG9rZW5fdXNlIjoiYWNjZXNzIiwic2NvcGUiOiJhd3MuY29nbml0by5zaWduaW4udXNlci5hZG1pbiIsImF1dGhfdGltZSI6MTcyNDkwMDkxMywiZXhwIjoxNzI0OTA4NTU3LCJpYXQiOjE3MjQ5MDQ5NTcsImp0aSI6IjdiNmNhMDBhLTkwODQtNDE2My1hYmI3LTMzYjcyN2IzOWM3OCIsInVzZXJuYW1lIjoiZTQ0ODU0MzgtZTBkMS03MDk4LTEwZmUtY2QxZGQ3Yzc4ODVkIn0.NQNut2kddk9gQD31w4gzng3d-9d-rjvj1IWCVtqCKrSfS1k1sXAfXyU6upu7DF5yXPC7T8bLwVbM_x8vZCURFMS0VErVkbYK2A_IVYinMiF3Uly9cWlRHqP2U6zww4rluOwIazMO0Qhz9osNuwLUATvB_PBW6BjDubMxAbsdQgG9llEVwovLtpR9flC6tbF-NH0ffZ1pDmONUPM7OneisCAaRWv9GR4X8lYFhk09hhIw1IpRxICPIJ9lU5pV3jTj96FtTbyiwBenamBMTvFtX0OyM0AOoATToYZ7wF2ueyObzqMdML3t9J9vQ919pkuQwjYKiZYCcdLWy2y6HObMOw",
++    "content-length": "0",
++    "host": "x7jzrjfuv8.execute-api.us-east-1.amazonaws.com", 
++    "origin": "http://localhost:5173",
++    "priority": "u=1, i",
++    "referer": "http://localhost:5173/",
++    "sec-ch-ua": "\"Not)A;Brand\";v=\"99\", \"Microsoft Edge\";v=\"127\", \"Chromium\";v=\"127\"",
++    "sec-ch-ua-mobile": "?0",
++    "sec-ch-ua-platform": "\"Windows\"",
++    "sec-fetch-dest": "empty",
++    "sec-fetch-mode": "cors",
++    "sec-fetch-site": "cross-site",
++    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 Edg/127.0.0.0",
++    "x-amzn-trace-id": "Root=1-66cff5fe-762ff3611325aa4459530792",
++    "x-forwarded-for": "104.32.208.200",
++    "x-forwarded-port": "443",
++    "x-forwarded-proto": "https"
++  },
++  "requestContext": {
++    "accountId": "318364255844",
++    "apiId": "x7jzrjfuv8",
++    "authorizer": {
++      "lambda": {
++        "userId": "e4485438-e0d1-7098-10fe-cd1dd7c7885d"      
++      }
++    },
++    "domainName": "x7jzrjfuv8.execute-api.us-east-1.amazonaws.com",
++    "domainPrefix": "x7jzrjfuv8",
++    "http": {
++      "method": "GET",
++      "path": "/list-recent-repos",
++      "protocol": "HTTP/1.1",
++      "sourceIp": "104.32.208.200",
++      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 Edg/127.0.0.0"
++    },
++    "requestId": "dQNfxi_sIAMEZyQ=",
++    "routeKey": "GET /list-recent-repos",
++    "stage": "$default",
++    "time": "29/Aug/2024:04:15:58 +0000",
++    "timeEpoch": 1724904958272
++  },
++  "isBase64Encoded": false
++}
++
++2024-08-29T04:16:00.603Z        68d0ddf8-dab9-40e4-bf1b-3a116ab35e9e  INFO    Authorizer: {
++  "lambda": {
++    "userId": "e4485438-e0d1-7098-10fe-cd1dd7c7885d"
++  }
++}
++
++2024-08-29T04:16:00.603Z        68d0ddf8-dab9-40e4-bf1b-3a116ab35e9e  INFO    User Sub: e4485438-e0d1-7098-10fe-cd1dd7c7885d
++
++2024-08-29T04:16:01.305Z        68d0ddf8-dab9-40e4-bf1b-3a116ab35e9e  ERROR   GitHub token not found for user: e4485438-e0d1-7098-10fe-cd1dd7c7885d```. Remember that this is part of a CDK project.
+
+# 2024-08-28 21:39:11.551433
++/run cdk deploy
+
+# 2024-08-28 21:42:33.636976
++/add package.json lib\cdk-stack.ts lambda\authentication\listRecentRepos.ts
+
+# 2024-08-28 21:52:17.324537
++I am getting this error in the browser: ```HandTerm.tsx:455 
++ Uncaught (in promise) 
++TypeError: Cannot read properties of undefined (reading 'join')
++    at HandTerm.tsx:455:39
++(anonymous)@HandTerm.tsx:455
++Promise.then
++handleCommand@HandTerm.tsx:454
++handleCharacter@HandTerm.tsx:692
++onDataHandler@XtermAdapter.tsx:190```, and this: ```2024-08-29T04:41:21.054Z        0eb6a6d7-2200-4c7e-b38e-e8765578a635  INFO    Event: {
++  "version": "2.0",
++  "routeKey": "GET /list-recent-repos",
++  "rawPath": "/list-recent-repos",
++  "rawQueryString": "",
++  "headers": {
++    "accept": "application/json, text/plain, */*",
++    "accept-encoding": "gzip, deflate, br, zstd",
++    "accept-language": "en-US,en;q=0.9",
++    "authorization": "Bearer eyJraWQiOiJ2cG52eTk5ZVZlVTFJMU5YUWlcL3RlVmc5NSszbVwvc3pQUjloNzJQMm53ZFU9IiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJlNDQ4NTQzOC1lMGQxLTcwOTgtMTBmZS1jZDFkZDdjNzg4NWQiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAudXMtZWFzdC0xLmFtYXpvbmF3cy5jb21cL3VzLWVhc3QtMV9UTDQ3T0xjeUkiLCJjbGllbnRfaWQiOiJmZTBxZjdiOXFtNmYxdDY2ZG5udGdtMDdxIiwib3JpZ2luX2p0aSI6ImYzMjdlMTM2LTQ0YjEtNDljNy04YWI5LTc2MTA2MTY0N2ZmMCIsImV2ZW50X2lkIjoiZDM0OGRmMzEtNWU4MC00OGNmLTkwM2ItNmY2N2UzN2IyOGE5IiwidG9rZW5fdXNlIjoiYWNjZXNzIiwic2NvcGUiOiJhd3MuY29nbml0by5zaWduaW4udXNlci5hZG1pbiIsImF1dGhfdGltZSI6MTcyNDkwMDkxMywiZXhwIjoxNzI0OTEwMDgwLCJpYXQiOjE3MjQ5MDY0ODAsImp0aSI6ImNhNmJkZmMwLWQwODYtNGJiNi1iYmRjLTM5ZDkzN2Y3NWYzYiIsInVzZXJuYW1lIjoiZTQ0ODU0MzgtZTBkMS03MDk4LTEwZmUtY2QxZGQ3Yzc4ODVkIn0.jTNhqQQ-CRrl0dpfTwbGbl6rTDtmE3LwaWhd9bozIbamO66XVPvxZLXmz7N-5ktAYIOsGaWlAZcraA05iK6b5DAq4687CrCFOXmOTvYlffiIwyEE7lLlpNgY-2CWOg7T-1bT5r3YA-stmu9aF5IRGZvchIeMTwYIZ-lseHgUyTnXc7UjnFe4m6jXA-ycTdPnR59hmhNSyTgy_aCqaCn63ZSo7elA4o64l10Wg0885dkqn3068ZnQMgcz9wW2_8kLqfRedSDdLtuSEKMZTMXrUXCsLaAA7djtf26rOqg2TNEGalgHrwzmIP7lACDKk0LBAnFcuco_lGlpHUiJjhaFAg",
++    "content-length": "0",
++    "host": "x7jzrjfuv8.execute-api.us-east-1.amazonaws.com", 
++    "origin": "http://localhost:5173",
++    "priority": "u=1, i",
++    "referer": "http://localhost:5173/",
++    "sec-ch-ua": "\"Not)A;Brand\";v=\"99\", \"Microsoft Edge\";v=\"127\", \"Chromium\";v=\"127\"",
++    "sec-ch-ua-mobile": "?0",
++    "sec-ch-ua-platform": "\"Windows\"",
++    "sec-fetch-dest": "empty",
++    "sec-fetch-mode": "cors",
++    "sec-fetch-site": "cross-site",
++    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 Edg/127.0.0.0",
++    "x-amzn-trace-id": "Root=1-66cffbf0-0c2ae27366553ff26ff77ce4",
++    "x-forwarded-for": "104.32.208.200",
++    "x-forwarded-port": "443",
++    "x-forwarded-proto": "https"
++  },
++  "requestContext": {
++    "accountId": "318364255844",
++    "apiId": "x7jzrjfuv8",
++    "authorizer": {
++      "lambda": {
++        "userId": "e4485438-e0d1-7098-10fe-cd1dd7c7885d"      
++      }
++    },
++    "domainName": "x7jzrjfuv8.execute-api.us-east-1.amazonaws.com",
++    "domainPrefix": "x7jzrjfuv8",
++    "http": {
++      "method": "GET",
++      "path": "/list-recent-repos",
++      "protocol": "HTTP/1.1",
++      "sourceIp": "104.32.208.200",
++      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 Edg/127.0.0.0"
++    },
++    "requestId": "dQRNliXroAMEYJA=",
++    "routeKey": "GET /list-recent-repos",
++    "stage": "$default",
++    "time": "29/Aug/2024:04:41:20 +0000",
++    "timeEpoch": 1724906480257
++  },
++  "isBase64Encoded": false
++}
++
++2024-08-29T04:41:21.055Z        0eb6a6d7-2200-4c7e-b38e-e8765578a635  INFO    Authorizer: {
++  "lambda": {
++    "userId": "e4485438-e0d1-7098-10fe-cd1dd7c7885d"
++  }
++}
++
++2024-08-29T04:41:21.055Z        0eb6a6d7-2200-4c7e-b38e-e8765578a635  INFO    User Sub: e4485438-e0d1-7098-10fe-cd1dd7c7885d
++
++2024-08-29T04:41:21.056Z        0eb6a6d7-2200-4c7e-b38e-e8765578a635  INFO    Retrieving GitHub token for user: e4485438-e0d1-7098-10fe-cd1dd7c7885d
++
++2024-08-29T04:41:21.757Z        0eb6a6d7-2200-4c7e-b38e-e8765578a635  INFO    User attributes: [
++  {
++    "Name": "email",
++    "Value": "mark+1@whywe.tech"
++  },
++  {
++    "Name": "email_verified",
++    "Value": "false"
++  },
++  {
++    "Name": "sub",
++    "Value": "e4485438-e0d1-7098-10fe-cd1dd7c7885d"
++  }
++]
++
++2024-08-29T04:41:21.758Z        0eb6a6d7-2200-4c7e-b38e-e8765578a635  ERROR   GitHub token not found for user: e4485438-e0d1-7098-10fe-cd1dd7c7885d
++
++2024-08-29T04:41:21.815Z        0eb6a6d7-2200-4c7e-b38e-e8765578a635  INFO    Available attributes: email, email_verified, sub```. That's the log from the `ListRecentReposFunction`. Why don't I see a list of repos in the log?
+
+# 2024-08-29 08:15:19.464781
++When I look at this it looks like the GitHub account is being associated with the wrong user: ``` aws cognito-idp list-users --user-pool-id us-east-1_TL47OLcyI                                                         
++- Users:
++  - Attributes:
++    - Name: email
++      Value: testuser@example.com
++    - Name: email_verified
++      Value: 'false'
++    - Name: sub
++      Value: 645814a8-d061-70a0-5796-d7df1ad2b2da
++    Enabled: true
++    UserCreateDate: '2024-08-25T11:34:49.354000-07:00'
++    UserLastModifiedDate: '2024-08-25T11:38:38.162000-07:00'
++    UserStatus: CONFIRMED
++    Username: 645814a8-d061-70a0-5796-d7df1ad2b2da
++  - Attributes:
++    - Name: email
++      Value: mark+2@whywe.tech
++    - Name: email_verified
++      Value: 'false'
++    - Name: sub
++      Value: e4e8e4b8-80c1-7014-03e6-7699fbaf2606
++    Enabled: true
++    UserCreateDate: '2024-07-01T11:59:32.287000-07:00'
++    UserLastModifiedDate: '2024-07-01T11:59:32.287000-07:00'
++    UserStatus: UNCONFIRMED
++    Username: e4e8e4b8-80c1-7014-03e6-7699fbaf2606
++  - Attributes:
++    - Name: email
++      Value: mark+1@whywe.tech
++    - Name: email_verified
++      Value: 'false'
++    - Name: sub
++      Value: e4485438-e0d1-7098-10fe-cd1dd7c7885d
++    Enabled: true
++    UserCreateDate: '2024-07-01T11:56:55.959000-07:00'
++    UserLastModifiedDate: '2024-08-17T07:05:02.131000-07:00'      
++    UserStatus: CONFIRMED
++    Username: e4485438-e0d1-7098-10fe-cd1dd7c7885d
++  - Attributes:
++    - Name: email
++      Value: github_1802850@example.com
++    - Name: email_verified
++      Value: 'true'
++    - Name: sub
++      Value: 64b8c4b8-9081-70f7-b6ca-cf1a5aee7e7e
++    Enabled: true
++    UserCreateDate: '2024-08-27T11:07:31.243000-07:00'
++    UserLastModifiedDate: '2024-08-27T11:07:31.243000-07:00'      
++    UserStatus: FORCE_CHANGE_PASSWORD
++    Username: 64b8c4b8-9081-70f7-b6ca-cf1a5aee7e7e
++  - Attributes:
++    - Name: email
++      Value: mark+3@whywe.tech
++    - Name: email_verified
++      Value: 'true'
++    - Name: sub
++      Value: e41824a8-2061-7093-c949-602db926b591
++    Enabled: true
++    UserCreateDate: '2024-07-01T13:01:04.299000-07:00'
++    UserLastModifiedDate: '2024-07-01T13:01:04.299000-07:00'      
++    UserStatus: CONFIRMED
++    Username: e41824a8-2061-7093-c949-602db926b591
++  - Attributes:
++    - Name: email
++      Value: InTEGr8or@example.com
++    - Name: email_verified
++      Value: 'true'
++    - Name: custom:github_token
++      Value: ghu_M49htnk3tOkOCaxnsYyDByhEpAW4sE01BVLB
++    - Name: custom:github_id
++      Value: '1802850'
++    - Name: sub
++      Value: a4289488-f081-7075-5779-9d1f742cc96a
++    Enabled: true
++    UserCreateDate: '2024-08-27T11:28:33.772000-07:00'
++    UserLastModifiedDate: '2024-08-29T07:10:14.913000-07:00'      
++    UserStatus: CONFIRMED
++    Username: a4289488-f081-7075-5779-9d1f742cc96a```. I am logged in as `mark+1@whywe.tech` when I authentidate with GitHub, but it looks like it's creating a new account instead of linking the logged in Cognito user.
+
+# 2024-08-29 08:41:30.823608
++I want to delete some users. How can I do that from the command line?
+
+# 2024-08-29 08:43:33.758042
++I want to use `aws cognito-idp` to delete some users to simplify our troubleshooting on this project. I am using `aws cognito-idp list-users` to list the users. Now I would like to select one to delete. How can I do that from the AWS CLI?
+
+# 2024-08-29 08:44:07.517109
++/run aws cognito-idp admin-delete-user --user-pool-id us-east-1_abcdefghi --username testuser@example.com
+
+# 2024-08-29 08:44:51.824469
++/add lib\cdk-stack.ts lambda\authentication\oauth_callback.ts
+
+# 2024-08-29 08:45:52.539737
++/add C:\Users\xgenx\source\repos\handterm\src\components\HandTerm.tsx
