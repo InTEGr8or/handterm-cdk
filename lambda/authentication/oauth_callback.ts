@@ -6,6 +6,7 @@ import { CognitoIdentityProviderClient, AdminUpdateUserAttributesCommand, AdminC
   1. If the user is already authenticated with Cognito, attach the oauth account to the current user.
   2. If the user is not authenticated, AND the oauth account provides an email address, create a new user in Cognito using the provided email.
   3. If the user is not authenticated, AND the oauth account does not provide an email address, return an error message to the user about the missing email.
+  4. Do not create a fake email address. If you find yourself creating a fake email address, you should consider that a sign that you have misunderstood the previous three points and you should re-read them.
 */
 
 interface TokenData {
