@@ -72,7 +72,11 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     if (cognitoUserId) {
       // User is authenticated, attach GitHub account to current user
       try {
-        await cognito.send(new AdminUpdateUserAttributesCommand({
+        console.log('Updating user attributes for existing user:', cognitoUserId);
+        console.log('GitHub ID:', githubUser.id.toString());
+        console.log('GitHub Token:', tokenData.access_token);
+        
+        const updateResult = await cognito.send(new AdminUpdateUserAttributesCommand({
           UserPoolId: userPoolId,
           Username: cognitoUserId,
           UserAttributes: [
@@ -80,7 +84,16 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
             { Name: 'custom:github_token', Value: tokenData.access_token },
           ],
         }));
+        
+        console.log('Update result:', JSON.stringify(updateResult, null, 2));
         console.log('GitHub account attached to existing user');
+        
+        // Verify the update
+        const verifyUser = await cognito.send(new AdminGetUserCommand({
+          UserPoolId: userPoolId,
+          Username: cognitoUserId,
+        }));
+        console.log('User after update:', JSON.stringify(verifyUser, null, 2));
       } catch (error) {
         console.error('Error attaching GitHub account to existing user:', error);
         return errorResponse(500, 'Failed to attach GitHub account to existing user');
