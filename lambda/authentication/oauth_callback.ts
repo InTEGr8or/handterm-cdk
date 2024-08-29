@@ -28,9 +28,85 @@ async function isUserAuthenticated(decodedState: any): Promise<boolean> {
   return !!decodedState.cognitoUserId;
 }
 
+async function getGitHubUserData(accessToken: string): Promise<GitHubUser> {
+  const options = {
+    hostname: 'api.github.com',
+    path: '/user',
+    method: 'GET',
+    headers: {
+      'Authorization': `token ${accessToken}`,
+      'User-Agent': 'AWS Lambda',
+      'Accept': 'application/vnd.github.v3+json',
+    },
+  };
+
+  const userData = await new Promise<any>((resolve, reject) => {
+    const req = request(options, (res) => {
+      let body = '';
+      res.on('data', (chunk) => { body += chunk; });
+      res.on('end', () => { 
+        console.log('Raw user data:', body);
+        resolve(JSON.parse(body)); 
+      });
+    });
+    req.on('error', (e) => { 
+      console.error('Error fetching GitHub user data:', e);
+      reject(e); 
+    });
+    req.end();
+  });
+
+  console.log('Parsed user data:', JSON.stringify(userData));
+
+  return {
+    id: userData.id.toString(),
+    login: userData.login,
+    email: userData.email,
+  };
+}
+
 async function getGitHubEmail(accessToken: string): Promise<string | undefined> {
-  const githubUser = await getGitHubUser(accessToken);
-  return githubUser.email;
+  // Then, get the user's email
+  const emailOptions = {
+    hostname: 'api.github.com',
+    method: 'GET',
+    headers: {
+      'Authorization': `token ${accessToken}`,
+      'User-Agent': 'AWS Lambda',
+      'Accept': 'application/vnd.github.v3+json',
+    },
+    path: '/user/emails',
+  };
+
+  let primaryEmail: string | undefined;
+  try {
+    const emailData = await new Promise<any>((resolve, reject) => {
+      const req = request(emailOptions, (res) => {
+        let body = '';
+        res.on('data', (chunk) => { body += chunk; });
+        res.on('end', () => { 
+          console.log('Raw email data:', body);
+          resolve(JSON.parse(body)); 
+        });
+      });
+      req.on('error', (e) => { 
+        console.error('Error fetching GitHub email data:', e);
+        reject(e); 
+      });
+      req.end();
+    });
+
+    console.log('Parsed email data:', JSON.stringify(emailData));
+
+    if (Array.isArray(emailData)) {
+      primaryEmail = emailData.find(email => email.primary)?.email || emailData[0]?.email;
+    } else {
+      console.log('Email data is not an array:', typeof emailData);
+    }
+  } catch (error) {
+    console.error('Error fetching email data:', error);
+  }
+  return primaryEmail;
 }
 
 async function attachGitHubAccountToUser(cognitoUserId: string, githubUser: GitHubUser, accessToken: string): Promise<void> {
@@ -140,19 +216,22 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       return errorResponse(400, 'No access token received from GitHub');
     }
 
-    const githubUser = await getGitHubUser(tokenData.access_token);
+    const githubUser = await getGitHubUserData(tokenData.access_token);
     console.log('GitHub user data:', JSON.stringify(githubUser));
 
     const isAuthenticated = await isUserAuthenticated(decodedState);
-    const githubEmail = githubUser.email;
+    const githubEmail = getGitHubEmail(tokenData.access_token);
 
     let cognitoUserId: string;
 
     if (isAuthenticated) {
+      console.log('EXISTING COGNITO USER WORKFLOW.');
       await attachGitHubAccountToUser(decodedState.cognitoUserId, githubUser, tokenData.access_token);
       cognitoUserId = decodedState.cognitoUserId;
     } else {
+      console.log('NEW COGNITO USER WORKFLOW.');
       if (!githubEmail) {
+        console.log('NO GITHUB EMAIL PROVIDED. ABORTIN COGNITO USER CREATIONK.');
         return errorResponse(400, 'GitHub account does not provide an email address. Unable to create a new user.');
       }
 
@@ -234,42 +313,6 @@ async function getGitHubToken(code: string, clientId: string, clientSecret: stri
   });
 }
 
-async function getGitHubUser(accessToken: string): Promise<GitHubUser> {
-  const options = {
-    hostname: 'api.github.com',
-    path: '/user',
-    method: 'GET',
-    headers: {
-      'Authorization': `token ${accessToken}`,
-      'User-Agent': 'AWS Lambda',
-      'Accept': 'application/vnd.github.v3+json',
-    },
-  };
-
-  const userData = await new Promise<any>((resolve, reject) => {
-    const req = request(options, (res) => {
-      let body = '';
-      res.on('data', (chunk) => { body += chunk; });
-      res.on('end', () => { 
-        console.log('Raw user data:', body);
-        resolve(JSON.parse(body)); 
-      });
-    });
-    req.on('error', (e) => { 
-      console.error('Error fetching GitHub user data:', e);
-      reject(e); 
-    });
-    req.end();
-  });
-
-  console.log('Parsed user data:', JSON.stringify(userData));
-
-  return {
-    id: userData.id.toString(),
-    login: userData.login,
-    email: userData.email,
-  };
-}
 
 function errorResponse(statusCode: number, message: string): APIGatewayProxyResult {
   return {
