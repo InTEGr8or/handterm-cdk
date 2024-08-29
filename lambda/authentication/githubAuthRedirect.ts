@@ -21,24 +21,18 @@ export const handler = async (event: APIGatewayProxyEvent):
 
   const refererUrl = event.headers.referer || 'https://handterm.com';
   
-  // Extract Cognito user ID from the Authorization header
+  let cognitoUserId: string | undefined;
+
+  // Extract Cognito user ID from the Authorization header if it exists
   const authHeader = event.headers.Authorization || event.headers.authorization;
-  if (!authHeader) {
-    return {
-      statusCode: 401,
-      body: JSON.stringify({ message: 'Unauthorized: No token provided' }),
-    };
-  }
-
-  const token = authHeader.split(' ')[1];
-  const tokenPayload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-  const cognitoUserId = tokenPayload.sub;
-
-  if (!cognitoUserId) {
-    return {
-      statusCode: 401,
-      body: JSON.stringify({ message: 'Unauthorized: Invalid token' }),
-    };
+  if (authHeader) {
+    const token = authHeader.split(' ')[1];
+    try {
+      const tokenPayload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+      cognitoUserId = tokenPayload.sub;
+    } catch (error) {
+      console.error('Error parsing token:', error);
+    }
   }
 
   const state = Buffer.from(JSON.stringify({
