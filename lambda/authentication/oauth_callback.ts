@@ -107,6 +107,13 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     }));
     console.log('User attributes updated successfully');
 
+    // Fetch the updated user data
+    const updatedUserResponse = await cognito.send(new AdminGetUserCommand({
+      UserPoolId: userPoolId,
+      Username: cognitoUserId,
+    }));
+    console.log('Updated user data:', JSON.stringify(updatedUserResponse, null, 2));
+
     const refererUrl = decodeURIComponent(decodedState.refererUrl) || 'https://handterm.com';
     const githubUsername = githubUser.login;
 
