@@ -278,7 +278,7 @@ async function getGitHubUser(accessToken: string): Promise<GitHubUser> {
   return {
     id: userData.id.toString(),
     login: userData.login,
-    email: primaryEmail || `${userData.login}@example.com`,
+    email: primaryEmail,
   };
 }
 
