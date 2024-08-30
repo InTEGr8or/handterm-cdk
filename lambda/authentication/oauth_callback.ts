@@ -268,8 +268,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     } else {
       console.log('NEW COGNITO USER WORKFLOW.');
       if (!githubEmail) {
-        console.log('NO GITHUB EMAIL PROVIDED. USING GITHUB USERNAME AS EMAIL.');
-        githubEmail = `${githubUser.login}@github.com`;
+        console.log('NO GITHUB EMAIL PROVIDED. RETURNING ERROR MESSAGE.');
+        return errorResponse(400, 'GitHub account does not have a public email address. Please add a public email to your GitHub account and try again.');
       }
       cognitoUserId = await createNewUser({ ...githubUser, email: githubEmail }, tokenData.access_token);
     }
