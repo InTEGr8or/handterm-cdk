@@ -86,6 +86,7 @@ async function getGitHubUserData(accessToken: string): Promise<GitHubUser> {
 }
 
 async function getGitHubEmail(githubUser: GitHubUser): Promise<string | undefined> {
+  console.log('GitHub user data in getGitHubEmail:', JSON.stringify(githubUser, null, 2));
   if (githubUser.email) {
     console.log('Email found in user data:', githubUser.email);
     return githubUser.email;
@@ -150,6 +151,7 @@ async function handleExistingGitHubUser(githubId: string, accessToken: string): 
     const listUsersResponse = await cognito.send(new ListUsersCommand({
       UserPoolId: userPoolId,
       Filter: `custom:github_id = "${githubId}"`,
+      Limit: 1,  // We only need one user
     }));
 
     console.log('ListUsersCommand response:', JSON.stringify(listUsersResponse, null, 2));
@@ -183,7 +185,8 @@ async function handleExistingGitHubUser(githubId: string, accessToken: string): 
       console.error('Error message:', error.message);
       console.error('Error stack:', error.stack);
     }
-    throw error;
+    // Instead of throwing, we'll return null
+    return null;
   }
 
   return null;
