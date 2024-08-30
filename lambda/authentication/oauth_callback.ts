@@ -86,7 +86,14 @@ async function getGitHubUserData(accessToken: string): Promise<GitHubUser> {
 }
 
 async function getGitHubEmail(accessToken: string): Promise<string | undefined> {
-  // Then, get the user's email
+  // First, try to get the user's email from the user data
+  const userData = await getGitHubUserData(accessToken);
+  if (userData.email) {
+    console.log('Email found in user data:', userData.email);
+    return userData.email;
+  }
+
+  // If not found in user data, try to get the user's email from the emails endpoint
   const emailOptions = {
     hostname: 'api.github.com',
     method: 'GET',
@@ -261,10 +268,10 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     } else {
       console.log('NEW COGNITO USER WORKFLOW.');
       if (!githubEmail) {
-        console.log('NO GITHUB EMAIL PROVIDED. ABORTING COGNITO USER CREATION.');
-        return errorResponse(400, 'GitHub account does not provide an email address. Unable to create a new user.');
+        console.log('NO GITHUB EMAIL PROVIDED. USING GITHUB USERNAME AS EMAIL.');
+        githubEmail = `${githubUser.login}@github.com`;
       }
-      cognitoUserId = await createNewUser(githubUser, tokenData.access_token);
+      cognitoUserId = await createNewUser({ ...githubUser, email: githubEmail }, tokenData.access_token);
     }
 
     // Fetch the updated user data
