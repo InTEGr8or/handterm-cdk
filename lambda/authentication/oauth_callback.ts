@@ -190,7 +190,7 @@ async function handleExistingGitHubUser(githubId: string, accessToken: string): 
     console.log(`Searching for user with GitHub ID: ${githubId}`);
     const listUsersResponse = await cognito.send(new ListUsersCommand({
       UserPoolId: userPoolId,
-      Filter: `custom:github_id = "${githubId}"`,
+      Filter: `attribute_name = "custom:github_id" and attribute_value = "${githubId}"`,
     }));
 
     console.log('ListUsersCommand response:', JSON.stringify(listUsersResponse, null, 2));
@@ -220,6 +220,10 @@ async function handleExistingGitHubUser(githubId: string, accessToken: string): 
     }
   } catch (error) {
     console.error('Error in handleExistingGitHubUser:', error);
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
     throw error;
   }
 
@@ -272,13 +276,16 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
     console.log('Decoded state:', JSON.stringify(decodedState));
     const isAuthenticated = await isUserAuthenticated(decodedState);
+    console.log('Is user authenticated:', isAuthenticated);
     const githubEmail = await getGitHubEmail(tokenData.access_token);
+    console.log('GitHub email:', githubEmail);
 
     let cognitoUserId: string;
 
     let existingUser: string | null = null;
     try {
       existingUser = await handleExistingGitHubUser(githubUser.id, tokenData.access_token);
+      console.log('Existing user:', existingUser);
     } catch (error) {
       console.error('Error handling existing GitHub user:', error);
       return errorResponse(500, 'An error occurred while processing your GitHub account.');
@@ -293,6 +300,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       }
       try {
         await attachGitHubAccountToUser(cognitoUserId, githubUser, tokenData.access_token);
+        console.log('GitHub account attached to user:', cognitoUserId);
       } catch (error) {
         console.error('Error attaching GitHub account to user:', error);
         return errorResponse(500, 'An error occurred while linking your GitHub account.');
@@ -308,6 +316,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       }
       try {
         cognitoUserId = await createNewUser({ ...githubUser, email: githubEmail }, tokenData.access_token);
+        console.log('New user created:', cognitoUserId);
       } catch (error) {
         console.error('Error creating new user:', error);
         return errorResponse(500, 'An error occurred while creating your account.');
@@ -326,6 +335,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     const refererUrl = decodeURIComponent(decodedState.refererUrl) || 'https://handterm.com';
     const githubUsername = githubUser.login;
 
+    console.log('Redirecting to:', `${refererUrl}?githubAuth=success&githubUsername=${encodeURIComponent(githubUsername)}`);
+
     return {
       statusCode: 302,
       headers: {
@@ -338,6 +349,10 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     };
   } catch (error) {
     console.error('Unhandled error in OAuth callback:', error);
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
     return errorResponse(500, 'An unexpected error occurred while handling the OAuth callback.');
   }
 };
