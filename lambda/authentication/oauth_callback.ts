@@ -93,47 +93,8 @@ async function getGitHubEmail(accessToken: string): Promise<string | undefined> 
     return userData.email;
   }
 
-  // If not found in user data, try to get the user's email from the emails endpoint
-  const emailOptions = {
-    hostname: 'api.github.com',
-    method: 'GET',
-    headers: {
-      'Authorization': `token ${accessToken}`,
-      'User-Agent': 'AWS Lambda',
-      'Accept': 'application/vnd.github.v3+json',
-    },
-    path: '/user/emails',
-  };
-
-  let primaryEmail: string | undefined;
-  try {
-    const emailData = await new Promise<any>((resolve, reject) => {
-      const req = request(emailOptions, (res) => {
-        let body = '';
-        res.on('data', (chunk) => { body += chunk; });
-        res.on('end', () => { 
-          console.log('Raw email data:', body);
-          resolve(JSON.parse(body)); 
-        });
-      });
-      req.on('error', (e) => { 
-        console.error('Error fetching GitHub email data:', e);
-        reject(e); 
-      });
-      req.end();
-    });
-
-    console.log('Parsed email data:', JSON.stringify(emailData));
-
-    if (Array.isArray(emailData)) {
-      primaryEmail = emailData.find(email => email.primary)?.email || emailData[0]?.email;
-    } else {
-      console.log('Email data is not an array:', typeof emailData);
-    }
-  } catch (error) {
-    console.error('Error fetching email data:', error);
-  }
-  return primaryEmail;
+  console.log('Email not found in user data, unable to retrieve email');
+  return undefined;
 }
 
 async function attachGitHubAccountToUser(cognitoUserId: string, githubUser: GitHubUser, accessToken: string): Promise<void> {
@@ -190,7 +151,7 @@ async function handleExistingGitHubUser(githubId: string, accessToken: string): 
     console.log(`Searching for user with GitHub ID: ${githubId}`);
     const listUsersResponse = await cognito.send(new ListUsersCommand({
       UserPoolId: userPoolId,
-      Filter: `attribute_name = "custom:github_id" and attribute_value = "${githubId}"`,
+      Filter: `custom:github_id = "${githubId}"`,
     }));
 
     console.log('ListUsersCommand response:', JSON.stringify(listUsersResponse, null, 2));
