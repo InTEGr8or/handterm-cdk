@@ -21,24 +21,34 @@ export const handler = async (event: APIGatewayProxyEvent):
 
   const refererUrl = event.headers.referer || 'https://handterm.com';
   
-  // We're not expecting an Authorization header at this point
-  console.log('No Authorization header expected for GitHub auth redirect');
-  const cognitoUserId = null;
+  // Extract Cognito user ID from the Authorization header if it exists
+  let cognitoUserId: string | null = null;
+  const authHeader = event.headers.Authorization || event.headers.authorization;
+  
+  if (authHeader) {
+    const token = authHeader.split(' ')[1];
+    try {
+      const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+      cognitoUserId = payload.sub;
+    } catch (error) {
+      console.error('Error parsing token:', error);
+    }
+  }
+
+  console.log('Cognito User ID:', cognitoUserId);
 
   const state = Buffer.from(JSON.stringify({
     timestamp: Date.now(),
     refererUrl: encodeURIComponent(refererUrl),
-    cognitoUserId: cognitoUserId || null,
+    cognitoUserId: cognitoUserId,
   })).toString('base64');
 
   console.log('State before encoding:', JSON.stringify({
     timestamp: Date.now(),
     refererUrl: encodeURIComponent(refererUrl),
-    cognitoUserId: cognitoUserId || null,
+    cognitoUserId: cognitoUserId,
   }, null, 2));
   console.log('Encoded state:', state);
-  console.log('Authorization header:', authHeader);
-  console.log('Cognito User ID:', cognitoUserId);
 
   const githubAuthUrl =
     `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=read:user,user:email&state=${state}`;

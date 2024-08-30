@@ -26,13 +26,12 @@ interface GitHubUser {
 
 async function isUserAuthenticated(decodedState: any): Promise<boolean> {
   console.log('Checking user authentication. Decoded state:', JSON.stringify(decodedState));
-  if (!decodedState || decodedState.cognitoUserId === null || decodedState.cognitoUserId === undefined) {
+  if (!decodedState || !decodedState.cognitoUserId) {
     console.log('No Cognito User ID in state, user is not authenticated');
     return false;
   }
-  const isAuthenticated = !!decodedState.cognitoUserId;
-  console.log('Is user authenticated:', isAuthenticated);
-  return isAuthenticated;
+  console.log('User is authenticated with Cognito User ID:', decodedState.cognitoUserId);
+  return true;
 }
 
 async function getGitHubUserData(accessToken: string): Promise<GitHubUser> {
@@ -234,12 +233,12 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
     if (isAuthenticated) {
       console.log('EXISTING COGNITO USER WORKFLOW. CognitoUserId:', decodedState.cognitoUserId);
-      await attachGitHubAccountToUser(decodedState.cognitoUserId, githubUser, tokenData.access_token);
       cognitoUserId = decodedState.cognitoUserId;
+      await attachGitHubAccountToUser(cognitoUserId, githubUser, tokenData.access_token);
     } else {
       console.log('NEW COGNITO USER WORKFLOW.');
       if (!githubEmail) {
-        console.log('NO GITHUB EMAIL PROVIDED. ABORTIN COGNITO USER CREATIONK.');
+        console.log('NO GITHUB EMAIL PROVIDED. ABORTING COGNITO USER CREATION.');
         return errorResponse(400, 'GitHub account does not provide an email address. Unable to create a new user.');
       }
 
