@@ -25,17 +25,33 @@ export const handler = async (event: APIGatewayProxyEvent):
 
   // Extract Cognito user ID from the Authorization header if it exists
   const authHeader = event.headers.Authorization || event.headers.authorization;
+  console.log('Authorization header:', authHeader);
+  
   if (authHeader) {
-    console.log('Authorization header:', authHeader);
     const token = authHeader.split(' ')[1];
+    console.log('Extracted token:', token);
+    
     try {
-      const bufferString = Buffer.from(token.split('.')[1], 'base64').toString();
-      console.log('Decoded token:', bufferString);
-      const tokenPayload = JSON.parse(bufferString);
-      cognitoUserId = tokenPayload.sub;
+      const parts = token.split('.');
+      console.log('Token parts:', parts);
+      
+      if (parts.length !== 3) {
+        console.error('Invalid token format: expected 3 parts');
+      } else {
+        const bufferString = Buffer.from(parts[1], 'base64').toString();
+        console.log('Decoded token payload:', bufferString);
+        
+        const tokenPayload = JSON.parse(bufferString);
+        console.log('Parsed token payload:', tokenPayload);
+        
+        cognitoUserId = tokenPayload.sub;
+        console.log('Extracted Cognito User ID:', cognitoUserId);
+      }
     } catch (error) {
       console.error('Error parsing token:', error);
     }
+  } else {
+    console.log('No Authorization header found');
   }
 
   const state = Buffer.from(JSON.stringify({
