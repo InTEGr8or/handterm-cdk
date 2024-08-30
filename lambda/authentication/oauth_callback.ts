@@ -137,17 +137,21 @@ async function getGitHubEmail(accessToken: string): Promise<string | undefined> 
 }
 
 async function attachGitHubAccountToUser(cognitoUserId: string, githubUser: GitHubUser, accessToken: string): Promise<void> {
+  console.log('attachGitHubAccountToUser function called');
   const cognito = new CognitoIdentityProviderClient();
   const userPoolId = process.env.COGNITO_USER_POOL_ID!;
-
-  await cognito.send(new AdminUpdateUserAttributesCommand({
+  const githubUserId = githubUser.id.toString();
+  console.log('Attaching GitHub user ID:', githubUserId, 'to Cognito user ID:', cognitoUserId);
+  const updateAttributes = {
     UserPoolId: userPoolId,
     Username: cognitoUserId,
     UserAttributes: [
-      { Name: 'custom:github_id', Value: githubUser.id.toString() },
+      { Name: 'custom:github_id', Value: githubUserId },
       { Name: 'custom:github_token', Value: accessToken },
     ],
-  }));
+  };
+  console.log('Updating user attributes:', updateAttributes);
+  await cognito.send(new AdminUpdateUserAttributesCommand(updateAttributes));
 }
 
 async function createNewUser(githubUser: GitHubUser, accessToken: string): Promise<string> {
@@ -189,13 +193,15 @@ async function handleExistingGitHubUser(githubId: string, accessToken: string): 
 
   if (listUsersResponse.Users && listUsersResponse.Users.length > 0) {
     const existingUser = listUsersResponse.Users[0];
-    await cognito.send(new AdminUpdateUserAttributesCommand({
+    const updateAttributes = {
       UserPoolId: userPoolId,
       Username: existingUser.Username!,
       UserAttributes: [
         { Name: 'custom:github_token', Value: accessToken },
       ],
-    }));
+    };
+    console.log('Updating user attributes:', updateAttributes);
+    await cognito.send(new AdminUpdateUserAttributesCommand(updateAttributes));
     return existingUser.Username!;
   }
 
