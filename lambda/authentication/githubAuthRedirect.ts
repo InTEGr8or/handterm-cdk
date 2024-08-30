@@ -21,38 +21,9 @@ export const handler = async (event: APIGatewayProxyEvent):
 
   const refererUrl = event.headers.referer || 'https://handterm.com';
   
-  let cognitoUserId: string | undefined;
-
-  // Extract Cognito user ID from the Authorization header if it exists
-  const authHeader = event.headers.Authorization || event.headers.authorization;
-  console.log('Authorization header:', authHeader);
-  
-  if (authHeader) {
-    const token = authHeader.split(' ')[1];
-    console.log('Extracted token:', token);
-    
-    try {
-      const parts = token.split('.');
-      console.log('Token parts:', parts);
-      
-      if (parts.length !== 3) {
-        console.error('Invalid token format: expected 3 parts');
-      } else {
-        const bufferString = Buffer.from(parts[1], 'base64').toString();
-        console.log('Decoded token payload:', bufferString);
-        
-        const tokenPayload = JSON.parse(bufferString);
-        console.log('Parsed token payload:', tokenPayload);
-        
-        cognitoUserId = tokenPayload.sub;
-        console.log('Extracted Cognito User ID:', cognitoUserId);
-      }
-    } catch (error) {
-      console.error('Error parsing token:', error);
-    }
-  } else {
-    console.log('No Authorization header found');
-  }
+  // We're not expecting an Authorization header at this point
+  console.log('No Authorization header expected for GitHub auth redirect');
+  const cognitoUserId = null;
 
   const state = Buffer.from(JSON.stringify({
     timestamp: Date.now(),
