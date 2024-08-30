@@ -45,8 +45,10 @@ export const handler = async (event: APIGatewayProxyEvent):
     timestamp: Date.now(),
     refererUrl: encodeURIComponent(refererUrl),
     cognitoUserId: cognitoUserId || null,
-  }));
+  }, null, 2));
   console.log('Encoded state:', state);
+  console.log('Authorization header:', authHeader);
+  console.log('Cognito User ID:', cognitoUserId);
 
   const githubAuthUrl =
     `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=read:user,user:email&state=${state}`;
