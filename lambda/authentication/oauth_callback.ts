@@ -238,6 +238,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     console.log('Decoded state:', JSON.stringify(decodedState));
     const isAuthenticated = await isUserAuthenticated(decodedState);
     console.log('Is user authenticated:', isAuthenticated);
+    // FIXME: This function calls getGitHubUserData a second time while we already have the data. Fix this.
     const githubEmail = await getGitHubEmail(tokenData.access_token);
     console.log('GitHub email:', githubEmail);
 
