@@ -85,12 +85,10 @@ async function getGitHubUserData(accessToken: string): Promise<GitHubUser> {
   };
 }
 
-async function getGitHubEmail(accessToken: string): Promise<string | undefined> {
-  // First, try to get the user's email from the user data
-  const userData = await getGitHubUserData(accessToken);
-  if (userData.email) {
-    console.log('Email found in user data:', userData.email);
-    return userData.email;
+async function getGitHubEmail(githubUser: GitHubUser): Promise<string | undefined> {
+  if (githubUser.email) {
+    console.log('Email found in user data:', githubUser.email);
+    return githubUser.email;
   }
 
   console.log('Email not found in user data, unable to retrieve email');
@@ -238,8 +236,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     console.log('Decoded state:', JSON.stringify(decodedState));
     const isAuthenticated = await isUserAuthenticated(decodedState);
     console.log('Is user authenticated:', isAuthenticated);
-    // FIXME: This function calls getGitHubUserData a second time while we already have the data. Fix this.
-    const githubEmail = await getGitHubEmail(tokenData.access_token);
+    
+    const githubEmail = await getGitHubEmail(githubUser);
     console.log('GitHub email:', githubEmail);
 
     let cognitoUserId: string;
@@ -261,6 +259,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         return errorResponse(400, 'This GitHub account is already linked to a different user.');
       }
       try {
+        console.log('Attempting to attach GitHub account to user:', cognitoUserId);
         await attachGitHubAccountToUser(cognitoUserId, githubUser, tokenData.access_token);
         console.log('GitHub account attached to user:', cognitoUserId);
       } catch (error) {
@@ -277,6 +276,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         return errorResponse(400, 'GitHub account does not have a public email address. Please add a public email to your GitHub account and try again.');
       }
       try {
+        console.log('Attempting to create new user with email:', githubEmail);
         cognitoUserId = await createNewUser({ ...githubUser, email: githubEmail }, tokenData.access_token);
         console.log('New user created:', cognitoUserId);
       } catch (error) {
