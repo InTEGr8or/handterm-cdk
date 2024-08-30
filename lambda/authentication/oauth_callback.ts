@@ -30,8 +30,22 @@ async function isUserAuthenticated(decodedState: any): Promise<boolean> {
     console.log('No Cognito User ID in state, user is not authenticated');
     return false;
   }
-  console.log('User is authenticated with Cognito User ID:', decodedState.cognitoUserId);
-  return true;
+  
+  // Verify if the user exists in Cognito
+  const cognito = new CognitoIdentityProviderClient();
+  const userPoolId = process.env.COGNITO_USER_POOL_ID!;
+  
+  try {
+    await cognito.send(new AdminGetUserCommand({
+      UserPoolId: userPoolId,
+      Username: decodedState.cognitoUserId,
+    }));
+    console.log('User is authenticated with Cognito User ID:', decodedState.cognitoUserId);
+    return true;
+  } catch (error) {
+    console.log('User not found in Cognito:', error);
+    return false;
+  }
 }
 
 async function getGitHubUserData(accessToken: string): Promise<GitHubUser> {
@@ -231,23 +245,26 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
     let cognitoUserId: string;
 
+    const existingUser = await handleExistingGitHubUser(githubUser.id, tokenData.access_token);
+    
     if (isAuthenticated) {
       console.log('EXISTING COGNITO USER WORKFLOW. CognitoUserId:', decodedState.cognitoUserId);
       cognitoUserId = decodedState.cognitoUserId;
+      if (existingUser && existingUser !== cognitoUserId) {
+        // GitHub account is already linked to a different Cognito user
+        return errorResponse(400, 'This GitHub account is already linked to a different user.');
+      }
       await attachGitHubAccountToUser(cognitoUserId, githubUser, tokenData.access_token);
+    } else if (existingUser) {
+      console.log('EXISTING GITHUB USER WORKFLOW. CognitoUserId:', existingUser);
+      cognitoUserId = existingUser;
     } else {
       console.log('NEW COGNITO USER WORKFLOW.');
       if (!githubEmail) {
         console.log('NO GITHUB EMAIL PROVIDED. ABORTING COGNITO USER CREATION.');
         return errorResponse(400, 'GitHub account does not provide an email address. Unable to create a new user.');
       }
-
-      const existingUser = await handleExistingGitHubUser(githubUser.id, tokenData.access_token);
-      if (existingUser) {
-        cognitoUserId = existingUser;
-      } else {
-        cognitoUserId = await createNewUser(githubUser, tokenData.access_token);
-      }
+      cognitoUserId = await createNewUser(githubUser, tokenData.access_token);
     }
 
     // Fetch the updated user data

@@ -23,15 +23,14 @@ export const handler = async (event: APIGatewayProxyEvent):
   
   // Extract Cognito user ID from the Authorization header if it exists
   let cognitoUserId: string | null = null;
-  const authHeader = event.headers.Authorization || event.headers.authorization;
-  
-  if (authHeader) {
-    const token = authHeader.split(' ')[1];
+  const stateParam = event.queryStringParameters?.state;
+
+  if (stateParam) {
     try {
-      const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-      cognitoUserId = payload.sub;
+      const decodedState = JSON.parse(Buffer.from(stateParam, 'base64').toString());
+      cognitoUserId = decodedState.userId;
     } catch (error) {
-      console.error('Error parsing token:', error);
+      console.error('Error parsing state parameter:', error);
     }
   }
 
