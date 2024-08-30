@@ -38,8 +38,15 @@ export const handler = async (event: APIGatewayProxyEvent):
   const state = Buffer.from(JSON.stringify({
     timestamp: Date.now(),
     refererUrl: encodeURIComponent(refererUrl),
-    cognitoUserId: cognitoUserId,
+    cognitoUserId: cognitoUserId || null,
   })).toString('base64');
+
+  console.log('State before encoding:', JSON.stringify({
+    timestamp: Date.now(),
+    refererUrl: encodeURIComponent(refererUrl),
+    cognitoUserId: cognitoUserId || null,
+  }));
+  console.log('Encoded state:', state);
 
   const githubAuthUrl =
     `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=read:user,user:email&state=${state}`;
