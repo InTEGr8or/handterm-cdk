@@ -6686,3 +6686,102 @@
 
 # 2024-08-29 14:59:48.658109
 +/add lambda\authentication\oauth_callback.ts
+
+# 2024-08-29 15:33:09.620726
++/ask I am looking at the latest `oauth_callback.ts` code, and it sort of looks like it's throwing and error if no email is found. I want to make sure that the `AUTHENTICATION WORKFLOW` is implemented and I think it might be good to functionalize the process and the conditions. Are there single boolean flags or functions for each of the conditions in the `AUTHENTICATION WORKFLOW`? Should we create a `getGitHubEmail` function and a `hasGitHubEmail` flag, for instance? Please analyze the code, go over it a few times in your mind, and think about ways to group the functional processes into functions.
+
+# 2024-08-29 15:35:28.871422
++Yes. I like that suggestion. That looks good. Let's implement that now.
+
+# 2024-08-29 16:00:04.523443
++I am changing this ```    const githubUser = await getGitHubUser(tokenData.access_token);
++    console.log('GitHub user data:', JSON.stringify(githubUser));
++
++    const isAuthenticated = await isUserAuthenticated(decodedState);
++    const githubEmail = await getGitHubEmail(tokenData.access_token);```, to this: ```
++    const githubUser = await getGitHubUser(tokenData.access_token);
++    console.log('GitHub user data:', JSON.stringify(githubUser));
++
++    const isAuthenticated = await isUserAuthenticated(decodedState);
++    const githubEmail = githubUser.email;```, because `getGitHubUser()` makes a call over the network and it already contains the email address if I am not mistaken. Yes, I have just verified that the function makes two calls, one for the user data and one for the email. Maybe the function should be broken into two functions since it makes two calls? 
+
+# 2024-08-29 16:20:36.041076
++/ls
+
+# 2024-08-29 16:20:48.868736
++/drop lambda\authentication\oauth_callback.ts
+
+# 2024-08-29 16:20:59.856886
++/add lambda\authentication\oauth_callback.ts
+
+# 2024-08-29 16:24:47.706279
++I am logged in to Cognito but I am still going down the unauthenticated user path in the `oauth_callback.ts`: ```2024-08-29T23:19:09.854Z        c26d9065-7488-4d34-ab13-70f597c22ba9 INFO     GitHub user data: {"id":"1802850","login":"InTEGr8or","email":null}
++
++2024-08-29T23:19:09.872Z        c26d9065-7488-4d34-ab13-70f597c22ba9 INFO     NEW COGNITO USER WORKFLOW.
++```
+
+# 2024-08-29 16:27:22.289455
++/ask Where is the `cognitoUserId` encoded? I think we can troubleshoot the `decodedState` better if we look at how and where it is encoded. Is the `cognitoUserId` enough to know that the user is authenticated?
+
+# 2024-08-29 17:03:00.991667
++When I look at more of the `oauth_callback.ts` log I see this: ```2024-08-29T23:19:09.219Z        c26d9065-7488-4d34-ab13-70f597c22ba9 INFO     OAuth callback received: {
++  "version": "2.0",
++  "routeKey": "GET /oauth_callback",
++  "rawPath": "/oauth_callback",
++  "rawQueryString": "code=23342fcab27890b87b2c&state=eyJ0aW1lc3RhbXAiOjE3MjQ5NzM1NDgwMzgsInJlZmVyZXJVcmwiOiJodHRwJTNBJTJGJTJGbG9jYWxob3N0JTNBNTE3MyUyRiJ9",
++  "headers": {
++    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
++    "accept-encoding": "gzip, deflate, br, zstd",
++    "accept-language": "en-US,en;q=0.9",
++    "content-length": "0",
++    "host": "x7jzrjfuv8.execute-api.us-east-1.amazonaws.com",
++    "priority": "u=0, i",
++    "referer": "http://localhost:5173/",
++    "sec-ch-ua": "\"Not)A;Brand\";v=\"99\", \"Microsoft Edge\";v=\"127\", \"Chromium\";v=\"127\"",
++    "sec-ch-ua-mobile": "?0",
++    "sec-ch-ua-platform": "\"Windows\"",
++    "sec-fetch-dest": "document",
++    "sec-fetch-mode": "navigate",
++    "sec-fetch-site": "cross-site",
++    "sec-fetch-user": "?1",
++    "upgrade-insecure-requests": "1",
++    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 Edg/127.0.0.0",
++    "x-amzn-trace-id": "Root=1-66d101ec-5cbaf01b0ae075e344c391f5",    
++    "x-forwarded-for": "104.32.208.200",
++    "x-forwarded-port": "443",
++    "x-forwarded-proto": "https"
++  },
++  "queryStringParameters": {
++    "code": "23342fcab27890b87b2c",
++    "state": "eyJ0aW1lc3RhbXAiOjE3MjQ5NzM1NDgwMzgsInJlZmVyZXJVcmwiOiJodHRwJTNBJTJGJTJGbG9jYWxob3N0JTNBNTE3MyUyRiJ9"
++  },
++  "requestContext": {
++    "accountId": "318364255844",
++    "apiId": "x7jzrjfuv8",
++    "domainName": "x7jzrjfuv8.execute-api.us-east-1.amazonaws.com",   
++    "domainPrefix": "x7jzrjfuv8",
++    "http": {
++      "method": "GET",
++      "path": "/oauth_callback",
++      "protocol": "HTTP/1.1",
++      "sourceIp": "104.32.208.200",
++      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 Edg/127.0.0.0"
++    },
++    "requestId": "dS09AhcpIAMEZDQ=",
++    "routeKey": "GET /oauth_callback",
++    "stage": "$default",
++    "time": "29/Aug/2024:23:19:08 +0000",
++    "timeEpoch": 1724973548575
++  },
++  "isBase64Encoded": false
++}
++
++2024-08-29T23:19:09.232Z        c26d9065-7488-4d34-ab13-70f597c22ba9 INFO     Decoded state: {
++  timestamp: 1724973548038,
++  refererUrl: 'http%3A%2F%2Flocalhost%3A5173%2F'
++}
++
++2024-08-29T23:19:09.633Z        c26d9065-7488-4d34-ab13-70f597c22ba9 INFO     GitHub token response: {"access_token":"ghu_lsx3xsSML8h0IgdDxBlcI14vNt9od60423Qy","expires_in":28800,"refresh_token":"ghr_vdbusYr48NGqW9WxzYKgQPVOro9kLcPgG2MOGPGEdi1SRWkfRBFLn65bE1qpO4Tp8834Gr1g0dTZ","refresh_token_expires_in":15811200,"token_type":"bearer","scope":""}  ```. It looks like the `cognitoUserId` is not even in the state. How is that happening?
+
+# 2024-08-29 17:35:31.963576
++I am getting this from the `githubAuthRedirect.ts` log: ```2024-08-30T00:30:46.183Z        4df5d0ff-e2da-4695-a42e-99ea5159bc78 INFO     State before encoding: {"timestamp":1724977846183,"refererUrl":"http%3A%2F%2Flocalhost%3A5173%2F","cognitoUserId":null}```. 
