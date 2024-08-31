@@ -24,6 +24,7 @@ export const handler = async (event: any) => {
         console.log('RequestContext:', JSON.stringify(event.requestContext, null, 2));
 
         let userId;
+        let userAttributes;
 
         // Check if the authorizer is present
         if (event.requestContext.authorizer) {
@@ -32,6 +33,7 @@ export const handler = async (event: any) => {
             // Check if lambda is present in the authorizer
             if (event.requestContext.authorizer.lambda) {
                 userId = event.requestContext.authorizer.lambda.userId;
+                userAttributes = event.requestContext.authorizer.lambda.userAttributes;
             } else {
                 console.log('No lambda in authorizer, checking for userId directly');
                 userId = event.requestContext.authorizer.userId;
@@ -43,6 +45,7 @@ export const handler = async (event: any) => {
         }
 
         console.log('UserId:', userId);
+        console.log('UserAttributes:', userAttributes);
         if (!userId) {
             console.error('No userId found in request');
             return {
@@ -81,7 +84,7 @@ export const handler = async (event: any) => {
                     'Access-Control-Allow-Origin': '*',
                     'Access-Control-Allow-Credentials': true,
                 },
-                body: JSON.stringify({ userId: userId, content: fileContent }),
+                body: JSON.stringify({ userId: userId, userAttributes: userAttributes, content: fileContent }),
             };
         } catch (err: unknown) {
             const error = err as Error & { name?: string };
