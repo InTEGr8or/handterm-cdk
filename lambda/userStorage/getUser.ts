@@ -23,8 +23,7 @@ export const handler = async (event: any) => {
 
         console.log('RequestContext:', JSON.stringify(event.requestContext, null, 2));
 
-        let userId;
-        let userAttributes;
+        let userId, userAttributes, githubId, githubToken;
 
         // Check if the authorizer is present
         if (event.requestContext.authorizer) {
@@ -33,10 +32,14 @@ export const handler = async (event: any) => {
             if (event.requestContext.authorizer.lambda) {
                 userId = event.requestContext.authorizer.lambda.userId;
                 userAttributes = event.requestContext.authorizer.lambda.userAttributes;
+                githubId = event.requestContext.authorizer.lambda.github_id;
+                githubToken = event.requestContext.authorizer.lambda.github_token;
             } else {
                 console.log('No lambda in authorizer, checking for userId and userAttributes directly');
                 userId = event.requestContext.authorizer.userId;
                 userAttributes = event.requestContext.authorizer.userAttributes;
+                githubId = event.requestContext.authorizer.github_id;
+                githubToken = event.requestContext.authorizer.github_token;
             }
         } else {
             console.log('No authorizer in requestContext, checking headers');
@@ -46,6 +49,8 @@ export const handler = async (event: any) => {
 
         console.log('UserId:', userId);
         console.log('UserAttributes (raw):', userAttributes);
+        console.log('GitHub ID:', githubId);
+        console.log('GitHub Token:', githubToken ? '[REDACTED]' : 'Not found');
 
         // Parse userAttributes if it's a string
         if (typeof userAttributes === 'string') {
@@ -57,6 +62,12 @@ export const handler = async (event: any) => {
         }
 
         console.log('UserAttributes (parsed):', JSON.stringify(userAttributes, null, 2));
+
+        if (!githubId || !githubToken) {
+            console.log('GitHub ID or Token not found in authorizer context, checking userAttributes');
+            githubId = userAttributes?.['custom:github_id'];
+            githubToken = userAttributes?.['custom:github_token'];
+        }
         if (!userId) {
             console.error('No userId found in request');
             return {
@@ -95,7 +106,13 @@ export const handler = async (event: any) => {
                     'Access-Control-Allow-Origin': '*',
                     'Access-Control-Allow-Credentials': true,
                 },
-                body: JSON.stringify({ userId: userId, userAttributes: userAttributes, content: fileContent }),
+                body: JSON.stringify({ 
+                    userId: userId, 
+                    userAttributes: userAttributes, 
+                    content: fileContent,
+                    githubId: githubId,
+                    githubToken: githubToken ? '[REDACTED]' : null
+                }),
             };
         } catch (err: unknown) {
             const error = err as Error & { name?: string, code?: string };
