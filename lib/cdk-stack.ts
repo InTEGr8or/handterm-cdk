@@ -523,11 +523,7 @@ export class HandTermCdkStack extends Stack {
 
     const logQuery = {
       logGroupNames: [`/handterm/${this.stackName}/*`],
-      queryString: `
-        fields @timestamp, @message
-        | sort @timestamp desc
-        | limit 30
-      `,
+      queryString: ` fields @timestamp, @message | sort @timestamp desc | limit 30 `,
     };
 
     dashboard.addWidgets(new cloudwatch.LogQueryWidget({
