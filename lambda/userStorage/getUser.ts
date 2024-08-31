@@ -30,19 +30,22 @@ export const handler = async (event: any) => {
         if (event.requestContext.authorizer) {
             console.log('Authorizer found:', JSON.stringify(event.requestContext.authorizer, null, 2));
             
-            // Check if lambda is present in the authorizer
             if (event.requestContext.authorizer.lambda) {
                 userId = event.requestContext.authorizer.lambda.userId;
                 userAttributes = event.requestContext.authorizer.lambda.userAttributes;
             } else {
-                console.log('No lambda in authorizer, checking for userId directly');
+                console.log('No lambda in authorizer, checking for userId and userAttributes directly');
                 userId = event.requestContext.authorizer.userId;
+                userAttributes = event.requestContext.authorizer.userAttributes;
             }
         } else {
             console.log('No authorizer in requestContext, checking headers');
             // If no authorizer, check if userId is passed in headers (for testing purposes)
             userId = event.headers['x-user-id'];
         }
+
+        console.log('UserId:', userId);
+        console.log('UserAttributes:', JSON.stringify(userAttributes, null, 2));
 
         console.log('UserId:', userId);
         console.log('UserAttributes:', userAttributes);
