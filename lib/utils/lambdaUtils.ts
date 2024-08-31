@@ -29,6 +29,7 @@ export function createLambdaIntegration(props: LambdaIntegrationProps) {
     code: Code.fromAsset(props.codePath),
     environment: props.environment,
     layers: props.layers,
+    logGroup: props.logGroup,
   });
 
   const integration = new HttpLambdaIntegration(`${props.id}-integration`, lambdaFunction);
