@@ -45,10 +45,18 @@ export const handler = async (event: any) => {
         }
 
         console.log('UserId:', userId);
-        console.log('UserAttributes:', JSON.stringify(userAttributes, null, 2));
+        console.log('UserAttributes (raw):', userAttributes);
 
-        console.log('UserId:', userId);
-        console.log('UserAttributes:', userAttributes);
+        // Parse userAttributes if it's a string
+        if (typeof userAttributes === 'string') {
+            try {
+                userAttributes = JSON.parse(userAttributes);
+            } catch (error) {
+                console.error('Error parsing userAttributes:', error);
+            }
+        }
+
+        console.log('UserAttributes (parsed):', JSON.stringify(userAttributes, null, 2));
         if (!userId) {
             console.error('No userId found in request');
             return {
