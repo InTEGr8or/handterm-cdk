@@ -2,7 +2,6 @@
 import { ENDPOINTS } from '../lambda/cdkshared/endpoints';
 import { getGitHubSecrets } from './utils/githubSecrets';
 import { createLambdaIntegration } from './utils/lambdaUtils';
-import * as logs from 'aws-cdk-lib/aws-logs';
 import {
   aws_cognito as cognito,
   aws_s3 as s3,

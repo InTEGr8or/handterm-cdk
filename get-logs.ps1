@@ -21,6 +21,7 @@ if (-not $lambdaFunctionName) {
 
 Write-Host "Matching Lambda function: $lambdaFunctionName"
 $logGroupName = "/aws/lambda/$lambdaFunctionName"
+Write-Host "Log group: $logGroupName"
 
 # Describe the log streams for the Lambda function and get the most recent one
 $latestLogStream = aws logs describe-log-streams `
