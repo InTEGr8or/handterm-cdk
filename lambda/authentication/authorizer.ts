@@ -7,11 +7,12 @@ export const handler = async (event: APIGatewayTokenAuthorizerEvent): Promise<AP
     console.log('COGNITO_USER_POOL_ID:', process.env.COGNITO_USER_POOL_ID);
     console.log('Authorizer invoked with event:', JSON.stringify(event, null, 2));
 
-    // Log all headers
-    console.log('All headers:', JSON.stringify(event.headers, null, 2));
+    // Log all headers if they exist
+    const headers = (event as any).headers;
+    console.log('All headers:', JSON.stringify(headers, null, 2));
 
     // Check for authorization in different places
-    const authHeader = event.authorizationToken || event.headers?.Authorization || event.headers?.authorization;
+    const authHeader = event.authorizationToken || (headers?.Authorization as string) || (headers?.authorization as string);
     console.log('Authorization header:', authHeader);
 
     if (!authHeader) {
