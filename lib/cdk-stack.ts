@@ -14,6 +14,7 @@ import {
   CfnOutput,
   Stack,
   StackProps,
+  aws_cloudwatch as cloudwatch,
 } from "aws-cdk-lib";
 import { Construct } from 'constructs';
 import { HttpMethod, HttpApi, CorsHttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
@@ -43,6 +44,15 @@ export class HandTermCdkStack extends Stack {
       // Instead of using default values, we'll throw an error to stop stack creation
       throw new Error('Failed to initialize stack due to missing GitHub secrets');
     }
+
+    // Add this helper function
+    const createCustomLogGroup = (functionName: string): logs.LogGroup => {
+      return new logs.LogGroup(this, `${functionName}LogGroup`, {
+        logGroupName: `/handterm/${this.stackName}/${functionName}`,
+        retention: logs.RetentionDays.ONE_WEEK,
+        removalPolicy: RemovalPolicy.DESTROY
+      });
+    };
 
     // Cognito User Pool with custom attributes
     const userPool = new cognito.UserPool(this, 'HandTermUserPool', {
@@ -268,6 +278,7 @@ export class HandTermCdkStack extends Stack {
       httpApi: httpApi,
       path: ENDPOINTS.api.SignUp,
       methods: [HttpMethod.POST],
+      logGroup: createCustomLogGroup('SignUpFunction'),
     });
 
     createLambdaIntegration({
@@ -503,6 +514,26 @@ export class HandTermCdkStack extends Stack {
     new CfnOutput(this, 'UserPoolClientId', { value: userPoolClient.userPoolClientId });
     new CfnOutput(this, 'IdentityPoolId', { value: identityPool.ref });
     new CfnOutput(this, 'BucketName', { value: logsBucket.bucketName });
+
+    // Add CloudWatch dashboard
+    const dashboard = new cloudwatch.Dashboard(this, 'HandTermDashboard', {
+      dashboardName: 'HandTermLogs'
+    });
+
+    const logQuery = new cloudwatch.LogQuery({
+      logGroupNames: [`/handterm/${this.stackName}/*`],
+      queryString: `
+        fields @timestamp, @message
+        | sort @timestamp desc
+        | limit 30
+      `,
+    });
+
+    dashboard.addWidget(new cloudwatch.LogQueryWidget({
+      title: 'Recent Logs',
+      queryLines: logQuery.queryLines,
+      logGroupNames: logQuery.logGroupNames,
+    }));
   }
 }
 
