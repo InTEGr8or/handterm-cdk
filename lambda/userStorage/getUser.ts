@@ -27,23 +27,26 @@ export const handler = async (event: any) => {
 
         // Check if the authorizer is present
         if (event.requestContext.authorizer) {
+            console.log('Full event:', JSON.stringify(event, null, 2));
             console.log('Authorizer found:', JSON.stringify(event.requestContext.authorizer, null, 2));
         
             if (event.requestContext.authorizer.lambda) {
+                console.log('Lambda authorizer found');
                 userId = event.requestContext.authorizer.lambda.userId;
-                userAttributes = event.requestContext.authorizer.lambda.userAttributes;
                 githubId = event.requestContext.authorizer.lambda.github_id;
-                githubToken = event.requestContext.authorizer.lambda.github_token;
             } else {
-                console.log('No lambda in authorizer, checking for userId and userAttributes directly');
+                console.log('No lambda in authorizer, checking for userId and github_id directly');
                 userId = event.requestContext.authorizer.userId;
-                userAttributes = event.requestContext.authorizer.userAttributes;
                 githubId = event.requestContext.authorizer.github_id;
-                githubToken = event.requestContext.authorizer.github_token;
             }
 
+            console.log('UserId from authorizer:', userId);
             console.log('GitHub ID from authorizer:', githubId);
-            console.log('GitHub Token from authorizer:', githubToken ? '[REDACTED]' : 'Not found');
+
+            // Log each property of the authorizer separately
+            for (const [key, value] of Object.entries(event.requestContext.authorizer)) {
+                console.log(`Authorizer property ${key}:`, JSON.stringify(value));
+            }
         } else {
             console.log('No authorizer in requestContext, checking headers');
             // If no authorizer, check if userId is passed in headers (for testing purposes)
