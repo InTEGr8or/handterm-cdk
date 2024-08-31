@@ -542,7 +542,7 @@ export class HandTermCdkStack extends Stack {
       description: 'Prefix for all log groups in this stack'
     });
     new CfnOutput(this, 'CloudWatchLogsQueryCommand', { 
-      value: `aws logs start-query --log-group-names '${logQuery.logGroupNames[0]}' --start-time \$(date -v-1H +%s) --end-time \$(date +%s) --query-string "${logQuery.queryString.replace(/\n/g, ' ')}"`,
+      value: `aws logs start-query --log-group-names '${logQuery.logGroupNames[0]}' --start-time \$(date -v-1H +%s) --end-time \$(date +%s) --query-string "${logQuery.queryString.replace(/\n/g, ' ').trim()}"`,
       description: 'AWS CLI command to query logs'
     });
   }
