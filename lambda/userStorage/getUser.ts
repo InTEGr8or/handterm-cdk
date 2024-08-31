@@ -119,7 +119,7 @@ export const handler = async (event: any) => {
                         'Access-Control-Allow-Origin': '*',
                         'Access-Control-Allow-Credentials': true,
                     },
-                    body: JSON.stringify({ message: 'S3 Object Error', error: error.message }),
+                    body: JSON.stringify({ message: 'S3 Object Error', error: error.message, stack: error.stack }),
                 };
             }
         }
@@ -131,7 +131,7 @@ export const handler = async (event: any) => {
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Credentials': true,
             },
-            body: JSON.stringify({ message: 'Internal Server Error', error: (err as Error).message }) 
+            body: JSON.stringify({ message: 'Internal Server Error', error: (err as Error).message, stack: (err as Error).stack }), 
         };
     } finally {
         console.log('GetUserFunction ended');
