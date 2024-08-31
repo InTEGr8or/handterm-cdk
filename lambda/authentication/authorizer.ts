@@ -14,12 +14,12 @@ export const handler = async (event: APIGatewayTokenAuthorizerEvent): Promise<AP
     const authHeader = event.authorizationToken || event.headers?.Authorization || event.headers?.authorization;
     console.log('Authorization header:', authHeader);
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        console.log('Invalid Authorization header');
+    if (!authHeader) {
+        console.log('No Authorization header found');
         return generatePolicy('user', 'Deny', event.methodArn);
     }
 
-    const token = authHeader.split(' ')[1];
+    const token = authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : authHeader;
     console.log('Extracted token:', token);
 
     const userPoolId = process.env.COGNITO_USER_POOL_ID;
@@ -29,6 +29,7 @@ export const handler = async (event: APIGatewayTokenAuthorizerEvent): Promise<AP
     }
 
     try {
+        console.log('Sending GetUserCommand with token');
         const command = new GetUserCommand({
             AccessToken: token
         });
