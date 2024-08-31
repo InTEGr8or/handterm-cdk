@@ -542,8 +542,8 @@ export class HandTermCdkStack extends Stack {
       description: 'Prefix for all log groups in this stack'
     });
     new CfnOutput(this, 'CloudWatchLogsQueryCommand', { 
-      value: `aws logs start-query --log-group-names '${logQuery.logGroupNames[0]}' --start-time \$(date -v-1H +%s) --end-time \$(date +%s) --query-string "${logQuery.queryString.replace(/\n/g, ' ').trim()}"`,
-      description: 'AWS CLI command to query logs'
+      value: `aws logs start-query --log-group-names '${logQuery.logGroupNames[0]}' --start-time $([Math]::Floor([decimal](Get-Date).AddHours(-1).Subtract((Get-Date "1/1/1970")).TotalSeconds)) --end-time $([Math]::Floor([decimal](Get-Date).Subtract((Get-Date "1/1/1970")).TotalSeconds)) --query-string "${logQuery.queryString.replace(/\n/g, ' ').trim()}"`,
+      description: 'AWS CLI command to query logs (PowerShell)'
     });
   }
 }
