@@ -17,7 +17,8 @@ import {
 } from "aws-cdk-lib";
 import { Construct } from 'constructs';
 import { HttpMethod, HttpApi, CorsHttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
-import { HttpLambdaAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
+import { HttpLambdaAuthorizer, HttpLambdaResponseType } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
+import { Duration } from 'aws-cdk-lib';
 
 
 const nodeRuntime = lambda.Runtime.NODEJS_18_X;
@@ -232,7 +233,10 @@ export class HandTermCdkStack extends Stack {
       },
     });
 
-    const lambdaAuthorizer = new HttpLambdaAuthorizer('LambdaAuthorizer', authorizerFunction);
+    const lambdaAuthorizer = new HttpLambdaAuthorizer('LambdaAuthorizer', authorizerFunction, {
+      responseTypes: [HttpLambdaResponseType.SIMPLE],
+      resultsCacheTtl: Duration.seconds(0)
+    });
 
     // Define the Identity Pool
     const identityPool = new cognito.CfnIdentityPool(this, 'IdentityPool', {
