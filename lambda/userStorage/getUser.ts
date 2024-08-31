@@ -28,7 +28,7 @@ export const handler = async (event: any) => {
         // Check if the authorizer is present
         if (event.requestContext.authorizer) {
             console.log('Authorizer found:', JSON.stringify(event.requestContext.authorizer, null, 2));
-            
+        
             if (event.requestContext.authorizer.lambda) {
                 userId = event.requestContext.authorizer.lambda.userId;
                 userAttributes = event.requestContext.authorizer.lambda.userAttributes;
@@ -41,6 +41,9 @@ export const handler = async (event: any) => {
                 githubId = event.requestContext.authorizer.github_id;
                 githubToken = event.requestContext.authorizer.github_token;
             }
+
+            console.log('GitHub ID from authorizer:', githubId);
+            console.log('GitHub Token from authorizer:', githubToken ? '[REDACTED]' : 'Not found');
         } else {
             console.log('No authorizer in requestContext, checking headers');
             // If no authorizer, check if userId is passed in headers (for testing purposes)
