@@ -16,7 +16,7 @@ interface LambdaIntegrationProps {
   httpApi: HttpApi;
   path: string;
   methods: HttpMethod[];
-  logGroup: logs.ILogGroup;
+  logGroup?: logs.ILogGroup;
   authorizer?: HttpLambdaAuthorizer;
   layers?: LayerVersion[];
 }

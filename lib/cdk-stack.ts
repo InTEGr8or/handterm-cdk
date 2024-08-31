@@ -2,6 +2,7 @@
 import { ENDPOINTS } from '../lambda/cdkshared/endpoints';
 import { getGitHubSecrets } from './utils/githubSecrets';
 import { createLambdaIntegration } from './utils/lambdaUtils';
+import * as logs from 'aws-cdk-lib/aws-logs';
 import {
   aws_cognito as cognito,
   aws_s3 as s3,
@@ -308,6 +309,7 @@ export class HandTermCdkStack extends Stack {
       httpApi: httpApi,
       path: ENDPOINTS.api.SignIn,
       methods: [HttpMethod.POST],
+      logGroup: createCustomLogGroup('SignInFunction'),
     });
 
     createLambdaIntegration({
@@ -520,18 +522,18 @@ export class HandTermCdkStack extends Stack {
       dashboardName: 'HandTermLogs'
     });
 
-    const logQuery = new cloudwatch.LogQuery({
+    const logQuery = {
       logGroupNames: [`/handterm/${this.stackName}/*`],
       queryString: `
         fields @timestamp, @message
         | sort @timestamp desc
         | limit 30
       `,
-    });
+    };
 
-    dashboard.addWidget(new cloudwatch.LogQueryWidget({
+    dashboard.addWidgets(new cloudwatch.LogQueryWidget({
       title: 'Recent Logs',
-      queryLines: logQuery.queryLines,
+      queryString: logQuery.queryString,
       logGroupNames: logQuery.logGroupNames,
     }));
   }
