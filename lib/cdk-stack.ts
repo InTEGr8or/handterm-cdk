@@ -254,7 +254,6 @@ export class HandTermCdkStack extends Stack {
       identitySource: ['$request.header.Authorization'],
       resultsCacheTtl: Duration.seconds(0),
       responseTypes: [HttpLambdaResponseType.SIMPLE],
-      payloadFormatVersion: HttpLambdaAuthorizer.PayloadFormatVersion.VERSION_2_0,
     });
 
     // Define the Identity Pool
