@@ -535,6 +535,16 @@ export class HandTermCdkStack extends Stack {
       queryString: logQuery.queryString,
       logGroupNames: logQuery.logGroupNames,
     }));
+
+    // Add outputs for CLI convenience
+    new CfnOutput(this, 'LogGroupPrefix', { 
+      value: `/handterm/${this.stackName}/`,
+      description: 'Prefix for all log groups in this stack'
+    });
+    new CfnOutput(this, 'CloudWatchLogsQueryCommand', { 
+      value: `aws logs start-query --log-group-names '${logQuery.logGroupNames[0]}' --start-time \$(date -v-1H +%s) --end-time \$(date +%s) --query-string "${logQuery.queryString.replace(/\n/g, ' ')}"`,
+      description: 'AWS CLI command to query logs'
+    });
   }
 }
 
