@@ -3,7 +3,7 @@ import { S3Client, GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s
 import { ENDPOINTS } from '../cdkshared/endpoints';
 
 const s3Client = new S3Client({ region: 'us-east-1' });
-const bucketName = 'handterm';
+const bucketName = process.env.BUCKET_NAME || 'handterm';
 
 console.log('Loading function');
 
@@ -72,7 +72,7 @@ export const handler = async (event: any) => {
         try {
             console.log('Attempting to check if object exists');
             const headCommand = new HeadObjectCommand({
-                Bucket: bucketName!,
+                Bucket: bucketName,
                 Key: objectKey
             });
             const headResult = await s3Client.send(headCommand);
@@ -80,7 +80,7 @@ export const handler = async (event: any) => {
 
             console.log('Object exists, proceeding to get object');
             const getCommand = new GetObjectCommand({
-                Bucket: bucketName!,
+                Bucket: bucketName,
                 Key: objectKey
             });
             const s3Response = await s3Client.send(getCommand);
@@ -98,13 +98,13 @@ export const handler = async (event: any) => {
                 body: JSON.stringify({ userId: userId, userAttributes: userAttributes, content: fileContent }),
             };
         } catch (err: unknown) {
-            const error = err as Error & { name?: string };
+            const error = err as Error & { name?: string, code?: string };
             console.error('S3 operation error:', JSON.stringify(error, null, 2));
 
-            if (error.name === 'NoSuchKey' || error.name === 'NotFound') {
+            if (error.name === 'NoSuchKey' || error.code === 'NotFound') {
                 console.log('Profile does not exist yet for userId:', userId);
                 return {
-                    statusCode: 200,  // Changed from 404 to 200
+                    statusCode: 200,
                     headers: {
                         'Access-Control-Allow-Origin': '*',
                         'Access-Control-Allow-Credentials': true,
@@ -119,7 +119,13 @@ export const handler = async (event: any) => {
                         'Access-Control-Allow-Origin': '*',
                         'Access-Control-Allow-Credentials': true,
                     },
-                    body: JSON.stringify({ message: 'S3 Object Error', error: error.message, stack: error.stack }),
+                    body: JSON.stringify({ 
+                        message: 'S3 Object Error', 
+                        error: error.message, 
+                        stack: error.stack,
+                        code: error.code,
+                        name: error.name
+                    }),
                 };
             }
         }
@@ -131,7 +137,13 @@ export const handler = async (event: any) => {
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Credentials': true,
             },
-            body: JSON.stringify({ message: 'Internal Server Error', error: (err as Error).message, stack: (err as Error).stack }), 
+            body: JSON.stringify({ 
+                message: 'Internal Server Error', 
+                error: (err as Error).message, 
+                stack: (err as Error).stack,
+                code: (err as any).code,
+                name: (err as Error).name
+            }), 
         };
     } finally {
         console.log('GetUserFunction ended');

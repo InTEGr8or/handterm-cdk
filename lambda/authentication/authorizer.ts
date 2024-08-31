@@ -36,10 +36,13 @@ export const handler = async (event: APIGatewayTokenAuthorizerEvent): Promise<AP
         if (!userId) {
             throw new Error('UserId not found in Cognito response');
         }
-        const userAttributes = response.UserAttributes ? JSON.stringify(response.UserAttributes) : '{}';
-        console.log('User attributes:', userAttributes);
+        const userAttributes = response.UserAttributes ? response.UserAttributes.reduce((acc, attr) => {
+            acc[attr.Name] = attr.Value;
+            return acc;
+        }, {} as Record<string, string>) : {};
+        console.log('User attributes:', JSON.stringify(userAttributes, null, 2));
 
-        return generatePolicy(userId, 'Allow', event.methodArn, { userId, userAttributes });
+        return generatePolicy(userId, 'Allow', event.methodArn, { userId, userAttributes: JSON.stringify(userAttributes) });
     } catch (error) {
         console.error('Error in Cognito getUser:', error);
         return generatePolicy('user', 'Deny', event.methodArn);
