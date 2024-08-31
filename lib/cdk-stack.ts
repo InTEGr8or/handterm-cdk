@@ -250,8 +250,10 @@ export class HandTermCdkStack extends Stack {
     });
 
     const lambdaAuthorizer = new HttpLambdaAuthorizer('LambdaAuthorizer', authorizerFunction, {
-      responseTypes: [HttpLambdaResponseType.SIMPLE],
-      resultsCacheTtl: Duration.seconds(0)
+      responseTypes: [HttpLambdaResponseType.IAM],
+      resultsCacheTtl: Duration.seconds(0),
+      authorizerName: 'LambdaAuthorizer',
+      identitySource: ['$request.header.Authorization']
     });
 
     // Define the Identity Pool

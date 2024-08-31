@@ -30,15 +30,9 @@ export const handler = async (event: any) => {
             console.log('Full event:', JSON.stringify(event, null, 2));
             console.log('Authorizer found:', JSON.stringify(event.requestContext.authorizer, null, 2));
         
-            if (event.requestContext.authorizer.lambda) {
-                console.log('Lambda authorizer found');
-                userId = event.requestContext.authorizer.lambda.userId;
-                githubId = event.requestContext.authorizer.lambda.github_id;
-            } else {
-                console.log('No lambda in authorizer, checking for userId and github_id directly');
-                userId = event.requestContext.authorizer.userId;
-                githubId = event.requestContext.authorizer.github_id;
-            }
+            // The authorizer context is now directly in event.requestContext.authorizer
+            userId = event.requestContext.authorizer.userId;
+            githubId = event.requestContext.authorizer.github_id;
 
             console.log('UserId from authorizer:', userId);
             console.log('GitHub ID from authorizer:', githubId);
