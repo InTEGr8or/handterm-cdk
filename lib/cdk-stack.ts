@@ -17,7 +17,7 @@ import {
   aws_cloudwatch as cloudwatch,
 } from "aws-cdk-lib";
 import { Construct } from 'constructs';
-import { HttpMethod, HttpApi, CorsHttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
+import { HttpMethod, HttpApi, CorsHttpMethod, HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpLambdaAuthorizer, HttpLambdaResponseType } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import { Duration } from 'aws-cdk-lib';
 
@@ -280,7 +280,7 @@ export class HandTermCdkStack extends Stack {
       path: '/{proxy+}',
       methods: [HttpMethod.ANY],
       authorizer: lambdaAuthorizer,
-      integration: new apigatewayv2.HttpLambdaIntegration('DefaultIntegration', authorizerFunction),
+      integration: new HttpLambdaIntegration('DefaultIntegration', authorizerFunction),
     });
 
     // Define the Identity Pool
