@@ -25,7 +25,7 @@ interface LambdaIntegrationProps {
 export function createLambdaIntegration(props: LambdaIntegrationProps) {
   const stack = Stack.of(props.scope);
   const logGroup = new logs.LogGroup(props.scope, `${props.id}LogGroup`, {
-    logGroupName: `/handterm/${stack.stackName}/${props.id}`,
+    logGroupName: `/${stack.stackName}/${props.id}`,
     retention: logs.RetentionDays.ONE_WEEK,
     removalPolicy: RemovalPolicy.DESTROY
   });

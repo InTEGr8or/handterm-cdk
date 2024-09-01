@@ -243,7 +243,7 @@ export class HandTermCdkStack extends Stack {
 
     // Define the Lambda Authorizer
     const authorizerLogGroup = new logs.LogGroup(this, 'AuthorizerLogGroup', {
-      logGroupName: `/handterm/${this.stackName}/AuthorizerFunction`,
+      logGroupName: `/${this.stackName}/AuthorizerFunction`,
       retention: logs.RetentionDays.ONE_WEEK,
       removalPolicy: RemovalPolicy.DESTROY
     });
