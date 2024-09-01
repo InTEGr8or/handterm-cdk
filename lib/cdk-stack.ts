@@ -98,7 +98,10 @@ export class HandTermCdkStack extends Stack {
     });
 
     // Add access logging to the API Gateway
-    const logGroup = new logs.LogGroup(this, 'ApiGatewayAccessLogs');
+    const logGroup = new logs.LogGroup(this, 'ApiGatewayAccessLogs', {
+      retention: logs.RetentionDays.ONE_WEEK,
+      removalPolicy: RemovalPolicy.DESTROY
+    });
 
     // Create or update the stage
     const stageName = 'prod';
@@ -124,7 +127,15 @@ export class HandTermCdkStack extends Stack {
         routeKey: "$context.routeKey",
         status: "$context.status",
         protocol: "$context.protocol",
-        responseLength: "$context.responseLength"
+        responseLength: "$context.responseLength",
+        authorizer: {
+          principalId: "$context.authorizer.principalId",
+          integrationLatency: "$context.authorizer.integrationLatency",
+          error: "$context.authorizer.error"
+        },
+        requestContext: {
+          authorizer: "$context.authorizer"
+        }
       })
     };
 
@@ -135,6 +146,12 @@ export class HandTermCdkStack extends Stack {
         autoDeploy: true,
       });
     }
+
+    // Output the log group name for easy access
+    new CfnOutput(this, 'ApiGatewayLogGroupName', {
+      value: logGroup.logGroupName,
+      description: 'Name of the CloudWatch Log Group for API Gateway access logs',
+    });
 
     // Cognito User Pool Client
     // Create the GitHub Identity Provider
