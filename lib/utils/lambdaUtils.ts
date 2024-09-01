@@ -2,11 +2,11 @@ import { HttpApi, HttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
 import { LayerVersion } from 'aws-cdk-lib/aws-lambda';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import { Runtime, Function as LambdaFunction, Code } from 'aws-cdk-lib/aws-lambda';
-import { Role } from 'aws-cdk-lib/aws-iam';
+import { Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
 import { HttpLambdaAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import * as logs from 'aws-cdk-lib/aws-logs';
-import { RemovalPolicy } from 'aws-cdk-lib';
+import { RemovalPolicy, Stack } from 'aws-cdk-lib';
 
 interface LambdaIntegrationProps {
   scope: Construct;
@@ -23,6 +23,13 @@ interface LambdaIntegrationProps {
 }
 
 export function createLambdaIntegration(props: LambdaIntegrationProps) {
+  const stack = Stack.of(props.scope);
+  const logGroup = new logs.LogGroup(props.scope, `${props.id}LogGroup`, {
+    logGroupName: `/handterm/${stack.stackName}/${props.id}`,
+    retention: logs.RetentionDays.ONE_WEEK,
+    removalPolicy: RemovalPolicy.DESTROY
+  });
+
   const lambdaFunction = new LambdaFunction(props.scope, props.id, {
     runtime: Runtime.NODEJS_18_X,
     handler: props.handler,
@@ -30,11 +37,15 @@ export function createLambdaIntegration(props: LambdaIntegrationProps) {
     code: Code.fromAsset(props.codePath),
     environment: props.environment,
     layers: props.layers,
-    logGroup: new logs.LogGroup(props.scope, `${props.id}LogGroup`, {
-      logGroupName: `/handterm/${props.scope.stackName}/${props.id}`,
-      retention: logs.RetentionDays.ONE_WEEK,
-      removalPolicy: RemovalPolicy.DESTROY
-    })
+  });
+
+  // Grant write permissions to the Lambda function for the log group
+  logGroup.grantWrite(lambdaFunction);
+
+  // Add CloudWatch Logs permissions to the Lambda execution role
+  lambdaFunction.addToRolePolicy({
+    actions: ['logs:CreateLogStream', 'logs:PutLogEvents'],
+    resources: [logGroup.logGroupArn],
   });
 
   const integration = new HttpLambdaIntegration(`${props.id}-integration`, lambdaFunction);

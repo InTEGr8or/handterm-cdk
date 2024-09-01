@@ -283,7 +283,6 @@ export class HandTermCdkStack extends Stack {
       httpApi: httpApi,
       path: ENDPOINTS.api.SignUp,
       methods: [HttpMethod.POST],
-      logGroup: createCustomLogGroup('SignUpFunction'),
     });
 
     createLambdaIntegration({
