@@ -2,7 +2,7 @@ import { HttpApi, HttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
 import { LayerVersion } from 'aws-cdk-lib/aws-lambda';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import { Runtime, Function as LambdaFunction, Code } from 'aws-cdk-lib/aws-lambda';
-import { Role, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
+import { Role, ServicePrincipal, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
 import { HttpLambdaAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import * as logs from 'aws-cdk-lib/aws-logs';
@@ -46,10 +46,10 @@ export function createLambdaIntegration(props: LambdaIntegrationProps) {
   logGroup.grantWrite(lambdaFunction);
 
   // Add CloudWatch Logs permissions to the Lambda execution role
-  lambdaFunction.addToRolePolicy({
+  lambdaFunction.addToRolePolicy(new PolicyStatement({
     actions: ['logs:CreateLogStream', 'logs:PutLogEvents'],
     resources: [logGroup.logGroupArn],
-  });
+  }));
 
   const integration = new HttpLambdaIntegration(`${props.id}-integration`, lambdaFunction);
 
