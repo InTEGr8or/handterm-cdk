@@ -22,7 +22,8 @@ import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations
 import { HttpLambdaAuthorizer, HttpLambdaResponseType } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import { Duration } from 'aws-cdk-lib';
 
-
+const stackName = 'HandTermCdkStack';
+const logPrefix = `/${stackName}/`;
 const nodeRuntime = lambda.Runtime.NODEJS_18_X;
 
 export class HandTermCdkStack extends Stack {
@@ -244,7 +245,7 @@ export class HandTermCdkStack extends Stack {
 
     // Define the Lambda Authorizer
     const authorizerLogGroup = new logs.LogGroup(this, 'AuthorizerLogGroup', {
-      logGroupName: `/${this.stackName}/AuthorizerFunction`,
+      logGroupName: `${logPrefix}AuthorizerFunction`,
       retention: logs.RetentionDays.ONE_WEEK,
       removalPolicy: RemovalPolicy.DESTROY
     });
@@ -350,7 +351,7 @@ export class HandTermCdkStack extends Stack {
       },
       httpApi: httpApi,
       path: ENDPOINTS.api.RefreshToken,
-      methods: [HttpMethod.POST],
+      methods: [HttpMethod.POST, HttpMethod.OPTIONS],
     });
 
     createLambdaIntegration({
@@ -550,7 +551,7 @@ export class HandTermCdkStack extends Stack {
     });
 
     const logQuery = {
-      logGroupNames: [`/handterm/${this.stackName}/*`],
+      logGroupNames: [`${logPrefix}*`],
       queryString: ` fields @timestamp, @message | sort @timestamp desc | limit 30 `,
     };
 
@@ -562,9 +563,10 @@ export class HandTermCdkStack extends Stack {
 
     // Add outputs for CLI convenience
     new CfnOutput(this, 'LogGroupPrefix', { 
-      value: `/handterm/${this.stackName}/`,
+      value: logPrefix,
       description: 'Prefix for all log groups in this stack'
     });
+
     new CfnOutput(this, 'CloudWatchLogsQueryCommand', { 
       value: `aws logs start-query --log-group-name ${logQuery.logGroupNames[0]} --start-time $([Math]::Floor([decimal](Get-Date).AddHours(-1).Subtract((Get-Date "1/1/1970")).TotalSeconds)) --end-time $([Math]::Floor([decimal](Get-Date).Subtract((Get-Date "1/1/1970")).TotalSeconds)) --query-string "${logQuery.queryString.replace(/\n/g, ' ').trim()}"`,
       description: 'AWS CLI command to query logs (PowerShell)'
@@ -573,4 +575,4 @@ export class HandTermCdkStack extends Stack {
 }
 
 const app = new App();
-new HandTermCdkStack(app, 'HandTermCdkStack');
+new HandTermCdkStack(app, stackName);
