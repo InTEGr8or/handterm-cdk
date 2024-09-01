@@ -50,7 +50,9 @@ $logEvents = aws logs get-log-events `
     | ConvertFrom-Json `
     | Select-Object -ExpandProperty events `
     | ForEach-Object {
-        $_.message -Replace "^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)", "$([char]0x1b)[32m`$1$([char]0x1b)[0m"
+        $_.message `
+        -Replace "^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)", "$([char]0x1b)[32m`$1$([char]0x1b)[0m" `
+        # -Replace "^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)", "$(Get-Date $1)" 
     }
 
 Write-Host "Last $Limit log events:"
