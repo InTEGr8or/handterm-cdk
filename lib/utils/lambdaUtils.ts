@@ -6,6 +6,7 @@ import { Role } from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
 import { HttpLambdaAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import * as logs from 'aws-cdk-lib/aws-logs';
+import { RemovalPolicy } from 'aws-cdk-lib';
 
 interface LambdaIntegrationProps {
   scope: Construct;
@@ -17,7 +18,6 @@ interface LambdaIntegrationProps {
   httpApi: HttpApi;
   path: string;
   methods: HttpMethod[];
-  logGroup?: logs.ILogGroup;
   authorizer?: HttpLambdaAuthorizer;
   layers?: LayerVersion[];
 }
@@ -30,12 +30,12 @@ export function createLambdaIntegration(props: LambdaIntegrationProps) {
     code: Code.fromAsset(props.codePath),
     environment: props.environment,
     layers: props.layers,
-    logRetention: props.logGroup ? undefined : logs.RetentionDays.ONE_WEEK,
+    logGroup: new logs.LogGroup(props.scope, `${props.id}LogGroup`, {
+      logGroupName: `/handterm/${props.scope.stackName}/${props.id}`,
+      retention: logs.RetentionDays.ONE_WEEK,
+      removalPolicy: RemovalPolicy.DESTROY
+    })
   });
-
-  if (props.logGroup) {
-    props.logGroup.grantWrite(lambdaFunction);
-  }
 
   const integration = new HttpLambdaIntegration(`${props.id}-integration`, lambdaFunction);
 

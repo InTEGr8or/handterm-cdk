@@ -45,14 +45,6 @@ export class HandTermCdkStack extends Stack {
       throw new Error('Failed to initialize stack due to missing GitHub secrets');
     }
 
-    // Add this helper function
-    const createCustomLogGroup = (functionName: string): logs.LogGroup => {
-      return new logs.LogGroup(this, `${functionName}LogGroup`, {
-        logGroupName: `/handterm/${this.stackName}/${functionName}`,
-        retention: logs.RetentionDays.ONE_WEEK,
-        removalPolicy: RemovalPolicy.DESTROY
-      });
-    };
 
     // Cognito User Pool with custom attributes
     const userPool = new cognito.UserPool(this, 'HandTermUserPool', {
