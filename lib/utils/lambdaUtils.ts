@@ -35,7 +35,10 @@ export function createLambdaIntegration(props: LambdaIntegrationProps) {
     handler: props.handler,
     role: props.role,
     code: Code.fromAsset(props.codePath),
-    environment: props.environment,
+    environment: {
+      ...props.environment,
+      LOG_GROUP_NAME: logGroup.logGroupName,
+    },
     layers: props.layers,
   });
 
