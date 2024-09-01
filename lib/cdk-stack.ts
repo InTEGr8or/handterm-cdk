@@ -242,6 +242,12 @@ export class HandTermCdkStack extends Stack {
     // Remove any explicit permissions added to individual functions
 
     // Define the Lambda Authorizer
+    const authorizerLogGroup = new logs.LogGroup(this, 'AuthorizerLogGroup', {
+      logGroupName: `/handterm/${this.stackName}/AuthorizerFunction`,
+      retention: logs.RetentionDays.ONE_WEEK,
+      removalPolicy: RemovalPolicy.DESTROY
+    });
+
     const authorizerFunction = new lambda.Function(this, 'AuthorizerFunction', {
       runtime: nodeRuntime,
       handler: 'authorizer.handler',
@@ -249,8 +255,18 @@ export class HandTermCdkStack extends Stack {
       code: lambda.Code.fromAsset('lambda/authentication'),
       environment: {
         COGNITO_USER_POOL_ID: userPool.userPoolId,
+        LOG_GROUP_NAME: authorizerLogGroup.logGroupName,
       },
     });
+
+    // Grant write permissions to the Lambda function for the log group
+    authorizerLogGroup.grantWrite(authorizerFunction);
+
+    // Add CloudWatch Logs permissions to the Lambda execution role
+    authorizerFunction.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['logs:CreateLogStream', 'logs:PutLogEvents'],
+      resources: [authorizerLogGroup.logGroupArn],
+    }));
 
     const lambdaAuthorizer = new HttpLambdaAuthorizer('LambdaAuthorizer', authorizerFunction, {
       authorizerName: 'LambdaAuthorizer',
