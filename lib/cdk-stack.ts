@@ -275,6 +275,14 @@ export class HandTermCdkStack extends Stack {
       responseTypes: [HttpLambdaResponseType.SIMPLE],
     });
 
+    // Add a default route with the Lambda authorizer
+    httpApi.addRoutes({
+      path: '/{proxy+}',
+      methods: [HttpMethod.ANY],
+      authorizer: lambdaAuthorizer,
+      integration: new apigatewayv2.HttpLambdaIntegration('DefaultIntegration', authorizerFunction),
+    });
+
     // Define the Identity Pool
     const identityPool = new cognito.CfnIdentityPool(this, 'IdentityPool', {
       allowUnauthenticatedIdentities: false,
