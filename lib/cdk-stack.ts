@@ -57,6 +57,7 @@ export class HandTermCdkStack extends Stack {
         username: true, 
         email: true
       },
+      signInCaseSensitive: false,
       passwordPolicy: {
         minLength: 8,
         requireUppercase: true,
