@@ -51,8 +51,8 @@ export const handler = async (event: APIGatewayTokenAuthorizerEvent): Promise<AP
         console.log('User attributes:', JSON.stringify(userAttributes, null, 2));
         const githubId = userAttributes['custom:github_id'] || '';
         const userWithGithubId = userId + '|' + githubId;
-        return generatePolicy(userWithGithubId, 'Allow', event.methodArn, { 
-            userId: userId + '|' + githubId 
+        return generatePolicy('example1', 'Allow', event.methodArn, { 
+            userId: 'example2' 
         });
     } catch (error) {
         console.error('Error in Cognito getUser:', error);
