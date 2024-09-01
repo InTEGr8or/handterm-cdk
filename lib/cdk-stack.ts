@@ -70,32 +70,7 @@ export class HandTermCdkStack extends Stack {
       },
     });
 
-    new cognito.CfnUserPoolIdentityProvider(this, 'GitHubIdentityProvider', {
-      userPoolId: userPool.userPoolId,
-      providerName: 'GitHub',
-      providerType: 'OIDC',
-      providerDetails: {
-        client_id: clientId,
-        client_secret: clientSecret,
-        attributes_request_method: 'GET',
-        oidc_issuer: 'https://github.com',
-        authorize_scopes: 'openid user:email',
-        authorize_url: 'https://github.com/login/oauth/authorize',
-        token_url: 'https://github.com/login/oauth/access_token',
-        attributes_url: 'https://api.github.com/user',
-        jwks_uri: 'https://token.actions.githubusercontent.com/.well-known/jwks'
-      },
-      attributeMapping: {
-        email: 'email',
-        preferredUsername: 'login',
-        name: 'name',
-        picture: 'avatar_url',
-        address: 'location',
-        birthdate: 'created_at',
-        zoneinfo: 'tz_offset',
-        locale: 'locale'
-      },
-    });
+    // GitHub Identity Provider is now created before the User Pool Client
 
     // Define the HTTP API
     const httpApi = new HttpApi(this, 'HandTermApi', {
@@ -150,6 +125,35 @@ export class HandTermCdkStack extends Stack {
     }
 
     // Cognito User Pool Client
+    // Create the GitHub Identity Provider
+    const githubProvider = new cognito.CfnUserPoolIdentityProvider(this, 'GitHubIdentityProvider', {
+      userPoolId: userPool.userPoolId,
+      providerName: 'GitHub',
+      providerType: 'OIDC',
+      providerDetails: {
+        client_id: clientId,
+        client_secret: clientSecret,
+        attributes_request_method: 'GET',
+        oidc_issuer: 'https://github.com',
+        authorize_scopes: 'openid user:email',
+        authorize_url: 'https://github.com/login/oauth/authorize',
+        token_url: 'https://github.com/login/oauth/access_token',
+        attributes_url: 'https://api.github.com/user',
+        jwks_uri: 'https://token.actions.githubusercontent.com/.well-known/jwks'
+      },
+      attributeMapping: {
+        email: 'email',
+        preferredUsername: 'login',
+        name: 'name',
+        picture: 'avatar_url',
+        address: 'location',
+        birthdate: 'created_at',
+        zoneinfo: 'tz_offset',
+        locale: 'locale'
+      },
+    });
+
+    // Create the User Pool Client after the GitHub Identity Provider
     const userPoolClient = new cognito.UserPoolClient(this, 'UserPoolClient', {
       userPool,
       supportedIdentityProviders: [
@@ -167,7 +171,7 @@ export class HandTermCdkStack extends Stack {
     });
 
     // Ensure the client is created after the identity provider
-    userPoolClient.node.addDependency(userPool);
+    userPoolClient.node.addDependency(githubProvider);
 
     // Define or import the Logs Bucket
     let logsBucket: s3.IBucket;
