@@ -7,58 +7,54 @@ const logsClient = new CloudWatchLogsClient({ region: 'us-east-1' });
 
 const LOG_GROUP_NAME = process.env.LOG_GROUP_NAME || '/handterm/default/AuthorizerFunction';
 
-async function log(message: string) {
+function log(message: string) {
     const timestamp = new Date().getTime();
     const logEvent = {
         timestamp,
         message: `${timestamp} AuthorizerFunction: ${message}`,
     };
 
-    try {
-        await logsClient.send(new PutLogEventsCommand({
-            logGroupName: LOG_GROUP_NAME,
-            logStreamName: new Date().toISOString().split('T')[0], // Use date as log stream name
-            logEvents: [logEvent],
-        }));
-    } catch (error) {
-        console.error('Error logging to CloudWatch:', error);
-    }
+    logsClient.send(new PutLogEventsCommand({
+        logGroupName: LOG_GROUP_NAME,
+        logStreamName: new Date().toISOString().split('T')[0], // Use date as log stream name
+        logEvents: [logEvent],
+    })).catch(error => console.error('Error logging to CloudWatch:', error));
 }
 
 export const handler = async (event: APIGatewayTokenAuthorizerEvent): Promise<APIGatewayAuthorizerResult> => {
-    await log(`COGNITO_USER_POOL_ID: ${process.env.COGNITO_USER_POOL_ID}`);
-    await log(`Authorizer invoked with event: ${JSON.stringify(event, null, 2)}`);
+    log(`COGNITO_USER_POOL_ID: ${process.env.COGNITO_USER_POOL_ID}`);
+    log(`Authorizer invoked with event: ${JSON.stringify(event, null, 2)}`);
 
     // Log all headers if they exist
     const headers = (event as any).headers;
-    await log(`All headers: ${JSON.stringify(headers, null, 2)}`);
+    log(`All headers: ${JSON.stringify(headers, null, 2)}`);
 
     // Check for authorization in different places
     const authHeader = event.authorizationToken || (headers?.Authorization as string) || (headers?.authorization as string);
-    await log(`Authorization header: ${authHeader}`);
+    log(`Authorization header: ${authHeader}`);
 
     if (!authHeader) {
-        await log('No Authorization header found');
+        log('No Authorization header found');
         return generatePolicy('user', 'Deny', event.methodArn);
     }
 
     const token = authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : authHeader;
-    await log(`Extracted token: ${token}`);
+    log(`Extracted token: ${token}`);
 
     const userPoolId = process.env.COGNITO_USER_POOL_ID;
     if (!userPoolId) {
-        await log('COGNITO_USER_POOL_ID is not set in environment variables');
+        log('COGNITO_USER_POOL_ID is not set in environment variables');
         return generatePolicy('user', 'Deny', event.methodArn);
     }
 
     try {
-        await log('Sending GetUserCommand with token');
+        log('Sending GetUserCommand with token');
         const command = new GetUserCommand({
             AccessToken: token
         });
         const response = await cognitoClient.send(command);
 
-        await log(`Cognito getUser response: ${JSON.stringify(response, null, 2)}`);
+        log(`Cognito getUser response: ${JSON.stringify(response, null, 2)}`);
         const userId = response.Username;
 
         if (!userId) {
@@ -70,7 +66,7 @@ export const handler = async (event: APIGatewayTokenAuthorizerEvent): Promise<AP
             }
             return acc;
         }, {} as Record<string, string>) ?? {};
-        await log(`User attributes: ${JSON.stringify(userAttributes, null, 2)}`);
+        log(`User attributes: ${JSON.stringify(userAttributes, null, 2)}`);
         const githubId = userAttributes['custom:github_id'] || '';
         const userWithGithubId = userId + '|' + githubId;
         return generatePolicy(userId, 'Allow', event.methodArn, { 
@@ -78,13 +74,13 @@ export const handler = async (event: APIGatewayTokenAuthorizerEvent): Promise<AP
             githubId: githubId
         });
     } catch (error) {
-        await log(`Error in Cognito getUser: ${error}`);
+        log(`Error in Cognito getUser: ${error}`);
         return generatePolicy('user', 'Deny', event.methodArn);
     }
 };
 
-async function generatePolicy(principalId: string, effect: 'Allow' | 'Deny', resource: string, context = {}): Promise<APIGatewayAuthorizerResult> {
-    await log(`Generating policy: principalId=${principalId}, effect=${effect}, resource=${resource}, context=${JSON.stringify(context)}`);
+function generatePolicy(principalId: string, effect: 'Allow' | 'Deny', resource: string, context = {}): APIGatewayAuthorizerResult {
+    log(`Generating policy: principalId=${principalId}, effect=${effect}, resource=${resource}, context=${JSON.stringify(context)}`);
     return {
         principalId,
         policyDocument: {
