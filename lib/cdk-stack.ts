@@ -44,31 +44,8 @@ export class HandTermCdkStack extends Stack {
       throw new Error('Failed to initialize stack due to missing GitHub secrets');
     }
 
-    // Cognito User Pool with custom attributes
-    const userPool = new cognito.UserPool(this, 'HandTermUserPool', {
-      userPoolName: 'HandTermUserPool',
-      selfSignUpEnabled: true,
-      userVerification: {
-        emailSubject: 'Verify your email for our app!',
-        emailBody: 'Hello {username}, Thanks for signing up to our app! Your verification code is {####}',
-        emailStyle: cognito.VerificationEmailStyle.CODE,
-      },
-      signInAliases: {
-        email: true
-      },
-      passwordPolicy: {
-        minLength: 8,
-        requireUppercase: true,
-        requireLowercase: true,
-        requireDigits: true,
-        requireSymbols: true,
-      },
-      autoVerify: { email: true },
-      customAttributes: {
-        github_token: new cognito.StringAttribute({ mutable: true }),
-        github_id: new cognito.StringAttribute({ mutable: true }),
-      },
-    });
+    // Import the existing Cognito User Pool
+    const userPool = cognito.UserPool.fromUserPoolId(this, 'ExistingUserPool', 'YOUR_EXISTING_USER_POOL_ID');
 
     new cognito.CfnUserPoolIdentityProvider(this, 'GitHubIdentityProvider', {
       userPoolId: userPool.userPoolId,
@@ -169,17 +146,8 @@ export class HandTermCdkStack extends Stack {
     // Ensure the client is created after the identity provider
     userPoolClient.node.addDependency(userPool);
 
-    // Define or import the Logs Bucket
-    let logsBucket: s3.IBucket;
-    try {
-      logsBucket = s3.Bucket.fromBucketName(this, 'ExistingLogsBucket', ENDPOINTS.aws.s3.bucketName);
-    } catch {
-      logsBucket = new s3.Bucket(this, 'LogsBucket', {
-        bucketName: ENDPOINTS.aws.s3.bucketName,
-        removalPolicy: RemovalPolicy.RETAIN,
-        autoDeleteObjects: false,
-      });
-    }
+    // Import the existing Logs Bucket
+    const logsBucket = s3.Bucket.fromBucketName(this, 'ExistingLogsBucket', ENDPOINTS.aws.s3.bucketName);
 
     // Define the Lambda Execution Role
     const lambdaExecutionRole = new iam.Role(this, 'LambdaExecutionRole', {
