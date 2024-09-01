@@ -54,6 +54,7 @@ export class HandTermCdkStack extends Stack {
         emailStyle: cognito.VerificationEmailStyle.CODE,
       },
       signInAliases: {
+        username: true, 
         email: true
       },
       passwordPolicy: {
