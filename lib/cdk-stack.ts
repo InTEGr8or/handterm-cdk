@@ -128,14 +128,8 @@ export class HandTermCdkStack extends Stack {
         status: "$context.status",
         protocol: "$context.protocol",
         responseLength: "$context.responseLength",
-        authorizer: {
-          principalId: "$context.authorizer.principalId",
-          integrationLatency: "$context.authorizer.integrationLatency",
-          error: "$context.authorizer.error"
-        },
-        requestContext: {
-          authorizer: "$context.authorizer"
-        }
+        integrationLatency: "$context.integrationLatency",
+        authorizerError: "$context.authorizer.error"
       })
     };
 
