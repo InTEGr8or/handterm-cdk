@@ -263,9 +263,25 @@ export class HandTermCdkStack extends Stack {
       codePath: 'lambda/authentication',
       environment: {
         COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
+        COGNITO_USER_POOL_ID: userPool.userPoolId,
       },
       httpApi: httpApi,
       path: ENDPOINTS.api.SignUp,
+      methods: [HttpMethod.POST],
+    });
+
+    createLambdaIntegration({
+      scope: this,
+      id: 'ConfirmSignUpFunction',
+      handler: 'confirmSignUp.handler',
+      role: lambdaExecutionRole,
+      codePath: 'lambda/authentication',
+      environment: {
+        COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
+        COGNITO_USER_POOL_ID: userPool.userPoolId,
+      },
+      httpApi: httpApi,
+      path: ENDPOINTS.api.ConfirmSignUp,
       methods: [HttpMethod.POST],
     });
 
