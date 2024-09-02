@@ -19,7 +19,7 @@ describe('Authorizer', () => {
     };
 
     const result = await handler(event);
-    expect(result.policyDocument.Statement[0].Effect).toBe('Deny');
+    expect(result.isAuthorized).toBe(false);
   });
 
   it('should allow access when a valid token is provided', async () => {
@@ -34,7 +34,7 @@ describe('Authorizer', () => {
     };
 
     const result = await handler(event);
-    expect(result.policyDocument.Statement[0].Effect).toBe('Allow');
+    expect(result.isAuthorized).toBe(true);
     expect(result.context).toHaveProperty('userId', 'testuser');
   });
 
@@ -48,6 +48,6 @@ describe('Authorizer', () => {
     };
 
     const result = await handler(event);
-    expect(result.policyDocument.Statement[0].Effect).toBe('Deny');
+    expect(result.isAuthorized).toBe(false);
   });
 });

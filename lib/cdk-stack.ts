@@ -402,135 +402,104 @@ export class HandTermCdkStack extends Stack {
     // Log the GetUser endpoint for debugging
     new CfnOutput(this, 'GetUserEndpoint', { value: `${httpApi.url}${ENDPOINTS.api.GetUser}` });
 
-    createLambdaIntegration({
+    const defaultLambdaProps = {
       scope: this,
-      id: 'SetUserFunction',
-      handler: 'setUser.handler',
       role: lambdaExecutionRole,
-      codePath: 'lambda/userStorage',
+      httpApi: httpApi,
       environment: {
         COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
+        BUCKET_NAME: ENDPOINTS.aws.s3.bucketName,
       },
-      httpApi: httpApi,
+    };
+
+    createLambdaIntegration({
+      ...defaultLambdaProps,
+      id: 'SetUserFunction',
+      handler: 'setUser.handler',
+      codePath: 'lambda/userStorage',
       path: ENDPOINTS.api.SetUser,
       methods: [HttpMethod.POST],
       authorizer: lambdaAuthorizer,
     });
 
     createLambdaIntegration({
-      scope: this,
+      ...defaultLambdaProps,
       id: 'SaveLogFunction',
       handler: 'saveLog.handler',
-      role: lambdaExecutionRole,
       codePath: 'lambda/userStorage',
-      environment: {
-        COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
-      },
-      httpApi: httpApi,
       path: ENDPOINTS.api.SaveLog,
       methods: [HttpMethod.POST],
       authorizer: lambdaAuthorizer,
     });
 
     createLambdaIntegration({
-      scope: this,
+      ...defaultLambdaProps,
       id: 'GetLogFunction',
       handler: 'getLog.handler',
-      role: lambdaExecutionRole,
       codePath: 'lambda/userStorage',
-      environment: {
-        COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
-      },
-      httpApi: httpApi,
       path: ENDPOINTS.api.GetLog,
       methods: [HttpMethod.POST, HttpMethod.GET],
       authorizer: lambdaAuthorizer,
     });
 
     createLambdaIntegration({
-      scope: this,
+      ...defaultLambdaProps,
       id: 'ListLogFunction',
       handler: 'listLog.handler',
-      role: lambdaExecutionRole,
       codePath: 'lambda/userStorage',
-      environment: {
-        COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
-      },
-      httpApi: httpApi,
       path: ENDPOINTS.api.ListLog,
       methods: [HttpMethod.POST, HttpMethod.GET],
       authorizer: lambdaAuthorizer,
     });
 
     createLambdaIntegration({
-      scope: this,
+      ...defaultLambdaProps,
       id: 'GetFileFunction',
       handler: 'getFile.handler',
-      role: lambdaExecutionRole,
       codePath: 'lambda/userStorage',
-      environment: {
-        COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
-        BUCKET_NAME: logsBucket.bucketName,
-      },
-      httpApi: httpApi,
       path: ENDPOINTS.api.GetFile,
       methods: [HttpMethod.GET],
       authorizer: lambdaAuthorizer,
     });
 
     createLambdaIntegration({
-      scope: this,
+      ...defaultLambdaProps,
       id: 'PutFileFunction',
       handler: 'putFile.handler',
-      role: lambdaExecutionRole,
       codePath: 'lambda/userStorage',
-      environment: {
-        COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
-      },
-      httpApi: httpApi,
       path: ENDPOINTS.api.PutFile,
       methods: [HttpMethod.POST],
       authorizer: lambdaAuthorizer,
     });
 
     createLambdaIntegration({
-      scope: this,
+      ...defaultLambdaProps,
       id: 'ListRecentReposFunction',
       handler: 'listRecentRepos.handler',
-      role: lambdaExecutionRole,
       codePath: 'lambda/authentication',
-      environment: {
-        COGNITO_USER_POOL_ID: userPool.userPoolId,
-      },
-      httpApi: httpApi,
       path: '/list-recent-repos',
       methods: [HttpMethod.GET],
       authorizer: lambdaAuthorizer,
     });
 
     createLambdaIntegration({
-      scope: this,
+      ...defaultLambdaProps,
       id: 'SignOutFunction',
       handler: 'signOut.handler',
-      role: lambdaExecutionRole,
       codePath: 'lambda/authentication',
-      environment: {},
-      httpApi: httpApi,
       path: '/signout',
       methods: [HttpMethod.GET, HttpMethod.POST],
     });
 
     createLambdaIntegration({
-      scope: this,
+      ...defaultLambdaProps,
       id: 'GitHubAuthRedirectFunction',
       handler: 'githubAuthRedirect.handler',
-      role: lambdaExecutionRole,
       codePath: 'lambda/authentication',
       environment: {
         GITHUB_CLIENT_ID: clientId,
         REDIRECT_URI: `${httpApi.url}oauth_callback`,
       },
-      httpApi: httpApi,
       path: '/github_auth',
       methods: [HttpMethod.GET],
     });

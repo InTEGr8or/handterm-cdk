@@ -1,6 +1,5 @@
 
 import { S3Client, ListObjectsV2Command } from "@aws-sdk/client-s3";
-import { ENDPOINTS } from '../cdkshared/endpoints';
 
 const s3Client = new S3Client({ region: "us-east-1" });
 
@@ -10,7 +9,7 @@ export const handler = async (event: any) => {
     if (!userId) {
         return { statusCode: 401, body: JSON.stringify({ message: 'Unauthorized' }) };
     }
-    const bucketName = ENDPOINTS.aws.s3.bucketName;
+    const bucketName = process.env.BUCKET_NAME;
     const body = JSON.parse(event.body);
     const logDomain = body.logDomain;
     const limit = body.limit || 10;

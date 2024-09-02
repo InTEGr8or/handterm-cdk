@@ -1,13 +1,13 @@
 param (
     [Parameter(Mandatory=$true, Position=0, HelpMessage="The name of the Lambda function", ValueFromPipeline=$true)]
     [string]$FunctionName,
-    [Parameter(Mandatory=$false, Position=1)][int]$Limit = 10
+    [Parameter(Mandatory=$false, Position=1)][int]$Limit = 30
 )
 
 # Define the base name of your stack
 $stackName = "HandTermCdkStack"
 
-$logGroupName = aws logs describe-log-groups --query "logGroups[?contains(logGroupName, 'HandTerm')].logGroupName" --output json | ConvertFrom-Json | Where-Object {$_.ToLower().Contains("$FunctionName")}
+$logGroupName = aws logs describe-log-groups --query "logGroups[?contains(logGroupName, 'HandTerm')].logGroupName" --output json | ConvertFrom-Json | Where-Object {$_.ToLower().Contains("$($FunctionName.ToLower())")} | Select-Object -First 1
 
 Write-Host "Log group: $logGroupName"
 

@@ -1,9 +1,8 @@
 // cdk/lambda/userStorage/putFile.ts
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import { ENDPOINTS } from '../cdkshared/endpoints';
 
 const s3Client = new S3Client({ region: "us-east-1" });
-const bucketName = ENDPOINTS.aws.s3.bucketName;
+const bucketName = process.env.BUCKET_NAME;
 
 export const handler = async (event: any) => {
     const body = JSON.parse(event.body);

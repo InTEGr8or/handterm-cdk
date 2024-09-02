@@ -1,9 +1,8 @@
 // cdk/lambda/userStorage/getFile.ts
 
 import { S3Client, HeadObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
-import { ENDPOINTS } from '../cdkshared/endpoints';
 
-const bucketName = 'handterm';
+const bucketName = process.env.BUCKET_NAME;
 
 const s3Client = new S3Client({ region: 'us-east-1' });
 

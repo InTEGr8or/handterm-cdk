@@ -1,7 +1,6 @@
 // cdk/lambda/userStorage/getLog.ts
 
 import { S3Client, GetObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
-import { ENDPOINTS } from '../cdkshared/endpoints';
 
 const s3 = new S3Client({ region: 'us-east-1' });
 
@@ -10,7 +9,7 @@ export const handler = async (event: any) => {
     const userId = authorizer.lambda.userId;
     const logDomain = event.queryStringParameters.key || '';
     const limit = event.queryStringParameters.limit || 10;
-    const bucketName = ENDPOINTS.aws.s3.bucketName;
+    const bucketName = process.env.BUCKET_NAME;
     console.log('getLog received userId:', userId, 'logDomain:', event.queryStringParameters);
     if (!userId) {
         return { statusCode: 401, body: JSON.stringify({ message: 'Unauthorized' }) };
@@ -34,7 +33,7 @@ export const handler = async (event: any) => {
                 return timeB - timeA; // Sort in descending order
             })
             .slice(0, limit); // Get the most recent 5 keys
-        
+
         console.log('sortedKeys:', sortedKeys);
         // Proceed with the rest of your code...
 
@@ -51,7 +50,7 @@ export const handler = async (event: any) => {
         );
         console.log('contents:', contents);
 
-        return { statusCode: 200, body: JSON.stringify( contents ) };
+        return { statusCode: 200, body: JSON.stringify(contents) };
     } catch (err) {
         console.error('Error:', err);
         return { statusCode: 500, body: JSON.stringify(err) };
