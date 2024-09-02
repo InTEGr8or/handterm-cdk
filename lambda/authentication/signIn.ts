@@ -29,38 +29,28 @@ export const handler = async (event: { body: string }) => {
     const { IdToken, AccessToken, RefreshToken } = data.AuthenticationResult ?? {};
 
     if (!IdToken || !AccessToken || !RefreshToken) {
-      // Handle the missing tokens scenario, perhaps by throwing an error or returning an error response
       return {
         statusCode: 401,
         body: JSON.stringify({ message: "Authentication failed or incomplete." }),
       };
     }
 
-    // Concatenate the Set-Cookie strings into a single header value
-    const response = {
+    return {
       statusCode: 200,
-      body: JSON.stringify(data.AuthenticationResult),
-      cookies: [
-        `idToken=${IdToken}; SameSite=None; Secure; Path=/`,
-        `accessToken=${AccessToken}; SameSite=None; Secure; Path=/`,
-        `refreshToken=${RefreshToken}; SameSite=None; Secure; Path=/`
-      ]
+      body: JSON.stringify({
+        ...data.AuthenticationResult,
+        cookies: [
+          `idToken=${IdToken}; SameSite=None; Secure; Path=/`,
+          `accessToken=${AccessToken}; SameSite=None; Secure; Path=/`,
+          `refreshToken=${RefreshToken}; SameSite=None; Secure; Path=/`
+        ]
+      }),
     };
-    return response;
   } catch (err: any) {
     console.error('SignIn error:', err);
-    const response = {
+    return {
       statusCode: 400,
-      headers: {
-        "Access-Control-Allow-Origin": event.headers?.origin && ['http://localhost:5173', 'https://handterm.com'].includes(event.headers.origin)
-          ? event.headers.origin
-          : 'http://localhost:5173',
-        "Access-Control-Allow-Credentials": 'true',
-      },
-      body: JSON.stringify(err.message),
-      error: err
+      body: JSON.stringify({ message: err.message }),
     };
-
-    return response;
   }
 };
