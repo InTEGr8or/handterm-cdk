@@ -258,7 +258,6 @@ export class HandTermCdkStack extends Stack {
       logGroup: authorizerLogGroup,
       environment: {
         COGNITO_USER_POOL_ID: userPool.userPoolId,
-        LOG_GROUP_NAME: authorizerLogGroup.logGroupName,
       },
     });
 
