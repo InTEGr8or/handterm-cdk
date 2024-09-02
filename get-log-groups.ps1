@@ -2,13 +2,13 @@ param(
     [string]$Filter = "*"
 )
 
-# Get all log groups
-$logGroups = aws logs describe-log-groups --query 'logGroups[*].logGroupName' --output json | ConvertFrom-Json
+# Escape single quotes in the filter
+$escapedFilter = $Filter.Replace("'", "''")
 
-# Filter log groups based on the provided filter
-$filteredLogGroups = $logGroups | Where-Object { $_ -like $Filter }
+# Get and filter log groups using AWS CLI query
+$logGroups = aws logs describe-log-groups --query "logGroups[?contains(logGroupName, '$escapedFilter')].logGroupName" --output json | ConvertFrom-Json
 
 # Output the filtered log groups
-$filteredLogGroups | Format-Table -AutoSize
+$logGroups | Format-Table -AutoSize
 
-Write-Host "Total log groups: $($filteredLogGroups.Count)"
+Write-Host "Total log groups: $($logGroups.Count)"
