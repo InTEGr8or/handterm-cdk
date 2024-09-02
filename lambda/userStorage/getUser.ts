@@ -98,10 +98,6 @@ export const handler = async (event: any) => {
             console.log('GetUserFunction completed successfully');
             return {
                 statusCode: 200,
-                headers: {
-                    'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Credentials': true,
-                },
                 body: JSON.stringify({ 
                     userId: userId, 
                     userAttributes: userAttributes, 
@@ -118,20 +114,12 @@ export const handler = async (event: any) => {
                 console.log('Profile does not exist yet for userId:', userId);
                 return {
                     statusCode: 200,
-                    headers: {
-                        'Access-Control-Allow-Origin': '*',
-                        'Access-Control-Allow-Credentials': true,
-                    },
                     body: JSON.stringify({ userId: userId, content: null, message: 'Profile does not exist yet' }),
                 };
             } else {
                 console.error('S3 error:', JSON.stringify(error, null, 2));
                 return {
                     statusCode: 500,
-                    headers: {
-                        'Access-Control-Allow-Origin': '*',
-                        'Access-Control-Allow-Credentials': true,
-                    },
                     body: JSON.stringify({ 
                         message: 'S3 Object Error', 
                         error: error.message, 
@@ -146,10 +134,6 @@ export const handler = async (event: any) => {
         console.error('Unexpected error:', JSON.stringify(err, null, 2));
         return { 
             statusCode: 500, 
-            headers: {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Credentials': true,
-            },
             body: JSON.stringify({ 
                 message: 'Internal Server Error', 
                 error: (err as Error).message, 
