@@ -40,6 +40,7 @@ export function createLambdaIntegration(props: LambdaIntegrationProps) {
       LOG_GROUP_NAME: logGroup.logGroupName,
     },
     layers: props.layers,
+    logGroup: logGroup,
   });
 
   // Grant write permissions to the Lambda function for the log group
