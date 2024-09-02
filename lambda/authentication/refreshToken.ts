@@ -5,20 +5,6 @@ const cognitoClient = new CognitoIdentityProviderClient({ region: 'us-east-1' })
 export const handler = async (event: any) => {
   console.log('RefreshToken event:', JSON.stringify(event, null, 2));
 
-  // Handle OPTIONS request for CORS preflight
-  if (event.requestContext.http.method === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers: {
-        'Access-Control-Allow-Origin': event.headers.origin || 'http://localhost:5173',
-        'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-        'Access-Control-Allow-Methods': 'POST,OPTIONS',
-        'Access-Control-Allow-Credentials': 'true',
-      },
-      body: '',
-    };
-  }
-
   const body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
   console.log('RefreshToken body:', body);
 
@@ -49,22 +35,12 @@ export const handler = async (event: any) => {
     if (!IdToken || !AccessToken) {
       return {
         statusCode: 400,
-        headers: {
-          'Access-Control-Allow-Origin': event.headers.origin || 'http://localhost:5173',
-          'Access-Control-Allow-Credentials': 'true',
-        },
         body: JSON.stringify({ message: "Token refresh failed or incomplete." }),
       };
     }
 
     return {
       statusCode: 200,
-      headers: {
-        'Access-Control-Allow-Origin': event.headers.origin && ['http://localhost:5173', 'https://handterm.com'].includes(event.headers.origin)
-          ? event.headers.origin
-          : 'http://localhost:5173',
-        'Access-Control-Allow-Credentials': 'true',
-      },
       body: JSON.stringify({
         IdToken,
         AccessToken,
@@ -74,10 +50,6 @@ export const handler = async (event: any) => {
     console.error('RefreshToken error:', err);
     return {
       statusCode: 500,
-      headers: {
-        'Access-Control-Allow-Origin': event.headers.origin || 'http://localhost:5173',
-        'Access-Control-Allow-Credentials': 'true',
-      },
       body: JSON.stringify({ message: err.message || 'An error occurred during the token refresh process.' }),
     };
   }
