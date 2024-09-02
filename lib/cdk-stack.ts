@@ -277,12 +277,24 @@ export class HandTermCdkStack extends Stack {
       responseTypes: [HttpLambdaResponseType.SIMPLE],
     });
 
-    // Add a default route with the Lambda authorizer
+    // Add a default route with the Lambda authorizer for all methods except OPTIONS
     httpApi.addRoutes({
       path: '/{proxy+}',
-      methods: [HttpMethod.ANY],
+      methods: [HttpMethod.GET, HttpMethod.POST, HttpMethod.PUT, HttpMethod.DELETE, HttpMethod.PATCH],
       authorizer: lambdaAuthorizer,
       integration: new HttpLambdaIntegration('DefaultIntegration', authorizerFunction),
+    });
+
+    // Add a separate route for OPTIONS requests without authorization
+    httpApi.addRoutes({
+      path: '/{proxy+}',
+      methods: [HttpMethod.OPTIONS],
+      integration: new HttpLambdaIntegration('OptionsIntegration', new lambda.Function(this, 'OptionsHandler', {
+        runtime: nodeRuntime,
+        handler: 'options.handler',
+        code: lambda.Code.fromAsset('lambda/cors'),
+        role: lambdaExecutionRole,
+      })),
     });
 
     // Define the Identity Pool
