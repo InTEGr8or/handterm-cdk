@@ -10,6 +10,7 @@ console.log('Loading function');
 export const handler = async (event: any) => {
     console.log('GetUserFunction invoked');
     console.log('Event:', JSON.stringify(event, null, 2));
+    console.log('Environment variables:', JSON.stringify(process.env, null, 2));
     
     try {
         console.log('Checking event structure');

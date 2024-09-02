@@ -396,6 +396,9 @@ export class HandTermCdkStack extends Stack {
       authorizer: lambdaAuthorizer,
     });
 
+    // Add a log to check if this integration is being created
+    console.log(`Created GetUserFunction integration with path: ${ENDPOINTS.api.GetUser}`);
+
     // Log the GetUser endpoint for debugging
     new CfnOutput(this, 'GetUserEndpoint', { value: `${httpApi.url}${ENDPOINTS.api.GetUser}` });
 
