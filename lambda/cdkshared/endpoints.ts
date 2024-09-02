@@ -12,7 +12,7 @@ export const ENDPOINTS = {
         },
     },
     api: {
-        BaseUrl: 'https://qpjaecl1c1.execute-api.us-east-1.amazonaws.com',
+        BaseUrl: 'https://bp7cm4l238.execute-api.us-east-1.amazonaws.com',
         SignUp: '/signUp',
         ConfirmSignUp: '/confirm-signup',
         GetLog: '/getLog',
