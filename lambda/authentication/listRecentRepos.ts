@@ -4,21 +4,21 @@ import { request } from 'https';
 
 const cognito = new CognitoIdentityProviderClient({ region: 'us-east-1' });
 
-export const listRecentRepos = async (userSub: string): Promise<any[] | { statusCode: number; body: string }> => {
-  if (!userSub) {
-    console.error('listRecentRepos called with empty userSub');
+export const listRecentRepos = async (userId: string): Promise<any[] | { statusCode: number; body: string }> => {
+  if (!userId) {
+    console.error('listRecentRepos called with empty userId');
     return {
       statusCode: 401,
-      body: JSON.stringify({ message: 'Unauthorized: Empty user sub' }),
+      body: JSON.stringify({ message: 'Unauthorized: Empty user ID' }),
     };
   }
 
   try {
     // Retrieve the GitHub token from Cognito
-    console.log('Retrieving GitHub token for user:', userSub);
+    console.log('Retrieving GitHub token for user:', userId);
     const command = new AdminGetUserCommand({
       UserPoolId: process.env.COGNITO_USER_POOL_ID!,
-      Username: userSub,
+      Username: userId,
     });
     const userResponse = await cognito.send(command);
 
@@ -28,7 +28,7 @@ export const listRecentRepos = async (userSub: string): Promise<any[] | { status
     const githubToken = userResponse.UserAttributes?.find((attr: { Name?: string; Value?: string }) => attr.Name === 'custom:github_token')?.Value;
 
     if (!githubToken) {
-      console.error('GitHub token not found for user:', userSub);
+      console.error('GitHub token not found for user:', userId);
       console.log('Available attributes:', userResponse.UserAttributes?.map(attr => attr.Name).join(', '));
       return {
         statusCode: 400,
@@ -110,37 +110,29 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       };
     }
 
-    let userSub: string | undefined;
+    let userId: string | undefined;
 
     if (authorizer.lambda && authorizer.lambda.userId) {
-      userSub = authorizer.lambda.userId;
+      userId = authorizer.lambda.userId;
     } else if (authorizer.claims && authorizer.claims.sub) {
-      userSub = authorizer.claims.sub;
+      userId = authorizer.claims.sub;
     } else if (authorizer.jwt && authorizer.jwt.claims && authorizer.jwt.claims.sub) {
-      userSub = authorizer.jwt.claims.sub;
+      userId = authorizer.jwt.claims.sub;
     }
 
-    console.log('User Sub:', userSub);
+    console.log('User ID:', userId);
     
-    if (!userSub) {
-      console.error('User sub not found in the authorizer');
+    if (!userId) {
+      console.error('User ID not found in the authorizer');
       return {
         statusCode: 401,
-        body: JSON.stringify({ message: 'Unauthorized: User sub not found', authorizer: JSON.stringify(authorizer) }),
+        body: JSON.stringify({ message: 'Unauthorized: User ID not found', authorizer: JSON.stringify(authorizer) }),
       };
     }
 
-    // Validate userSub format
-    const userSubRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!userSubRegex.test(userSub)) {
-      console.error('Invalid user sub format:', userSub);
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ message: 'Bad Request: Invalid user sub format' }),
-      };
-    }
+    // Remove the userSubRegex validation as it's no longer applicable
     
-    const repos = await listRecentRepos(userSub);
+    const repos = await listRecentRepos(userId);
     return {
       statusCode: 200,
       body: JSON.stringify(repos),

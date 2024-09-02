@@ -307,90 +307,70 @@ export class HandTermCdkStack extends Stack {
       ],
     });
 
-    createLambdaIntegration({
+    const defaultLambdaProps = {
       scope: this,
-      id: 'SignUpFunction',
-      handler: 'signUp.handler',
       role: lambdaExecutionRole,
-      codePath: 'lambda/authentication',
+      httpApi: httpApi,
       environment: {
         COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
+        GITHUB_CLIENT_ID: clientId,
+        GITHUB_CLIENT_SECRET: clientSecret,
         COGNITO_USER_POOL_ID: userPool.userPoolId,
+        BUCKET_NAME: ENDPOINTS.aws.s3.bucketName,
       },
-      httpApi: httpApi,
+    };
+
+    createLambdaIntegration({
+      ...defaultLambdaProps,
+      id: 'SignUpFunction',
+      handler: 'signUp.handler',
+      codePath: 'lambda/authentication',
       path: ENDPOINTS.api.SignUp,
       methods: [HttpMethod.POST],
     });
 
     createLambdaIntegration({
-      scope: this,
+      ...defaultLambdaProps,
       id: 'ConfirmSignUpFunction',
       handler: 'confirmSignUp.handler',
-      role: lambdaExecutionRole,
       codePath: 'lambda/authentication',
-      environment: {
-        COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
-        COGNITO_USER_POOL_ID: userPool.userPoolId,
-      },
-      httpApi: httpApi,
       path: ENDPOINTS.api.ConfirmSignUp,
       methods: [HttpMethod.POST],
     });
 
     createLambdaIntegration({
-      scope: this,
+      ...defaultLambdaProps,
       id: 'SignInFunction',
       handler: 'signIn.handler',
-      role: lambdaExecutionRole,
       codePath: 'lambda/authentication',
-      environment: {
-        COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
-      },
-      httpApi: httpApi,
       path: ENDPOINTS.api.SignIn,
       methods: [HttpMethod.POST],
     });
 
     createLambdaIntegration({
-      scope: this,
+      ...defaultLambdaProps,
       id: 'RefreshTokenFunction',
       handler: 'refreshToken.handler',
-      role: lambdaExecutionRole,
       codePath: 'lambda/authentication',
-      environment: {
-        COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
-      },
-      httpApi: httpApi,
       path: ENDPOINTS.api.RefreshToken,
       methods: [HttpMethod.POST],
     });
 
     createLambdaIntegration({
-      scope: this,
+      ...defaultLambdaProps,
       id: 'ChangePasswordFunction',
       handler: 'changePassword.handler',
-      role: lambdaExecutionRole,
       codePath: 'lambda/authentication',
-      environment: {
-        COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
-      },
-      httpApi: httpApi,
       path: ENDPOINTS.api.ChangePassword,
       methods: [HttpMethod.POST],
       authorizer: lambdaAuthorizer,
     });
 
     createLambdaIntegration({
-      scope: this,
+      ...defaultLambdaProps,
       id: 'GetUserFunction',
       handler: 'getUser.handler',
-      role: lambdaExecutionRole,
       codePath: 'lambda/userStorage',
-      environment: {
-        COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
-        BUCKET_NAME: ENDPOINTS.aws.s3.bucketName,
-      },
-      httpApi: httpApi,
       path: ENDPOINTS.api.GetUser,
       methods: [HttpMethod.GET],
       authorizer: lambdaAuthorizer,
@@ -401,16 +381,6 @@ export class HandTermCdkStack extends Stack {
 
     // Log the GetUser endpoint for debugging
     new CfnOutput(this, 'GetUserEndpoint', { value: `${httpApi.url}${ENDPOINTS.api.GetUser}` });
-
-    const defaultLambdaProps = {
-      scope: this,
-      role: lambdaExecutionRole,
-      httpApi: httpApi,
-      environment: {
-        COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
-        BUCKET_NAME: ENDPOINTS.aws.s3.bucketName,
-      },
-    };
 
     createLambdaIntegration({
       ...defaultLambdaProps,
@@ -519,8 +489,6 @@ export class HandTermCdkStack extends Stack {
       httpApi: httpApi,
       path: '/oauth_callback',
       methods: [HttpMethod.GET, HttpMethod.POST],
-      // Temporarily remove the authorizer
-      // authorizer: lambdaAuthorizer,
     });
 
     new CfnOutput(this, 'ApiEndpoint', { value: httpApi.url || '' });
