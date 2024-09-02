@@ -7,20 +7,8 @@ param (
 # Define the base name of your stack
 $stackName = "HandTermCdkStack"
 
-# Use AWS CLI to list all Lambda functions and filter by the pattern
-$lambdaFunctionName = aws lambda list-functions --output json `
-    | ConvertFrom-Json `
-    | Select-Object -ExpandProperty Functions `
-    | Where-Object { $_.FunctionName -like "*$stackName*$FunctionName*" } `
-    | Select-Object -First 1 -ExpandProperty FunctionName
+$logGroupName = aws logs describe-log-groups --query "logGroups[?contains(logGroupName, 'HandTerm')].logGroupName" --output json | ConvertFrom-Json | Where-Object {$_.ToLower().Contains("$FunctionName")}
 
-if (-not $lambdaFunctionName) {
-    Write-Host "No Lambda function found matching the name $FunctionName"
-    exit
-}
-
-Write-Host "Matching Lambda function: $lambdaFunctionName"
-$logGroupName = "/aws/lambda/$lambdaFunctionName"
 Write-Host "Log group: $logGroupName"
 
 # Describe the log streams for the Lambda function and get the most recent one
