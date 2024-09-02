@@ -255,6 +255,7 @@ export class HandTermCdkStack extends Stack {
       handler: 'authorizer.handler',
       role: lambdaExecutionRole,
       code: lambda.Code.fromAsset('lambda/authentication'),
+      logGroup: authorizerLogGroup,
       environment: {
         COGNITO_USER_POOL_ID: userPool.userPoolId,
         LOG_GROUP_NAME: authorizerLogGroup.logGroupName,
