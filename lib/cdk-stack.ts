@@ -82,10 +82,9 @@ export class HandTermCdkStack extends Stack {
     const httpApi = new HttpApi(this, 'HandTermApi', {
       apiName: 'HandTermService',
       description: 'This service serves authentication requests.',
-      // CORS configuration if needed
       corsPreflight: {
         allowOrigins: ['http://localhost:5173', 'https://handterm.com'],
-        allowMethods: [CorsHttpMethod.GET, CorsHttpMethod.POST, CorsHttpMethod.OPTIONS],
+        allowMethods: [CorsHttpMethod.GET, CorsHttpMethod.POST, CorsHttpMethod.PUT, CorsHttpMethod.DELETE, CorsHttpMethod.OPTIONS],
         allowHeaders: ['Content-Type', 'Authorization'],
         allowCredentials: true,
       },
@@ -363,7 +362,7 @@ export class HandTermCdkStack extends Stack {
       },
       httpApi: httpApi,
       path: ENDPOINTS.api.RefreshToken,
-      methods: [HttpMethod.POST, HttpMethod.OPTIONS],
+      methods: [HttpMethod.POST],
     });
 
     createLambdaIntegration({
