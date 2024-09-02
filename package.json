@@ -9,12 +9,10 @@
   "scripts": {
     "cpCdk": "cp ../handterm/src/shared/endpoints.ts lambda/cdkshared/",
     "build": "tsc",
-    "deploy": "yarn cpCdk && yarn build && node scripts/deploy.js",
+    "deploy": "yarn cpCdk && yarn build && cdk deploy --profile mark --region us-east-1",
     "watch": "tsc -w",
     "test": "jest",
-    "cdk": "cdk",
-    "detect-drift": "cdk detect-drift --region=us-east-1 --profile mark",
-    "resolve-drift": "cdk deploy --region=us-east-1 --profile mark --require-approval never"
+    "cdk": "cdk"
   },
   "dependencies": {
     "@aws-sdk/client-cognito-identity-provider": "^3.637.0",
