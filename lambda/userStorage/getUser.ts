@@ -2,9 +2,6 @@
 import { S3Client, GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { ENDPOINTS } from '../cdkshared/endpoints';
 
-const s3Client = new S3Client({ region: 'us-east-1' });
-const bucketName = process.env.BUCKET_NAME || 'handterm';
-
 console.log('Loading function');
 
 export const handler = async (event: any) => {
@@ -72,28 +69,7 @@ export const handler = async (event: any) => {
             };
         }
 
-        const objectKey = `user_data/${userId}/_index.md`;
-        console.log('objectKey:', objectKey);
-        console.log('BUCKET_NAME:', bucketName);
-
         try {
-            console.log('Attempting to check if object exists');
-            const headCommand = new HeadObjectCommand({
-                Bucket: bucketName,
-                Key: objectKey
-            });
-            const headResult = await s3Client.send(headCommand);
-            console.log('Head object result:', JSON.stringify(headResult, null, 2));
-
-            console.log('Object exists, proceeding to get object');
-            const getCommand = new GetObjectCommand({
-                Bucket: bucketName,
-                Key: objectKey
-            });
-            const s3Response = await s3Client.send(getCommand);
-
-            const fileContent = await s3Response.Body?.transformToString();
-            console.log('File content retrieved:', fileContent);
 
             console.log('GetUserFunction completed successfully');
             return {
@@ -101,7 +77,6 @@ export const handler = async (event: any) => {
                 body: JSON.stringify({ 
                     userId: userId, 
                     userAttributes: userAttributes, 
-                    content: fileContent,
                     githubId: githubId,
                     githubToken: githubToken ? '[REDACTED]' : null
                 }),
