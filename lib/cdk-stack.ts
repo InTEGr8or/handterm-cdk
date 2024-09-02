@@ -273,7 +273,7 @@ export class HandTermCdkStack extends Stack {
       authorizerName: 'LambdaAuthorizer',
       identitySource: ['$request.header.Authorization'],
       resultsCacheTtl: Duration.seconds(0),
-      responseTypes: [HttpLambdaResponseType.IAM],
+      responseTypes: [HttpLambdaResponseType.SIMPLE],
     });
 
     // Add a default route with the Lambda authorizer for all methods except OPTIONS
