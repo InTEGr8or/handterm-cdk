@@ -60,7 +60,9 @@ export const handler = async (event: any) => {
     return {
       statusCode: 200,
       headers: {
-        'Access-Control-Allow-Origin': event.headers.origin || 'http://localhost:5173',
+        'Access-Control-Allow-Origin': event.headers.origin && ['http://localhost:5173', 'https://handterm.com'].includes(event.headers.origin)
+          ? event.headers.origin
+          : 'http://localhost:5173',
         'Access-Control-Allow-Credentials': 'true',
       },
       body: JSON.stringify({

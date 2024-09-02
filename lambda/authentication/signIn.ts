@@ -52,8 +52,10 @@ export const handler = async (event: { body: string }) => {
     const response = {
       statusCode: 400,
       headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Credentials": true,
+        "Access-Control-Allow-Origin": event.headers?.origin && ['http://localhost:5173', 'https://handterm.com'].includes(event.headers.origin)
+          ? event.headers.origin
+          : 'http://localhost:5173',
+        "Access-Control-Allow-Credentials": 'true',
       },
       body: JSON.stringify(err.message),
       error: err
