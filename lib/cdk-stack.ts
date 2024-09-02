@@ -470,6 +470,7 @@ export class HandTermCdkStack extends Stack {
       codePath: 'lambda/userStorage',
       environment: {
         COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
+        BUCKET_NAME: logsBucket.bucketName,
       },
       httpApi: httpApi,
       path: ENDPOINTS.api.GetFile,
