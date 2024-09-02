@@ -1,9 +1,9 @@
-import { APIGatewayTokenAuthorizerEvent, APIGatewayAuthorizerResult, APIGatewaySimpleAuthorizerWithContextResult } from 'aws-lambda';
+import { APIGatewayTokenAuthorizerEvent, APIGatewayAuthorizerResult, APIGatewaySimpleAuthorizerWithContextResult, APIGatewaySimpleAuthorizerResult } from 'aws-lambda';
 import { CognitoIdentityProviderClient, GetUserCommand } from '@aws-sdk/client-cognito-identity-provider';
 
 export const cognitoClient = new CognitoIdentityProviderClient({ region: 'us-east-1' });
 
-export const handler = async (event: APIGatewayTokenAuthorizerEvent): Promise<APIGatewaySimpleAuthorizerWithContextResult> => {
+export const handler = async (event: APIGatewayTokenAuthorizerEvent): Promise<APIGatewaySimpleAuthorizerWithContextResult<{ [key: string]: string }>> => {
     console.log(`COGNITO_USER_POOL_ID: ${process.env.COGNITO_USER_POOL_ID}`);
     console.log(`Authorizer invoked with event: ${JSON.stringify(event, null, 2)}`);
 
@@ -61,7 +61,7 @@ export const handler = async (event: APIGatewayTokenAuthorizerEvent): Promise<AP
     }
 };
 
-function generatePolicy(principalId: string, effect: 'Allow' | 'Deny', resource: string, context = {}): APIGatewaySimpleAuthorizerWithContextResult {
+function generatePolicy(principalId: string, effect: 'Allow' | 'Deny', resource: string, context = {}): APIGatewaySimpleAuthorizerWithContextResult<{ [key: string]: string }> {
     console.log(`Generating policy: principalId=${principalId}, effect=${effect}, resource=${resource}, context=${JSON.stringify(context)}`);
     return {
         isAuthorized: effect === 'Allow',
