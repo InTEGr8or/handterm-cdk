@@ -1,6 +1,5 @@
 
 import { S3Client, GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
-import { ENDPOINTS } from '../cdkshared/endpoints';
 
 console.log('Loading function');
 
@@ -8,6 +7,9 @@ export const handler = async (event: any) => {
     console.log('GetUserFunction invoked');
     console.log('Event:', JSON.stringify(event, null, 2));
     console.log('Environment variables:', JSON.stringify(process.env, null, 2));
+
+    const s3Client = new S3Client({ region: "us-east-1" });
+    const bucketName = process.env.BUCKET_NAME;
     
     try {
         console.log('Checking event structure');
