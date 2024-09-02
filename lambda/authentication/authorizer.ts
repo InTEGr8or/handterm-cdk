@@ -73,7 +73,6 @@ function generatePolicy(principalId: string, effect: 'Allow' | 'Deny', resource:
                 Resource: resource
             }]
         },
-        context,
-        isAuthorized: effect === 'Allow',
+        context
     };
 }
