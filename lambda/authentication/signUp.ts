@@ -53,14 +53,34 @@ export const handler = async (event: { body: string; }) => {
     };
   } catch (err: any) {
     console.error('SignUp error:', err); // Log any errors that occur
+    
+    let statusCode = 400;
+    let errorMessage = 'An error occurred during sign up';
+    let errorCode = 'UnknownError';
+
+    if (err.name === 'InvalidPasswordException') {
+      errorMessage = 'Password does not meet the requirements';
+      errorCode = 'InvalidPassword';
+    } else if (err.name === 'UsernameExistsException') {
+      errorMessage = 'An account with this username already exists';
+      errorCode = 'UsernameExists';
+    } else if (err.name === 'InvalidParameterException') {
+      errorMessage = 'Invalid parameter provided';
+      errorCode = 'InvalidParameter';
+    }
+
     // Include CORS headers in the error response
     return {
-      statusCode: 400,
+      statusCode: statusCode,
       headers: {
         "Access-Control-Allow-Origin": "*", // Adjust this value based on your requirements
         "Access-Control-Allow-Credentials": true, // If your client needs to handle cookies
       },
-      body: JSON.stringify({ error: err.message })
+      body: JSON.stringify({
+        error: errorMessage,
+        errorCode: errorCode,
+        details: err.message
+      })
     };
   }
 };

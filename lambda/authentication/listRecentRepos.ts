@@ -1,10 +1,11 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { CognitoIdentityProviderClient, AdminGetUserCommand } from '@aws-sdk/client-cognito-identity-provider';
 import { request } from 'https';
+import { Octokit } from '@octokit/rest';
 
 const cognito = new CognitoIdentityProviderClient({ region: 'us-east-1' });
 
-export const listRecentRepos = async (userId: string): Promise<any[] | { statusCode: number; body: string }> => {
+export const listRecentRepos = async (userId: string): Promise<APIGatewayProxyResult> => {
   if (!userId) {
     console.error('listRecentRepos called with empty userId');
     return {
@@ -130,8 +131,6 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       };
     }
 
-    // Remove the userSubRegex validation as it's no longer applicable
-    
     const repos = await listRecentRepos(userId);
     return {
       statusCode: 200,

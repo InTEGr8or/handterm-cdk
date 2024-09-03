@@ -73,6 +73,7 @@ export class HandTermCdkStack extends Stack {
       customAttributes: {
         github_token: new cognito.StringAttribute({ mutable: true }),
         github_id: new cognito.StringAttribute({ mutable: true }),
+        github_username: new cognito.StringAttribute({ mutable: true }),
       },
     });
 
@@ -454,6 +455,16 @@ export class HandTermCdkStack extends Stack {
 
     createLambdaIntegration({
       ...defaultLambdaProps,
+      id: 'GetRepoTreeFunction',
+      handler: 'getRepoTree.handler',
+      codePath: 'lambda/authentication',
+      path: '/get-repo-tree',
+      methods: [HttpMethod.GET],
+      authorizer: lambdaAuthorizer,
+    });
+
+    createLambdaIntegration({
+      ...defaultLambdaProps,
       id: 'SignOutFunction',
       handler: 'signOut.handler',
       codePath: 'lambda/authentication',
@@ -467,7 +478,7 @@ export class HandTermCdkStack extends Stack {
       handler: 'githubAuthRedirect.handler',
       codePath: 'lambda/authentication',
       environment: {
-        GITHUB_CLIENT_ID: clientId,
+        ...defaultLambdaProps.environment,
         REDIRECT_URI: `${httpApi.url}oauth_callback`,
       },
       path: '/github_auth',
@@ -481,9 +492,7 @@ export class HandTermCdkStack extends Stack {
       role: lambdaExecutionRole,
       codePath: 'lambda/authentication',
       environment: {
-        GITHUB_CLIENT_ID: clientId,
-        GITHUB_CLIENT_SECRET: clientSecret,
-        COGNITO_USER_POOL_ID: userPool.userPoolId,
+        ...defaultLambdaProps.environment,
         FRONTEND_URL: 'https://handterm.com', // Replace with your actual frontend URL
       },
       httpApi: httpApi,

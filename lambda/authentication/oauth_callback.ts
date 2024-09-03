@@ -18,9 +18,6 @@ interface GitHubUser {
   id: string;
   login: string;
   name?: string;
-  avatar_url?: string;
-  gravatar_id?: string;
-  gists_url?: string;
   email?: string;
 }
 
@@ -77,10 +74,12 @@ async function getGitHubUserData(accessToken: string): Promise<GitHubUser> {
   });
 
   console.log('Parsed user data:', JSON.stringify(userData));
+  console.log('All GitHub user properties:', Object.keys(userData));
 
   return {
     id: userData.id.toString(),
     login: userData.login,
+    name: userData.name,
     email: userData.email,
   };
 }
@@ -102,15 +101,27 @@ async function attachGitHubAccountToUser(cognitoUserId: string, githubUser: GitH
   const userPoolId = process.env.COGNITO_USER_POOL_ID!;
   const githubUserId = githubUser.id.toString();
   console.log('Attaching GitHub user ID:', githubUserId, 'to Cognito user ID:', cognitoUserId);
+  const userAttributes = [
+    { Name: 'custom:github_id', Value: githubUserId },
+    { Name: 'custom:github_token', Value: accessToken },
+    { Name: 'custom:github_username', Value: githubUser.login },
+  ];
+
+  if (githubUser.name) {
+    userAttributes.push({ Name: 'name', Value: githubUser.name });
+  }
+
+  if (githubUser.email) {
+    userAttributes.push({ Name: 'email', Value: githubUser.email });
+    userAttributes.push({ Name: 'email_verified', Value: 'true' });
+  }
+
   const updateAttributes = {
     UserPoolId: userPoolId,
     Username: cognitoUserId,
-    UserAttributes: [
-      { Name: 'custom:github_id', Value: githubUserId },
-      { Name: 'custom:github_token', Value: accessToken },
-    ],
+    UserAttributes: userAttributes,
   };
-  console.log('Updating user attributes:', updateAttributes);
+  console.log('Updating user attributes:', JSON.stringify(updateAttributes, null, 2));
   await cognito.send(new AdminUpdateUserAttributesCommand(updateAttributes));
 }
 
@@ -118,15 +129,22 @@ async function createNewUser(githubUser: GitHubUser, accessToken: string): Promi
   const cognito = new CognitoIdentityProviderClient();
   const userPoolId = process.env.COGNITO_USER_POOL_ID!;
 
+  const userAttributes = [
+    { Name: 'email', Value: githubUser.email! },
+    { Name: 'email_verified', Value: 'true' },
+    { Name: 'custom:github_id', Value: githubUser.id.toString() },
+    { Name: 'custom:github_token', Value: accessToken },
+    { Name: 'custom:github_username', Value: githubUser.login },
+  ];
+
+  if (githubUser.name) {
+    userAttributes.push({ Name: 'name', Value: githubUser.name });
+  }
+
   const createUserResponse = await cognito.send(new AdminCreateUserCommand({
     UserPoolId: userPoolId,
     Username: githubUser.email!,
-    UserAttributes: [
-      { Name: 'email', Value: githubUser.email! },
-      { Name: 'email_verified', Value: 'true' },
-      { Name: 'custom:github_id', Value: githubUser.id.toString() },
-      { Name: 'custom:github_token', Value: accessToken },
-    ],
+    UserAttributes: userAttributes,
     MessageAction: 'SUPPRESS',
   }));
 
