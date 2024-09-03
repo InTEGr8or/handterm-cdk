@@ -470,6 +470,11 @@ export class HandTermCdkStack extends Stack {
       codePath: 'lambda/authentication',
       path: '/check-session',
       methods: [HttpMethod.GET],
+      environment: {
+        ...defaultLambdaProps.environment,
+        COGNITO_USER_POOL_ID: userPool.userPoolId,
+        COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
+      },
     });
 
     createLambdaIntegration({
