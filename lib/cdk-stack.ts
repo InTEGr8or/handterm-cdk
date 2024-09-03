@@ -461,6 +461,10 @@ export class HandTermCdkStack extends Stack {
       path: '/get-repo-tree',
       methods: [HttpMethod.GET],
       authorizer: lambdaAuthorizer,
+      environment: {
+        ...defaultLambdaProps.environment,
+        COGNITO_USER_POOL_ID: userPool.userPoolId,
+      },
     });
 
     createLambdaIntegration({

@@ -4,7 +4,6 @@ const cognito = new CognitoIdentityProviderClient({ region: 'us-east-1' });
 
 export const handler = async (event: { body: string }) => {
   const body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
-  console.log('SignIn body:', body);
   try {
     const { username, password } = body;
     // Ensure ClientId is a string and not undefined
@@ -28,9 +27,6 @@ export const handler = async (event: { body: string }) => {
     const command = new InitiateAuthCommand(params);
     const data = await cognito.send(command);
 
-    console.log('SignIn success:', data);
-    console.log('SignIn AuthenticationResult:', data.AuthenticationResult);
-
     const { IdToken, AccessToken, RefreshToken } = data.AuthenticationResult ?? {};
 
     if (!IdToken || !AccessToken || !RefreshToken) {
@@ -46,10 +42,11 @@ export const handler = async (event: { body: string }) => {
       Username: username,
     });
     const userDetails = await cognito.send(getUserCommand);
+    console.log('userDetails:', userDetails);
 
     // Extract GitHub username if it exists
     const githubUsername = userDetails.UserAttributes?.find(attr => attr.Name === 'custom:github_username')?.Value;
-
+    console.log('githubUsername:', githubUsername);
     return {
       statusCode: 200,
       body: JSON.stringify({

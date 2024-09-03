@@ -1,7 +1,7 @@
-GET {{baseUrl}}/get-repo-tree?repo=octocat/Hello-World&path=&sha=HEAD
-Authorization: Bearer {{authToken}}
+GET {{ baseUrl }}/get-repo-tree?repo=octocat/Hello-World&path=&sha=HEAD
+Authorization: Bearer {{ authToken }}
 
 ###
 
-GET {{baseUrl}}/get-repo-tree?repo=octocat/Hello-World&path=src&sha=main
-Authorization: Bearer {{authToken}}
+GET {{ baseUrl }}/get-repo-tree?repo=octocat/Hello-World&path=src&sha=main
+Authorization: Bearer {{ authToken }}

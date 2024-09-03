@@ -73,7 +73,7 @@ async function getGitHubUserData(accessToken: string): Promise<GitHubUser> {
     req.end();
   });
 
-  console.log('Parsed user data:', JSON.stringify(userData));
+  console.log('Parsed user data:', userData);
   console.log('All GitHub user properties:', Object.keys(userData));
 
   return {

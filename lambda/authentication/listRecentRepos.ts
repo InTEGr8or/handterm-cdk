@@ -1,7 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { CognitoIdentityProviderClient, AdminGetUserCommand } from '@aws-sdk/client-cognito-identity-provider';
 import { request } from 'https';
-import { Octokit } from '@octokit/rest';
 
 const cognito = new CognitoIdentityProviderClient({ region: 'us-east-1' });
 

@@ -23,11 +23,12 @@ export const ENDPOINTS = {
         ChangePassword: '/changePassword',
         TokenHandler: '/tokenHandler',
         RefreshToken: '/refreshToken',
-        CheckSession: '/checkSession',
+        CheckSession: '/check-session',
         GetUser: '/getUser',
         SetUser: '/setUser',
         GetFile: '/getFile',
         PutFile: '/putFile',
-        ListRecentRepos: '/list-recent-repos'
+        ListRecentRepos: '/list-recent-repos',
+        GetRepoTree: '/get-repo-tree',
     }
 } as const
