@@ -308,6 +308,18 @@ export class HandTermCdkStack extends Stack {
       ],
     });
 
+    const octokitLayer = new lambda.LayerVersion(this, 'OctokitLayer', {
+      code: lambda.Code.fromAsset('lambdaLayer'),
+      compatibleRuntimes: [lambda.Runtime.NODEJS_18_X],
+      description: 'Octokit REST API client',
+    });
+
+    // Log the ARN of the created layer
+    new CfnOutput(this, 'OctokitLayerArn', {
+      value: octokitLayer.layerVersionArn,
+      description: 'ARN of the Octokit Layer',
+    });
+
     const defaultLambdaProps = {
       scope: this,
       role: lambdaExecutionRole,
@@ -319,6 +331,7 @@ export class HandTermCdkStack extends Stack {
         COGNITO_USER_POOL_ID: userPool.userPoolId,
         BUCKET_NAME: ENDPOINTS.aws.s3.bucketName,
       },
+      layers: [octokitLayer],
     };
 
     createLambdaIntegration({
@@ -453,7 +466,7 @@ export class HandTermCdkStack extends Stack {
       authorizer: lambdaAuthorizer,
     });
 
-    createLambdaIntegration({
+    const getRepoTreeFunction = createLambdaIntegration({
       ...defaultLambdaProps,
       id: 'GetRepoTreeFunction',
       handler: 'getRepoTree.handler',
@@ -461,11 +474,16 @@ export class HandTermCdkStack extends Stack {
       path: '/get-repo-tree',
       methods: [HttpMethod.GET],
       authorizer: lambdaAuthorizer,
-      environment: {
-        ...defaultLambdaProps.environment,
-        COGNITO_USER_POOL_ID: userPool.userPoolId,
-      },
+      layers: [octokitLayer],
     });
+
+    // Log the ARN of the GetRepoTreeFunction
+    if (getRepoTreeFunction) {
+      new CfnOutput(this, 'GetRepoTreeFunctionArn', {
+        value: getRepoTreeFunction.functionArn,
+        description: 'ARN of the GetRepoTree Function',
+      });
+    }
 
     createLambdaIntegration({
       ...defaultLambdaProps,
@@ -474,11 +492,6 @@ export class HandTermCdkStack extends Stack {
       codePath: 'lambda/authentication',
       path: '/check-session',
       methods: [HttpMethod.GET],
-      environment: {
-        ...defaultLambdaProps.environment,
-        COGNITO_USER_POOL_ID: userPool.userPoolId,
-        COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
-      },
     });
 
     createLambdaIntegration({

@@ -59,4 +59,6 @@ export function createLambdaIntegration(props: LambdaIntegrationProps) {
     integration: integration,
     authorizer: props.authorizer,
   });
+
+  return lambdaFunction;
 }

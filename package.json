@@ -9,7 +9,8 @@
   "scripts": {
     "cpCdk": "cp ../handterm/src/shared/endpoints.ts lambda/cdkshared/",
     "build": "tsc",
-    "deploy": "yarn cpCdk && yarn build && cdk deploy --profile mark --region us-east-1",
+    "predeploy": "yarn install && yarn build",
+    "deploy": "yarn cpCdk && cdk deploy --profile mark --region us-east-1",
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk"
