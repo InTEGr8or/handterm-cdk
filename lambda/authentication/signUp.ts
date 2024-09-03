@@ -1,16 +1,23 @@
 // cdk/lambda/authentication/signUp.ts
 
 import { CognitoIdentityProviderClient, SignUpCommand } from "@aws-sdk/client-cognito-identity-provider";
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 
 const cognito = new CognitoIdentityProviderClient({ region: 'us-east-1' });
 
-export const handler = async (event: { body: string; }) => {
+export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   console.log('Signup received event:', event); // Log the incoming event
 
-  const body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
+  if (!event.body) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ message: 'Invalid request body' })
+    };
+  }
+
+  const body = JSON.parse(event.body);
 
   try {
-    // Check if event.body is a string and parse it, otherwise, use it directly
     const { username, password, email } = body;
 
     console.log(`Processing signUp for username: ${username}`); // Log the extracted username
@@ -18,7 +25,7 @@ export const handler = async (event: { body: string; }) => {
     if (!clientId) {
       throw new Error('COGNITO_APP_CLIENT_ID environment variable is not set.');
     }
-    var params = {
+    const params = {
       ClientId: clientId,
       Username: username,
       Password: password,

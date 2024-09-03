@@ -465,6 +465,15 @@ export class HandTermCdkStack extends Stack {
 
     createLambdaIntegration({
       ...defaultLambdaProps,
+      id: 'CheckSessionFunction',
+      handler: 'checkSession.handler',
+      codePath: 'lambda/authentication',
+      path: '/check-session',
+      methods: [HttpMethod.GET],
+    });
+
+    createLambdaIntegration({
+      ...defaultLambdaProps,
       id: 'SignOutFunction',
       handler: 'signOut.handler',
       codePath: 'lambda/authentication',
