@@ -1,7 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { CognitoIdentityProviderClient, AdminGetUserCommand, AdminUpdateUserAttributesCommand } from '@aws-sdk/client-cognito-identity-provider';
 import { Octokit } from '@octokit/rest';
-import fetch from 'node-fetch';
 
 const cognito = new CognitoIdentityProviderClient({ region: 'us-east-1' });
 
@@ -163,13 +162,17 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         }
     } catch (error) {
         console.error('Error in getRepoTree:', error);
-        if (error instanceof Error && error.message === 'REFRESH_TOKEN_EXPIRED') {
+        if (error instanceof Error && (error.message === 'REFRESH_TOKEN_EXPIRED' || error.message.includes('Failed to refresh token'))) {
+            const githubAuthRedirectUrl = `${process.env.API_URL}github_auth`;
             return {
-                statusCode: 401,
+                statusCode: 307,
+                headers: {
+                    Location: githubAuthRedirectUrl,
+                },
                 body: JSON.stringify({ 
-                    message: 'GitHub authentication expired', 
+                    message: 'GitHub authentication expired. Redirecting to re-authenticate.',
                     error: 'REFRESH_TOKEN_EXPIRED',
-                    action: 'REAUTHENTICATE'
+                    redirectUrl: githubAuthRedirectUrl
                 }),
             };
         }

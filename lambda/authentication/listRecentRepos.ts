@@ -1,15 +1,40 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { CognitoIdentityProviderClient, AdminGetUserCommand, AdminUpdateUserAttributesCommand } from '@aws-sdk/client-cognito-identity-provider';
-import { request } from 'https';
+import { Octokit } from '@octokit/rest';
 
 const cognito = new CognitoIdentityProviderClient({ region: 'us-east-1' });
 
-const refreshGitHubToken = async (userId: string, refreshToken: string): Promise<string> => {
-  // Implement the token refresh logic here
-  // This is a placeholder and needs to be implemented based on your GitHub App's refresh token mechanism
-  console.log('Refreshing GitHub token...');
-  // TODO: Implement the actual refresh logic
-  return 'new_github_token';
+const refreshGitHubToken = async (refreshToken: string): Promise<string> => {
+    const response = await fetch('https://github.com/login/oauth/access_token', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+            client_id: process.env.GITHUB_CLIENT_ID,
+            client_secret: process.env.GITHUB_CLIENT_SECRET,
+            refresh_token: refreshToken,
+            grant_type: 'refresh_token',
+        }),
+    });
+
+    const data: any = await response.json();
+    console.log('GitHub token refresh response:', JSON.stringify(data, null, 2));
+
+    if ('error' in data && typeof data.error === 'string') {
+        console.error('Error refreshing token:', data);
+        if (data.error === 'bad_verification_code' || data.error === 'bad_refresh_token') {
+            throw new Error('REFRESH_TOKEN_EXPIRED');
+        }
+        throw new Error(`Failed to refresh token: ${data.error_description || 'Unknown error'}`);
+    }
+
+    if (!('access_token' in data) || typeof data.access_token !== 'string') {
+        throw new Error('No access token in refresh response');
+    }
+
+    return data.access_token;
 };
 
 export const listRecentRepos = async (userId: string): Promise<APIGatewayProxyResult> => {
@@ -51,63 +76,64 @@ export const listRecentRepos = async (userId: string): Promise<APIGatewayProxyRe
 
     console.log('GitHub token retrieved successfully');
 
-    // Use the GitHub token to fetch recent repos
-    const fetchRepos = async (token: string): Promise<string> => {
-      return new Promise((resolve, reject) => {
-      const options = {
-        hostname: 'api.github.com',
-        path: '/user/repos?sort=updated&per_page=10',
-        method: 'GET',
-        headers: {
-          'Authorization': `token ${githubToken}`,
-          'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'AWS Lambda'
-        }
-      };
-
-        const req = request(options, (res: any) => {
-          let data = '';
-          res.on('data', (chunk: any) => data += chunk);
-          res.on('end', () => {
-            if (res.statusCode === 200) {
-              resolve(data);
-            } else if (res.statusCode === 401) {
-              reject(new Error('TOKEN_EXPIRED'));
-            } else {
-              reject(new Error(`GitHub API responded with status code ${res.statusCode}`));
-            }
-          });
-        });
-
-        req.on('error', (error: Error) => reject(error));
-        req.end();
-      });
-    };
+    const octokit = new Octokit({ auth: githubToken });
 
     try {
-      const response = await fetchRepos(githubToken);
-      return JSON.parse(response);
-    } catch (error) {
-      if (error instanceof Error && error.message === 'TOKEN_EXPIRED') {
+      const { data: repos } = await octokit.rest.repos.listForAuthenticatedUser({
+        sort: 'updated',
+        per_page: 10
+      });
+      return {
+        statusCode: 200,
+        body: JSON.stringify(repos)
+      };
+    } catch (error: any) {
+      if (error.status === 401) {
         console.log('Token expired, attempting to refresh...');
-        githubToken = await refreshGitHubToken(userId, githubRefreshToken);
-        
-        // Update the user's GitHub token in Cognito
-        const updateCommand = new AdminUpdateUserAttributesCommand({
-          UserPoolId: process.env.COGNITO_USER_POOL_ID!,
-          Username: userId,
-          UserAttributes: [
-            {
-              Name: 'custom:github_token',
-              Value: githubToken
-            }
-          ]
-        });
-        await cognito.send(updateCommand);
+        try {
+          githubToken = await refreshGitHubToken(githubRefreshToken);
+          
+          // Update the user's GitHub token in Cognito
+          const updateCommand = new AdminUpdateUserAttributesCommand({
+            UserPoolId: process.env.COGNITO_USER_POOL_ID!,
+            Username: userId,
+            UserAttributes: [
+              {
+                Name: 'custom:github_token',
+                Value: githubToken
+              }
+            ]
+          });
+          await cognito.send(updateCommand);
 
-        // Retry the request with the new token
-        const response = await fetchRepos(githubToken);
-        return JSON.parse(response);
+          // Retry the request with the new token
+          const octokit = new Octokit({ auth: githubToken });
+          const { data: repos } = await octokit.rest.repos.listForAuthenticatedUser({
+            sort: 'updated',
+            per_page: 10
+          });
+          return {
+            statusCode: 200,
+            body: JSON.stringify(repos)
+          };
+        } catch (refreshError) {
+          console.error('Error refreshing token:', refreshError);
+          if (refreshError instanceof Error && refreshError.message === 'REFRESH_TOKEN_EXPIRED') {
+            const githubAuthRedirectUrl = `${process.env.API_URL}github_auth`;
+            return {
+              statusCode: 307,
+              headers: {
+                Location: githubAuthRedirectUrl,
+              },
+              body: JSON.stringify({ 
+                message: 'GitHub authentication expired. Redirecting to re-authenticate.',
+                error: 'REFRESH_TOKEN_EXPIRED',
+                redirectUrl: githubAuthRedirectUrl
+              }),
+            };
+          }
+          throw refreshError;
+        }
       }
       throw error;
     }

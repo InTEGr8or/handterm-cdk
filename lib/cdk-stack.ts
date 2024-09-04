@@ -328,6 +328,7 @@ export class HandTermCdkStack extends Stack {
         GITHUB_CLIENT_SECRET: clientSecret,
         COGNITO_USER_POOL_ID: userPool.userPoolId,
         BUCKET_NAME: ENDPOINTS.aws.s3.bucketName,
+        API_URL: httpApi.url || '',
       },
       layers: [octokitLayer],
     };
