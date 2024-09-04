@@ -6,7 +6,7 @@ import { Role, ServicePrincipal, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
 import { HttpLambdaAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import * as logs from 'aws-cdk-lib/aws-logs';
-import { RemovalPolicy, Stack } from 'aws-cdk-lib';
+import { Duration, RemovalPolicy, Stack } from 'aws-cdk-lib';
 
 interface LambdaIntegrationProps {
   scope: Construct;
@@ -20,6 +20,7 @@ interface LambdaIntegrationProps {
   methods: HttpMethod[];
   authorizer?: HttpLambdaAuthorizer;
   layers?: LayerVersion[];
+  timeout?: Duration;
 }
 
 export function createLambdaIntegration(props: LambdaIntegrationProps) {
@@ -40,6 +41,7 @@ export function createLambdaIntegration(props: LambdaIntegrationProps) {
     },
     layers: props.layers,
     logGroup: logGroup,
+    timeout: props.timeout || Duration.seconds(5),
   });
 
   // Grant write permissions to the Lambda function for the log group

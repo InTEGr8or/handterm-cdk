@@ -1,8 +1,6 @@
 // cdk/lib/cdk-stack.ts
 import { ENDPOINTS } from '../lambda/cdkshared/endpoints';
-import { getGitHubSecrets } from './utils/githubSecrets';
 import { createLambdaIntegration } from './utils/lambdaUtils';
-import { updateGitHubAppRedirectUrl } from './utils/update_github_app';
 import {
   aws_cognito as cognito,
   aws_s3 as s3,
@@ -27,26 +25,25 @@ const stackName = 'HandTermCdkStack';
 const logPrefix = `/${stackName}/`;
 const nodeRuntime = lambda.Runtime.NODEJS_18_X;
 
+interface HandTermCdkStackProps extends StackProps {
+  githubClientId: string;
+  githubClientSecret: string;
+}
+
 export class HandTermCdkStack extends Stack {
   public userPool: cognito.UserPool;
 
-  constructor(scope: Construct, id: string, props?: StackProps) {
+  constructor(scope: Construct, id: string, props: HandTermCdkStackProps) {
     super(scope, id, props);
-    this.initializeStack().catch(error => {
+    this.initializeStack(props.githubClientId, props.githubClientSecret).catch(error => {
       console.error('Failed to initialize stack:', error);
       throw error;
     });
   }
 
-  private async initializeStack(): Promise<void> {
-    let clientId, clientSecret, issuerUrl;
-    try {
-      ({ clientId, clientSecret, issuerUrl } = await getGitHubSecrets());
-    } catch (error) {
-      console.error('Failed to fetch GitHub secrets:', error);
-      // Instead of using default values, we'll throw an error to stop stack creation
-      throw new Error('Failed to initialize stack due to missing GitHub secrets');
-    }
+  private async initializeStack(clientId: string, clientSecret: string): Promise<void> {
+    console.log('GitHub Client ID:', clientId);
+    console.log('GitHub Client Secret:', clientSecret ? '[REDACTED]' : 'Not set');
 
 
     // Cognito User Pool with custom attributes
@@ -465,6 +462,7 @@ export class HandTermCdkStack extends Stack {
       path: '/list-recent-repos',
       methods: [HttpMethod.GET],
       authorizer: lambdaAuthorizer,
+      timeout: Duration.seconds(10), // Increase timeout to 10 seconds
     });
 
     const getRepoTreeFunction = createLambdaIntegration({
@@ -537,10 +535,6 @@ export class HandTermCdkStack extends Stack {
     new CfnOutput(this, 'IdentityPoolId', { value: identityPool.ref });
     new CfnOutput(this, 'BucketName', { value: logsBucket.bucketName });
 
-    // Update GitHub App redirect URL
-    if (httpApi.url) {
-      await updateGitHubAppRedirectUrl(`${httpApi.url}oauth_callback`);
-    }
 
     // Add CloudWatch dashboard
     const dashboard = new cloudwatch.Dashboard(this, 'HandTermDashboard', {
@@ -572,4 +566,14 @@ export class HandTermCdkStack extends Stack {
 }
 
 const app = new App();
-new HandTermCdkStack(app, stackName);
+const githubClientId = process.env.GITHUB_CLIENT_ID;
+const githubClientSecret = process.env.GITHUB_CLIENT_SECRET;
+
+if (!githubClientId || !githubClientSecret) {
+  throw new Error('GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET must be set in the .env file');
+}
+
+new HandTermCdkStack(app, stackName, {
+  githubClientId,
+  githubClientSecret,
+});

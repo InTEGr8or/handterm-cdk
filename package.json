@@ -4,9 +4,6 @@
   "description": "Backend for HandTerm application",
   "license": "Apache-2.0",
   "type": "module",
-  "bin": {
-    "cdk": "bin/cdk.js"
-  },
   "scripts": {
     "cpCdk": "cp ../handterm/src/shared/endpoints.ts lambda/cdkshared/",
     "build": "tsc",
