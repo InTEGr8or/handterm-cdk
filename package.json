@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Backend for HandTerm application",
   "license": "Apache-2.0",
+  "type": "module",
   "bin": {
     "cdk": "bin/cdk.js"
   },
@@ -10,7 +11,7 @@
     "cpCdk": "cp ../handterm/src/shared/endpoints.ts lambda/cdkshared/",
     "build": "tsc",
     "predeploy": "yarn install && yarn build",
-    "deploy": "yarn cpCdk && dotenv -e .env cdk deploy --profile mark --region us-east-1",
+    "deploy": "yarn && yarn cpCdk && dotenv -e .env cdk deploy --profile mark --region us-east-1",
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk"
@@ -20,11 +21,12 @@
     "@aws-sdk/client-cognito-identity-provider": "^3.637.0",
     "@aws-sdk/client-s3": "^3.425.0",
     "@aws-sdk/client-ssm": "^3.0.0",
+    "@octokit/auth-app": "^7.1.1",
     "@octokit/rest": "^21.0.2",
     "@types/aws-lambda": "^8.10.140",
     "aws-cdk-lib": "2.148.1",
-    "aws-lambda": "^1.0.7",
     "aws-jwt-verify": "^4.0.1",
+    "aws-lambda": "^1.0.7",
     "constructs": "^10.0.0",
     "dotenv": "^16.4.5",
     "jsonwebtoken": "^9.0.2",
@@ -39,6 +41,7 @@
     "@types/node": "20.14.2",
     "aws-cdk": "2.148.1",
     "aws-sdk-client-mock": "^4.0.1",
+    "dotenv-cli": "^7.4.2",
     "jest": "^29.7.0",
     "ts-jest": "^29.1.4",
     "ts-node": "^10.9.2",
