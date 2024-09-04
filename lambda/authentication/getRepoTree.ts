@@ -1,10 +1,10 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { CognitoIdentityProviderClient, AdminGetUserCommand } from '@aws-sdk/client-cognito-identity-provider';
-import { Octokit } from '@octokit/rest';
 
 const cognito = new CognitoIdentityProviderClient({ region: 'us-east-1' });
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+    const { Octokit } = await import('@octokit/rest');
     console.log('GetRepoTree Lambda function started');
     console.log('Event:', JSON.stringify(event, null, 2));
 

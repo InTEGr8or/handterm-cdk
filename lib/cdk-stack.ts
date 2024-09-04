@@ -2,6 +2,7 @@
 import { ENDPOINTS } from '../lambda/cdkshared/endpoints';
 import { getGitHubSecrets } from './utils/githubSecrets';
 import { createLambdaIntegration } from './utils/lambdaUtils';
+import { updateGitHubAppRedirectUrl } from './utils/update_github_app';
 import {
   aws_cognito as cognito,
   aws_s3 as s3,
@@ -474,7 +475,6 @@ export class HandTermCdkStack extends Stack {
       path: '/get-repo-tree',
       methods: [HttpMethod.GET],
       authorizer: lambdaAuthorizer,
-      layers: [octokitLayer],
     });
 
     // Log the ARN of the GetRepoTreeFunction
@@ -536,6 +536,11 @@ export class HandTermCdkStack extends Stack {
     new CfnOutput(this, 'UserPoolClientId', { value: userPoolClient.userPoolClientId });
     new CfnOutput(this, 'IdentityPoolId', { value: identityPool.ref });
     new CfnOutput(this, 'BucketName', { value: logsBucket.bucketName });
+
+    // Update GitHub App redirect URL
+    if (httpApi.url) {
+      await updateGitHubAppRedirectUrl(`${httpApi.url}oauth_callback`);
+    }
 
     // Add CloudWatch dashboard
     const dashboard = new cloudwatch.Dashboard(this, 'HandTermDashboard', {

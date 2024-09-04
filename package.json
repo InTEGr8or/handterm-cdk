@@ -10,7 +10,7 @@
     "cpCdk": "cp ../handterm/src/shared/endpoints.ts lambda/cdkshared/",
     "build": "tsc",
     "predeploy": "yarn install && yarn build",
-    "deploy": "yarn cpCdk && cdk deploy --profile mark --region us-east-1",
+    "deploy": "yarn cpCdk && dotenv -e .env cdk deploy --profile mark --region us-east-1",
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk"
