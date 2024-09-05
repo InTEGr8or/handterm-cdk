@@ -1,0 +1,15 @@
+[alias]
+    squash-after = "!f() { \
+        if [ $# -eq 0 ]; then \
+            echo \"Usage: git squash-after <commit-hash>\"; \
+            return 1; \
+        fi; \
+        commit=$1; \
+        range=$(git rev-list --reverse ${commit}..HEAD); \
+        if [ -z \"$range\" ]; then \
+            echo \"No commits found after ${commit}\"; \
+            return 1; \
+        fi; \
+        first_commit=$(echo \"$range\" | head -n1); \
+        git rebase -i ${commit}; \
+    }; f"

@@ -69,9 +69,12 @@ export class HandTermCdkStack extends Stack {
       },
       autoVerify: { email: true },
       customAttributes: {
-        github_token: new cognito.StringAttribute({ mutable: true }),
-        github_id: new cognito.StringAttribute({ mutable: true }),
+        github_access_token: new cognito.StringAttribute({ mutable: true }),
+        github_refresh_token: new cognito.StringAttribute({ mutable: true }),
+        github_token_expires_at: new cognito.NumberAttribute({ mutable: true }),
+        github_refresh_token_expires_at: new cognito.NumberAttribute({ mutable: true }),
         github_username: new cognito.StringAttribute({ mutable: true }),
+        github_id: new cognito.StringAttribute({ mutable: true }),
       },
     });
 
@@ -474,6 +477,16 @@ export class HandTermCdkStack extends Stack {
       path: '/get-repo-tree',
       methods: [HttpMethod.GET],
       authorizer: lambdaAuthorizer,
+      environment: {
+        ...defaultLambdaProps.environment,
+        COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
+      },
+    });
+
+    // Log the Cognito App Client ID
+    new CfnOutput(this, 'CognitoAppClientId', {
+      value: userPoolClient.userPoolClientId,
+      description: 'Cognito App Client ID',
     });
 
     // Log the ARN of the GetRepoTreeFunction
@@ -571,7 +584,12 @@ const githubClientId = process.env.GITHUB_CLIENT_ID;
 const githubClientSecret = process.env.GITHUB_CLIENT_SECRET;
 
 if (!githubClientId || !githubClientSecret) {
-  throw new Error('GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET must be set in the .env file');
+  console.error('Error: GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET must be set in the environment');
+  console.error('Please ensure you have a .env file in the project root with these variables set');
+  console.error('Example:');
+  console.error('GITHUB_CLIENT_ID=your_client_id_here');
+  console.error('GITHUB_CLIENT_SECRET=your_client_secret_here');
+  process.exit(1);
 }
 
 new HandTermCdkStack(app, stackName, {
