@@ -28,6 +28,7 @@ const nodeRuntime = lambda.Runtime.NODEJS_18_X;
 interface HandTermCdkStackProps extends StackProps {
   githubClientId: string;
   githubClientSecret: string;
+  cognitoAppClientId: string;
 }
 
 export class HandTermCdkStack extends Stack {
@@ -35,15 +36,16 @@ export class HandTermCdkStack extends Stack {
 
   constructor(scope: Construct, id: string, props: HandTermCdkStackProps) {
     super(scope, id, props);
-    this.initializeStack(props.githubClientId, props.githubClientSecret).catch(error => {
+    this.initializeStack(props.githubClientId, props.githubClientSecret, props.cognitoAppClientId).catch(error => {
       console.error('Failed to initialize stack:', error);
       throw error;
     });
   }
 
-  private async initializeStack(clientId: string, clientSecret: string): Promise<void> {
+  private async initializeStack(clientId: string, clientSecret: string, cognitoAppClientId: string): Promise<void> {
     console.log('GitHub Client ID:', clientId);
     console.log('GitHub Client Secret:', clientSecret ? '[REDACTED]' : 'Not set');
+    console.log('Cognito App Client ID:', cognitoAppClientId);
 
 
     // Cognito User Pool with custom attributes
@@ -69,12 +71,12 @@ export class HandTermCdkStack extends Stack {
       },
       autoVerify: { email: true },
       customAttributes: {
-        github_access_token: new cognito.StringAttribute({ mutable: true }),
-        github_refresh_token: new cognito.StringAttribute({ mutable: true }),
-        github_token_expires_at: new cognito.NumberAttribute({ mutable: true }),
-        github_refresh_token_expires_at: new cognito.NumberAttribute({ mutable: true }),
-        github_username: new cognito.StringAttribute({ mutable: true }),
-        github_id: new cognito.StringAttribute({ mutable: true }),
+        gh_token: new cognito.StringAttribute({ mutable: true }),
+        gh_refresh_token: new cognito.StringAttribute({ mutable: true }),
+        gh_token_expires: new cognito.NumberAttribute({ mutable: true }),
+        gh_refresh_expires: new cognito.NumberAttribute({ mutable: true }),
+        gh_username: new cognito.StringAttribute({ mutable: true }),
+        gh_id: new cognito.StringAttribute({ mutable: true }),
       },
     });
 
@@ -172,8 +174,9 @@ export class HandTermCdkStack extends Stack {
     });
 
     // Create the User Pool Client after the GitHub Identity Provider
-    const userPoolClient = new cognito.UserPoolClient(this, 'UserPoolClient', {
+    const userPoolClient = new cognito.UserPoolClient(this, 'HandTermCognitoUserPoolClient', {
       userPool,
+      userPoolClientName: 'HandTermCognitoUserPoolClient',
       supportedIdentityProviders: [
         cognito.UserPoolClientIdentityProvider.COGNITO,
         cognito.UserPoolClientIdentityProvider.custom('GitHub')
@@ -183,6 +186,8 @@ export class HandTermCdkStack extends Stack {
         logoutUrls: [`${httpApi.url}signout`]
       },
       authFlows: {
+        adminUserPassword: true,
+        custom: true,
         userPassword: true,
         userSrp: true
       }
@@ -190,6 +195,12 @@ export class HandTermCdkStack extends Stack {
 
     // Ensure the client is created after the identity provider
     userPoolClient.node.addDependency(githubProvider);
+
+    // Output the Cognito User Pool Client ID
+    new CfnOutput(this, 'CognitoUserPoolClientId', {
+      value: userPoolClient.userPoolClientId,
+      description: 'Cognito User Pool Client ID',
+    });
 
     // Define or import the Logs Bucket
     let logsBucket: s3.IBucket;
@@ -327,6 +338,7 @@ export class HandTermCdkStack extends Stack {
       httpApi: httpApi,
       environment: {
         COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
+        COGNITO_USER_POOL_CLIENT_ID: userPoolClient.userPoolClientId, // Add this line
         GITHUB_CLIENT_ID: clientId,
         GITHUB_CLIENT_SECRET: clientSecret,
         COGNITO_USER_POOL_ID: userPool.userPoolId,
@@ -595,4 +607,5 @@ if (!githubClientId || !githubClientSecret) {
 new HandTermCdkStack(app, stackName, {
   githubClientId,
   githubClientSecret,
+  cognitoAppClientId: process.env.COGNITO_APP_CLIENT_ID!,
 });

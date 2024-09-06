@@ -1,5 +1,6 @@
 import { APIGatewayTokenAuthorizerEvent, APIGatewayAuthorizerResult, APIGatewaySimpleAuthorizerWithContextResult, APIGatewaySimpleAuthorizerResult } from 'aws-lambda';
 import { CognitoIdentityProviderClient, GetUserCommand } from '@aws-sdk/client-cognito-identity-provider';
+import { CognitoAttribute } from './githubUtils';
 
 export const cognitoClient = new CognitoIdentityProviderClient({ region: 'us-east-1' });
 
@@ -48,9 +49,9 @@ export const handler = async (event: APIGatewayTokenAuthorizerEvent): Promise<AP
             }
             return acc;
         }, {} as Record<string, string>) ?? {};
-        console.log(`authorizer: User attributes:`,  userAttributes);
-        const githubId = userAttributes['custom:github_id'] || '';
-        return generatePolicy(userId, 'Allow', event.methodArn, { 
+        console.log(`authorizer: User attributes:`, userAttributes);
+        const githubId = userAttributes[CognitoAttribute.GH_ID] || '';
+        return generatePolicy(userId, 'Allow', event.methodArn, {
             userId: userId,
             githubId: githubId
         });

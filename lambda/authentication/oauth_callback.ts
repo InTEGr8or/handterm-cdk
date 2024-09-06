@@ -2,10 +2,13 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { Octokit } from '@octokit/rest';
 import { createOAuthAppAuth } from '@octokit/auth-oauth-app';
 import { CognitoIdentityServiceProvider } from 'aws-sdk';
+import { CognitoAttribute, GitHubToCognitoMap } from './githubUtils';
 
 const cognito = new CognitoIdentityServiceProvider();
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+  console.log('CognitoAttribute enum values:', CognitoAttribute);
+  console.log('GitHubToCognitoMap values:', GitHubToCognitoMap);
   const { code, state } = event.queryStringParameters || {};
   const cognitoUserId = state;
 
@@ -47,32 +50,26 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
     const now = Math.floor(Date.now() / 1000);
     const attributes = [
-      { Name: 'custom:github_access_token', Value: access_token },
-      { Name: 'custom:github_username', Value: user.login },
-      { Name: 'custom:github_id', Value: user.id.toString() },
+      { Name: CognitoAttribute.GH_TOKEN, Value: access_token },
+      { Name: CognitoAttribute.GH_USERNAME, Value: user.login },
+      { Name: CognitoAttribute.GH_ID, Value: user.id.toString() },
       { Name: 'name', Value: user.name || '' },
       { Name: 'email', Value: user.email || '' },
       { Name: 'picture', Value: user.avatar_url || '' },
-      { Name: 'custom:github_url', Value: user.html_url || '' },
-      { Name: 'custom:github_created_at', Value: user.created_at || '' },
-      { Name: 'custom:github_updated_at', Value: user.updated_at || '' },
-      { Name: 'custom:github_public_repos', Value: user.public_repos?.toString() || '' },
-      { Name: 'custom:github_followers', Value: user.followers?.toString() || '' },
-      { Name: 'custom:github_following', Value: user.following?.toString() || '' },
     ];
 
     if (refresh_token) {
-      attributes.push({ Name: 'custom:github_refresh_token', Value: refresh_token });
+      attributes.push({ Name: GitHubToCognitoMap.refresh_token, Value: refresh_token });
     }
 
     if (expires_in) {
       const expiresAt = now + expires_in;
-      attributes.push({ Name: 'custom:github_token_expires_at', Value: expiresAt.toString() });
+      attributes.push({ Name: GitHubToCognitoMap.expires_in, Value: expiresAt.toString() });
     }
 
     if (refresh_token_expires_in) {
       const refreshTokenExpiresAt = now + refresh_token_expires_in;
-      attributes.push({ Name: 'custom:github_refresh_token_expires_at', Value: refreshTokenExpiresAt.toString() });
+      attributes.push({ Name: GitHubToCognitoMap.refresh_token_expires_in, Value: refreshTokenExpiresAt.toString() });
     }
 
     console.log("Updating Cognito user attributes:", attributes.map(attr => 

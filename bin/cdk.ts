@@ -5,41 +5,57 @@ import * as dotenv from 'dotenv';
 import * as path from 'path';
 import * as fs from 'fs';
 
-process.stdout.write('Starting CDK deployment...\n');
+console.log('Starting CDK deployment...');
 
 // Get the directory of the current module
 const currentDir = path.dirname(new URL(import.meta.url).pathname);
 const envPath = path.resolve(currentDir, '..', '.env');
 
-process.stdout.write(`Attempting to load .env file from: ${envPath}\n`);
+console.log(`Attempting to load .env file from: ${envPath}`);
 
 if (fs.existsSync(envPath)) {
-  process.stdout.write('.env file found\n');
+  console.log('.env file found');
   dotenv.config({ path: envPath });
 } else {
-  process.stdout.write('.env file not found\n');
+  console.log('.env file not found');
+  throw new Error('.env file not found. Please create one in the project root.');
 }
 
-process.stdout.write('Dotenv config loaded\n');
+console.log('Environment variables loaded');
+
+// Log the values of the environment variables (redacted for security)
+console.log('GITHUB_CLIENT_ID:', process.env.GITHUB_CLIENT_ID ? '[REDACTED]' : 'Not set');
+console.log('GITHUB_CLIENT_SECRET:', process.env.GITHUB_CLIENT_SECRET ? '[REDACTED]' : 'Not set');
+console.log('COGNITO_APP_CLIENT_ID:', process.env.COGNITO_APP_CLIENT_ID ? '[REDACTED]' : 'Not set');
 
 const app = new cdk.App();
-process.stdout.write('CDK App created\n');
+console.log('CDK App created');
 
-const githubClientId = process.env.GITHUB_CLIENT_ID;
-const githubClientSecret = process.env.GITHUB_CLIENT_SECRET;
+const requiredEnvVars = ['GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET', 'COGNITO_APP_CLIENT_ID'];
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
-process.stdout.write(`GITHUB_CLIENT_ID: ${githubClientId ? 'Set' : 'Not set'}\n`);
-process.stdout.write(`GITHUB_CLIENT_SECRET: ${githubClientSecret ? 'Set' : 'Not set'}\n`);
-
-if (!githubClientId || !githubClientSecret) {
-  throw new Error('GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET must be set in the .env file');
+if (missingEnvVars.length > 0) {
+  console.error(`Error: The following required environment variables are not set: ${missingEnvVars.join(', ')}`);
+  console.error('Please ensure you have a .env file in the project root with these variables set');
+  console.error('Current environment variables:');
+  console.error(JSON.stringify(process.env, null, 2));
+  process.exit(1);
 }
 
-new HandTermCdkStack(app, 'HandTermCdkStack', {
-  githubClientId,
-  githubClientSecret,
+console.log('All required environment variables are set');
+
+const stackName = 'HandTermCdkStack';
+
+new HandTermCdkStack(app, stackName, {
+  env: { 
+    account: process.env.CDK_DEFAULT_ACCOUNT, 
+    region: process.env.CDK_DEFAULT_REGION 
+  },
+  githubClientId: process.env.GITHUB_CLIENT_ID!,
+  githubClientSecret: process.env.GITHUB_CLIENT_SECRET!,
+  cognitoAppClientId: process.env.COGNITO_APP_CLIENT_ID!,
 });
-process.stdout.write('HandTermCdkStack instantiated\n');
+console.log('HandTermCdkStack instantiated');
 
 app.synth();
-process.stdout.write('CDK app synthesized\n');
+console.log('CDK app synthesized');

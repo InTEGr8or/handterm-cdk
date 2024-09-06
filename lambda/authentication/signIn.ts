@@ -1,5 +1,6 @@
 // cdk/lambda/authentication/signIn.ts
 import { CognitoIdentityProviderClient, InitiateAuthCommand, AuthFlowType, AdminGetUserCommand } from "@aws-sdk/client-cognito-identity-provider";
+import { CognitoAttribute } from "./githubUtils";
 const cognito = new CognitoIdentityProviderClient({ region: 'us-east-1' });
 
 export const handler = async (event: { body: string }) => {
@@ -45,7 +46,7 @@ export const handler = async (event: { body: string }) => {
     console.log('userDetails:', userDetails);
 
     // Extract GitHub username if it exists
-    const githubUsername = userDetails.UserAttributes?.find(attr => attr.Name === 'custom:github_username')?.Value;
+    const githubUsername = userDetails.UserAttributes?.find(attr => attr.Name === CognitoAttribute.GH_USERNAME)?.Value;
     console.log('githubUsername:', githubUsername);
     return {
       statusCode: 200,

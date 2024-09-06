@@ -1,6 +1,7 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { CognitoIdentityProviderClient, AdminGetUserCommand, AdminUpdateUserAttributesCommand } from '@aws-sdk/client-cognito-identity-provider';
 import { Octokit } from '@octokit/rest';
+import { CognitoAttribute } from './githubUtils';
 
 const cognito = new CognitoIdentityProviderClient({ region: 'us-east-1' });
 
@@ -58,8 +59,8 @@ export const listRecentRepos = async (userId: string): Promise<APIGatewayProxyRe
     console.log('User response:', JSON.stringify(userResponse, null, 2));
     console.log('User attributes:', JSON.stringify(userResponse.UserAttributes, null, 2));
 
-    let githubToken = userResponse.UserAttributes?.find((attr: { Name?: string; Value?: string }) => attr.Name === 'custom:github_token')?.Value;
-    let githubRefreshToken = userResponse.UserAttributes?.find((attr: { Name?: string; Value?: string }) => attr.Name === 'custom:github_refresh_token')?.Value;
+    let githubToken = userResponse.UserAttributes?.find((attr: { Name?: string; Value?: string }) => attr.Name === CognitoAttribute.GH_TOKEN)?.Value;
+    let githubRefreshToken = userResponse.UserAttributes?.find((attr: { Name?: string; Value?: string }) => attr.Name === CognitoAttribute.GH_REFRESH_TOKEN)?.Value;
 
     if (!githubToken || !githubRefreshToken) {
       console.error('GitHub token or refresh token not found for user:', userId);
@@ -99,7 +100,7 @@ export const listRecentRepos = async (userId: string): Promise<APIGatewayProxyRe
             Username: userId,
             UserAttributes: [
               {
-                Name: 'custom:github_token',
+                Name: CognitoAttribute.GH_TOKEN,
                 Value: githubToken
               }
             ]

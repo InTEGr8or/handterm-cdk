@@ -12,8 +12,13 @@ sequenceDiagram
     User->>GitHub: Authorize App
     GitHub->>Backend: Redirect with Auth Code
     Backend->>GitHub: Exchange Code for Tokens
+    
+    Note over Backend,GitHub: LOG: All returned data
+    Note over Backend,GitHub: RECEIVE: access_token, refresh_token,<br/>expires_in,refresh_token_expires_in
     GitHub->>Backend: Return Access & Refresh Tokens
+    Note over Backend,Cognito: STORE: access_token, refresh_token,<br/>expires_in,refresh_token_expires_in
     Backend->>Cognito: Store Tokens
+
     Cognito->>Backend: Confirm Storage
     Backend->>Frontend: Auth Success
     Frontend->>User: Display Success

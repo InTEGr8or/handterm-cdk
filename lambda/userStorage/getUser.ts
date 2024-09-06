@@ -1,5 +1,6 @@
 
 import { S3Client, GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import { CognitoAttribute } from "../authentication/githubUtils";
 
 console.log('Loading function');
 
@@ -10,7 +11,7 @@ export const handler = async (event: any) => {
 
     const s3Client = new S3Client({ region: "us-east-1" });
     const bucketName = process.env.BUCKET_NAME;
-    
+
     try {
         console.log('Checking event structure');
         if (!event.requestContext) {
@@ -28,7 +29,7 @@ export const handler = async (event: any) => {
         // Check if the authorizer is present
         if (event.requestContext.authorizer && event.requestContext.authorizer.lambda) {
             console.log('Authorizer found:', JSON.stringify(event.requestContext.authorizer, null, 2));
-        
+
             userId = event.requestContext.authorizer.lambda.userId;
             githubId = event.requestContext.authorizer.lambda.githubId;
 
@@ -60,8 +61,8 @@ export const handler = async (event: any) => {
 
         if (!githubId || !githubToken) {
             console.log('GitHub ID or Token not found in authorizer context, checking userAttributes');
-            githubId = userAttributes?.['custom:github_id'];
-            githubToken = userAttributes?.['custom:github_token'];
+            githubId = userAttributes?.[CognitoAttribute.GH_ID] || '';
+            githubToken = userAttributes?.[CognitoAttribute.GH_TOKEN] || '';
         }
         if (!userId) {
             console.error('No userId found in request');
@@ -76,9 +77,9 @@ export const handler = async (event: any) => {
             console.log('GetUserFunction completed successfully');
             return {
                 statusCode: 200,
-                body: JSON.stringify({ 
-                    userId: userId, 
-                    userAttributes: userAttributes, 
+                body: JSON.stringify({
+                    userId: userId,
+                    userAttributes: userAttributes,
                     githubId: githubId,
                     githubToken: githubToken ? '[REDACTED]' : null
                 }),
@@ -97,9 +98,9 @@ export const handler = async (event: any) => {
                 console.error('S3 error:', JSON.stringify(error, null, 2));
                 return {
                     statusCode: 500,
-                    body: JSON.stringify({ 
-                        message: 'S3 Object Error', 
-                        error: error.message, 
+                    body: JSON.stringify({
+                        message: 'S3 Object Error',
+                        error: error.message,
                         stack: error.stack,
                         code: error.code,
                         name: error.name
@@ -109,15 +110,15 @@ export const handler = async (event: any) => {
         }
     } catch (err) {
         console.error('Unexpected error:', JSON.stringify(err, null, 2));
-        return { 
-            statusCode: 500, 
-            body: JSON.stringify({ 
-                message: 'Internal Server Error', 
-                error: (err as Error).message, 
+        return {
+            statusCode: 500,
+            body: JSON.stringify({
+                message: 'Internal Server Error',
+                error: (err as Error).message,
                 stack: (err as Error).stack,
                 code: (err as any).code,
                 name: (err as Error).name
-            }), 
+            }),
         };
     } finally {
         console.log('GetUserFunction ended');

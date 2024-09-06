@@ -8,10 +8,12 @@
     "cpCdk": "cp ../handterm/src/shared/endpoints.ts lambda/cdkshared/",
     "build": "tsc",
     "predeploy": "yarn install && yarn build",
-    "deploy": "yarn && yarn cpCdk && dotenv -e .env cdk deploy --profile mark --region us-east-1",
+    "deploy": "yarn && yarn cpCdk && yarn build && yarn synth && dotenv -e .env -- cdk deploy --profile mark --region us-east-1",
+    "destroy": "dotenv -e .env -- cdk destroy",
     "watch": "tsc -w",
     "test": "jest",
-    "cdk": "cdk"
+    "cdk": "dotenv -e .env -- cdk",
+    "synth": "dotenv -e .env -- rm cdk.out -rf && cdk synth"
   },
   "dependencies": {
     "@aws-sdk/client-cloudwatch-logs": "^3.643.0",

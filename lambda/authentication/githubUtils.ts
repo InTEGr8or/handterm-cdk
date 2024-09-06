@@ -4,6 +4,24 @@ import { CognitoIdentityServiceProvider } from 'aws-sdk';
 
 const cognito = new CognitoIdentityServiceProvider();
 
+export enum CognitoAttribute {
+  GH_TOKEN = 'custom:gh_token',
+  GH_REFRESH_TOKEN = 'custom:gh_refresh_token',
+  GH_TOKEN_EXPIRES = 'custom:gh_token_expires',
+  GH_REFRESH_EXPIRES = 'custom:gh_refresh_expires',
+  GH_USERNAME = 'custom:gh_username',
+  GH_ID = 'custom:gh_id',
+}
+
+export const GitHubToCognitoMap = {
+  access_token: CognitoAttribute.GH_TOKEN,
+  refresh_token: CognitoAttribute.GH_REFRESH_TOKEN,
+  expires_in: CognitoAttribute.GH_TOKEN_EXPIRES,
+  refresh_token_expires_in: CognitoAttribute.GH_REFRESH_EXPIRES,
+  login: CognitoAttribute.GH_USERNAME,
+  id: CognitoAttribute.GH_ID,
+};
+
 export async function getValidGitHubToken(cognitoUserId: string): Promise<string> {
   console.log('githubUtils: Getting valid GitHub token for user:', cognitoUserId);
   
@@ -12,11 +30,11 @@ export async function getValidGitHubToken(cognitoUserId: string): Promise<string
     Username: cognitoUserId,
   }).promise();
 
-  const githubUsername = user.UserAttributes?.find(attr => attr.Name === 'custom:github_username')?.Value;
-  const accessToken = user.UserAttributes?.find(attr => attr.Name === 'custom:github_access_token')?.Value;
-  const refreshToken = user.UserAttributes?.find(attr => attr.Name === 'custom:github_refresh_token')?.Value;
-  const expiresAt = parseInt(user.UserAttributes?.find(attr => attr.Name === 'custom:github_token_expires_at')?.Value || '0', 10);
-  const refreshTokenExpiresAt = parseInt(user.UserAttributes?.find(attr => attr.Name === 'custom:github_refresh_token_expires_at')?.Value || '0', 10);
+  const githubUsername = user.UserAttributes?.find(attr => attr.Name === 'custom:gh_username')?.Value;
+  const accessToken = user.UserAttributes?.find(attr => attr.Name === 'custom:gh_token')?.Value;
+  const refreshToken = user.UserAttributes?.find(attr => attr.Name === 'custom:gh_refresh_token')?.Value;
+  const expiresAt = parseInt(user.UserAttributes?.find(attr => attr.Name === 'custom:gh_token_expires')?.Value || '0', 10);
+  const refreshTokenExpiresAt = parseInt(user.UserAttributes?.find(attr => attr.Name === 'custom:gh_refresh_expires')?.Value || '0', 10);
 
   console.log('Parsed token info:', { 
     githubUsername,
@@ -67,7 +85,7 @@ export async function getValidGitHubToken(cognitoUserId: string): Promise<string
     }) as any;
     console.log('GitHub token refresh result:', authResult);
 
-    if (!authResult.token) {
+    if (!authResult.access_token) {
       console.error('No access token in refresh response:', authResult);
       throw new Error('No access token in refresh response');
     }
@@ -81,7 +99,7 @@ export async function getValidGitHubToken(cognitoUserId: string): Promise<string
     await updateCognitoAttributes(cognitoUserId, access_token, refresh_token, newExpiresAt, newRefreshTokenExpiresAt);
 
     console.log('Token refresh successful');
-    return token;
+    return access_token;
   } catch (error) {
     console.error('Error refreshing GitHub token:', error);
     if (error instanceof Error && error.message.includes('bad_refresh_token')) {
@@ -151,18 +169,18 @@ async function updateCognitoAttributes(
     githubUsername
   });
   const attributes = [
-    { Name: 'custom:github_access_token', Value: accessToken },
-    { Name: 'custom:github_refresh_token', Value: refreshToken },
-    { Name: 'custom:github_token_expires_at', Value: expiresAt.toString() },
-    { Name: 'custom:github_refresh_token_expires_at', Value: refreshTokenExpiresAt.toString() },
+    { Name: 'custom:gh_token', Value: accessToken },
+    { Name: 'custom:gh_refresh_token', Value: refreshToken },
+    { Name: 'custom:gh_token_expires', Value: expiresAt.toString() },
+    { Name: 'custom:gh_refresh_expires', Value: refreshTokenExpiresAt.toString() },
   ];
 
   if (githubId) {
-    attributes.push({ Name: 'custom:github_id', Value: githubId });
+    attributes.push({ Name: 'custom:gh_id', Value: githubId });
   }
 
   if (githubUsername) {
-    attributes.push({ Name: 'custom:github_username', Value: githubUsername });
+    attributes.push({ Name: 'custom:gh_username', Value: githubUsername });
   }
 
   await cognito.adminUpdateUserAttributes({
