@@ -1,34 +1,32 @@
 // cdk/lambda/authentication/signIn.ts
 import { CognitoIdentityProviderClient, InitiateAuthCommand, AuthFlowType, AdminGetUserCommand } from "@aws-sdk/client-cognito-identity-provider";
 import { CognitoAttribute } from "./githubUtils";
-const cognito = new CognitoIdentityProviderClient({ region: 'us-east-1' });
+
+const cognito = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
 
 export const handler = async (event: { body: string }) => {
   const body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
+  
   try {
     const { username, password } = body;
-    // Ensure ClientId is a string and not undefined
     const clientId = process.env.COGNITO_APP_CLIENT_ID;
     const userPoolId = process.env.COGNITO_USER_POOL_ID;
-    if (!clientId) {
-      throw new Error('COGNITO_APP_CLIENT_ID environment variable is not set.');
+
+    if (!clientId || !userPoolId) {
+      throw new Error('Missing required environment variables.');
     }
-    if (!userPoolId) {
-      throw new Error('COGNITO_USER_POOL_ID environment variable is not set.');
-    }
-    const params = {
+
+    const authCommand = new InitiateAuthCommand({
       AuthFlow: 'USER_PASSWORD_AUTH' as AuthFlowType,
       ClientId: clientId,
       AuthParameters: {
         USERNAME: username,
         PASSWORD: password,
       },
-    };
-    body.params = params;
-    const command = new InitiateAuthCommand(params);
-    const data = await cognito.send(command);
+    });
 
-    const { IdToken, AccessToken, RefreshToken } = data.AuthenticationResult ?? {};
+    const authResponse = await cognito.send(authCommand);
+    const { IdToken, AccessToken, RefreshToken } = authResponse.AuthenticationResult ?? {};
 
     if (!IdToken || !AccessToken || !RefreshToken) {
       return {
@@ -37,28 +35,29 @@ export const handler = async (event: { body: string }) => {
       };
     }
 
-    // Fetch user attributes
     const getUserCommand = new AdminGetUserCommand({
       UserPoolId: userPoolId,
       Username: username,
     });
     const userDetails = await cognito.send(getUserCommand);
-    console.log('userDetails:', userDetails);
 
-    // Extract GitHub username if it exists
     const githubUsername = userDetails.UserAttributes?.find(attr => attr.Name === CognitoAttribute.GH_USERNAME)?.Value;
-    console.log('githubUsername:', githubUsername);
+
     return {
       statusCode: 200,
       body: JSON.stringify({
-        ...data.AuthenticationResult,
+        idToken: IdToken,
+        accessToken: AccessToken,
+        refreshToken: RefreshToken,
         githubUsername,
-        cookies: [
-          `idToken=${IdToken}; SameSite=None; Secure; Path=/`,
-          `accessToken=${AccessToken}; SameSite=None; Secure; Path=/`,
-          `refreshToken=${RefreshToken}; SameSite=None; Secure; Path=/`
-        ]
       }),
+      headers: {
+        'Set-Cookie': [
+          `idToken=${IdToken}; HttpOnly; Secure; SameSite=Strict; Path=/`,
+          `accessToken=${AccessToken}; HttpOnly; Secure; SameSite=Strict; Path=/`,
+          `refreshToken=${RefreshToken}; HttpOnly; Secure; SameSite=Strict; Path=/`
+        ].join(', ')
+      }
     };
   } catch (err: any) {
     console.error('SignIn error:', err);

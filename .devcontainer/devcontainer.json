@@ -1,0 +1,31 @@
+{                                                                                 
+     "name": "Node.js & TypeScript",                                               
+     "build": {                                                                    
+         "dockerfile": "Dockerfile",                                               
+         "args": {                                                                 
+             "VARIANT": "18"                                                       
+         }                                                                         
+     },                                                                            
+     "customizations": {                                                           
+         "vscode": {                                                               
+             "settings": {                                                         
+                 "terminal.integrated.defaultProfile.linux": "bash"                
+             },                                                                    
+             "extensions": [                                                       
+                 "dbaeumer.vscode-eslint",                                         
+                 "ms-vscode.vscode-typescript-tslint-plugin",                      
+                 "ms-azuretools.vscode-docker",                                    
+                 "amazonwebservices.aws-toolkit-vscode"                            
+             ]                                                                     
+         }                                                                         
+     },                                                                            
+     "features": {
+         "ghcr.io/devcontainers/features/fish:1": {}
+     },
+     "forwardPorts": [3000],                                                       
+     "postCreateCommand": "yarn install && npm install -g aws-cdk",                
+     "remoteUser": "node",
+     "mounts": [
+         "source=${localWorkspaceFolder}/.aider.conf.yml,target=/home/${containerUser}/.aider.conf.yml,type=bind,consistency=cached"
+     ]
+ }                              

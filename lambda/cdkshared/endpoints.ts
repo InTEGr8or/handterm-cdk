@@ -2,6 +2,7 @@
 
 export const ENDPOINTS = {
     aws: {
+        region: 'us-east-1',
         cognito: {
             url: 'https://cognito-idp.us-east-1.amazonaws.com',
         },

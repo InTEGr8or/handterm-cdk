@@ -1,6 +1,6 @@
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
-import { HandTermCdkStack } from '../lib/cdk-stack.js';
+import { HandTermCdkStack } from '../lib/cdk-stack';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -8,7 +8,7 @@ import * as fs from 'fs';
 console.log('Starting CDK deployment...');
 
 // Get the directory of the current module
-const currentDir = path.dirname(new URL(import.meta.url).pathname);
+const currentDir = __dirname;
 const envPath = path.resolve(currentDir, '..', '.env');
 
 console.log(`Attempting to load .env file from: ${envPath}`);

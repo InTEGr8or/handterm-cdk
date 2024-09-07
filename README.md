@@ -55,3 +55,32 @@ aws ssm put-parameter --name "/github/secrets" --type "String" --value
 The best way to deal with layers is to avoid needing one if you can. Use AWS layers if those will solve your problem.
 
 Otherwise, create a layer sub-folder like this: `my-custom-layer/nodejs/`, go into the `nodejs` subfolder and run `yarn init --yes` and then `yarn add <needed library>` and then include the `my-custom-layer/` in the CDK as a layer resourse.
+
+## CDK Synthesis and Validation
+
+1. CDK Synthesis Completion: Yes, once the CDK is synthesized, most of the work on the development machine 
+   is indeed complete. The synthesis process has transformed your high-level CDK code into a CloudFormation
+   template.
+2. Deployment Process: The next step is to deploy this synthesized template to AWS. This is where the      
+   actual resources get created or updated in your AWS account.
+3. Alternative Deployment Method: You're right that you could theoretically deploy the synthesized
+   CloudFormation template directly using the AWS CLI with a command like:
+   
+    aws cloudformation deploy --template-file <path-to-synthesized-template> --stack-name <your-stack-name 
+    --capabilities CAPABILITY_IAM
+   
+   However, using cdk deploy is generally recommended as it handles some additional tasks like packaging   
+   assets (e.g., Lambda function code) and uploading them to S3.
+4. Lambda Function Validation: Regarding validating Lambda functions in a CDK project, there isn't a direct
+   equivalent to SAM's local-invoke command built into the CDK. However, there are a few approaches you can
+   take:
+   a. Use AWS SAM CLI with CDK: You can actually use SAM CLI with CDK projects. After synthesizing your CDK
+   app, you can use SAM CLI commands on the resulting template. For example:
+   
+    cdk synth --no-staging > template.yaml
+    sam local invoke <FunctionName> -t template.yaml
+   
+   b. Use the aws-lambda-local npm package: This package allows you to invoke Lambda functions locally.    
+   c. Write unit tests: You can write unit tests for your Lambda function code using frameworks like Jest. 
+   d. Use the AWS Lambda console: After deployment, you can test your functions directly in the AWS Lambda 
+   console.

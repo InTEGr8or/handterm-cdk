@@ -344,6 +344,7 @@ export class HandTermCdkStack extends Stack {
         COGNITO_USER_POOL_ID: userPool.userPoolId,
         BUCKET_NAME: ENDPOINTS.aws.s3.bucketName,
         API_URL: httpApi.url || '',
+        AWS_REGION: ENDPOINTS.aws.region,
       },
       layers: [octokitLayer],
     };
