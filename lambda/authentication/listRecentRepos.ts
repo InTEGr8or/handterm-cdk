@@ -3,7 +3,7 @@ import { CognitoIdentityProviderClient, AdminGetUserCommand, AdminUpdateUserAttr
 import { Octokit } from '@octokit/rest';
 import { CognitoAttribute } from './githubUtils';
 
-const cognito = new CognitoIdentityProviderClient({ region: 'us-east-1' });
+const cognito = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
 
 const refreshGitHubToken = async (refreshToken: string): Promise<string> => {
     const response = await fetch('https://github.com/login/oauth/access_token', {

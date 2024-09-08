@@ -1,8 +1,6 @@
-import { Octokit } from '@octokit/rest';
-import { createOAuthAppAuth } from '@octokit/auth-oauth-app';
-import { CognitoIdentityServiceProvider } from 'aws-sdk';
+import { CognitoIdentityProviderClient } from "@aws-sdk/client-cognito-identity-provider";
 
-const cognito = new CognitoIdentityServiceProvider();
+const cognito = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
 
 export enum CognitoAttribute {
   GH_TOKEN = 'custom:gh_token',
@@ -25,10 +23,12 @@ export const GitHubToCognitoMap = {
 export async function getValidGitHubToken(cognitoUserId: string): Promise<string> {
   console.log('githubUtils: Getting valid GitHub token for user:', cognitoUserId);
   
-  const user = await cognito.adminGetUser({
+  const { AdminGetUserCommand } = await import("@aws-sdk/client-cognito-identity-provider");
+  
+  const user = await cognito.send(new AdminGetUserCommand({
     UserPoolId: process.env.COGNITO_USER_POOL_ID!,
     Username: cognitoUserId,
-  }).promise();
+  }));
 
   const githubUsername = user.UserAttributes?.find(attr => attr.Name === 'custom:gh_username')?.Value;
   const accessToken = user.UserAttributes?.find(attr => attr.Name === 'custom:gh_token')?.Value;
@@ -68,6 +68,9 @@ export async function getValidGitHubToken(cognitoUserId: string): Promise<string
   }
 
   console.log('Token is expired, attempting to refresh');
+  const { Octokit } = await import('@octokit/rest');
+  const { createOAuthAppAuth } = await import('@octokit/auth-oauth-app');
+
   const octokit = new Octokit({
     authStrategy: createOAuthAppAuth,
     auth: {
@@ -110,6 +113,9 @@ export async function getValidGitHubToken(cognitoUserId: string): Promise<string
 }
 
 async function fetchAndUpdateGitHubData(cognitoUserId: string, githubUsername: string): Promise<string> {
+  const { Octokit } = await import('@octokit/rest');
+  const { createOAuthAppAuth } = await import('@octokit/auth-oauth-app');
+
   const octokit = new Octokit({
     authStrategy: createOAuthAppAuth,
     auth: {
@@ -168,6 +174,8 @@ async function updateCognitoAttributes(
     githubId,
     githubUsername
   });
+  const { AdminUpdateUserAttributesCommand } = await import("@aws-sdk/client-cognito-identity-provider");
+  
   const attributes = [
     { Name: 'custom:gh_token', Value: accessToken },
     { Name: 'custom:gh_refresh_token', Value: refreshToken },
@@ -183,9 +191,9 @@ async function updateCognitoAttributes(
     attributes.push({ Name: 'custom:gh_username', Value: githubUsername });
   }
 
-  await cognito.adminUpdateUserAttributes({
+  await cognito.send(new AdminUpdateUserAttributesCommand({
     UserPoolId: process.env.COGNITO_USER_POOL_ID!,
     Username: cognitoUserId,
     UserAttributes: attributes,
-  }).promise();
+  }));
 }

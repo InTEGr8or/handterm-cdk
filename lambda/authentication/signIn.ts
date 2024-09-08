@@ -1,12 +1,14 @@
 // cdk/lambda/authentication/signIn.ts
 import { CognitoIdentityProviderClient, InitiateAuthCommand, AuthFlowType, AdminGetUserCommand } from "@aws-sdk/client-cognito-identity-provider";
-import { CognitoAttribute } from "./githubUtils";
 
 const cognito = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
 
+console.log('SignUp module loaded');
+
 export const handler = async (event: { body: string }) => {
+  const { CognitoAttribute } = await import("./githubUtils");
   const body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
-  
+
   try {
     const { username, password } = body;
     const clientId = process.env.COGNITO_APP_CLIENT_ID;
@@ -67,3 +69,7 @@ export const handler = async (event: { body: string }) => {
     };
   }
 };
+
+console.log('Module exports:', module.exports, null, 2);
+console.log('Export keys:', Object.keys(module.exports));
+console.log('Handler type:', typeof module.exports.handler);

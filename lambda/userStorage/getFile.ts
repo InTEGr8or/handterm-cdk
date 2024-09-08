@@ -4,7 +4,7 @@ import { S3Client, HeadObjectCommand, GetObjectCommand } from "@aws-sdk/client-s
 
 const bucketName = process.env.BUCKET_NAME;
 
-const s3Client = new S3Client({ region: 'us-east-1' });
+const s3Client = new S3Client({ region: process.env.AWS_REGION });
 
 export const handler = async (event: any) => {
 

@@ -24,11 +24,13 @@
     "rootDir": ".",
     "esModuleInterop": true,
     "resolveJsonModule": true,
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true
   },
   "ts-node": {
     "esm": false,
     "transpileOnly": true
   },
-  "exclude": ["node_modules", "cdk.out", "dist"]
+  "exclude": ["node_modules", "cdk.out", "dist"],
+  "include": ["lambda/**/*.ts", "lib/**/*.ts"]
 }

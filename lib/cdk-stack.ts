@@ -96,6 +96,7 @@ export class HandTermCdkStack extends Stack {
 
     // Add access logging to the API Gateway
     const logGroup = new logs.LogGroup(this, 'ApiGatewayAccessLogs', {
+      logGroupName: `${logPrefix}ApiGatewayAccessLogs`,
       retention: logs.RetentionDays.ONE_WEEK,
       removalPolicy: RemovalPolicy.DESTROY
     });
@@ -297,18 +298,6 @@ export class HandTermCdkStack extends Stack {
       integration: new HttpLambdaIntegration('DefaultIntegration', authorizerFunction),
     });
 
-    // Add a separate route for OPTIONS requests without authorization
-    httpApi.addRoutes({
-      path: '/{proxy+}',
-      methods: [HttpMethod.OPTIONS],
-      integration: new HttpLambdaIntegration('OptionsIntegration', new lambda.Function(this, 'OptionsHandler', {
-        runtime: nodeRuntime,
-        handler: 'options.handler',
-        code: lambda.Code.fromAsset('lambda/cors'),
-        role: lambdaExecutionRole,
-      })),
-    });
-
     // Define the Identity Pool
     const identityPool = new cognito.CfnIdentityPool(this, 'IdentityPool', {
       allowUnauthenticatedIdentities: false,
@@ -338,13 +327,12 @@ export class HandTermCdkStack extends Stack {
       httpApi: httpApi,
       environment: {
         COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
-        COGNITO_USER_POOL_CLIENT_ID: userPoolClient.userPoolClientId, // Add this line
+        COGNITO_USER_POOL_CLIENT_ID: userPoolClient.userPoolClientId,
         GITHUB_CLIENT_ID: clientId,
         GITHUB_CLIENT_SECRET: clientSecret,
         COGNITO_USER_POOL_ID: userPool.userPoolId,
         BUCKET_NAME: ENDPOINTS.aws.s3.bucketName,
         API_URL: httpApi.url || '',
-        AWS_REGION: ENDPOINTS.aws.region,
       },
       layers: [octokitLayer],
     };
@@ -353,16 +341,24 @@ export class HandTermCdkStack extends Stack {
       ...defaultLambdaProps,
       id: 'SignUpFunction',
       handler: 'signUp.handler',
-      codePath: 'lambda/authentication',
+      codePath: 'dist/lambda/authentication',
       path: ENDPOINTS.api.SignUp,
       methods: [HttpMethod.POST],
+    });
+
+    // Log the SignUp function configuration
+    console.log('SignUp Function Configuration:', {
+      id: 'SignUpFunction',
+      handler: 'signUp.handler',
+      codePath: 'dist/lambda/authentication',
+      path: ENDPOINTS.api.SignUp,
     });
 
     createLambdaIntegration({
       ...defaultLambdaProps,
       id: 'ConfirmSignUpFunction',
       handler: 'confirmSignUp.handler',
-      codePath: 'lambda/authentication',
+      codePath: 'dist/lambda/authentication',
       path: ENDPOINTS.api.ConfirmSignUp,
       methods: [HttpMethod.POST],
     });
@@ -371,7 +367,7 @@ export class HandTermCdkStack extends Stack {
       ...defaultLambdaProps,
       id: 'SignInFunction',
       handler: 'signIn.handler',
-      codePath: 'lambda/authentication',
+      codePath: 'dist/lambda/authentication',
       path: ENDPOINTS.api.SignIn,
       methods: [HttpMethod.POST],
     });
@@ -380,7 +376,7 @@ export class HandTermCdkStack extends Stack {
       ...defaultLambdaProps,
       id: 'RefreshTokenFunction',
       handler: 'refreshToken.handler',
-      codePath: 'lambda/authentication',
+      codePath: 'dist/lambda/authentication',
       path: ENDPOINTS.api.RefreshToken,
       methods: [HttpMethod.POST],
     });
@@ -389,7 +385,7 @@ export class HandTermCdkStack extends Stack {
       ...defaultLambdaProps,
       id: 'ChangePasswordFunction',
       handler: 'changePassword.handler',
-      codePath: 'lambda/authentication',
+      codePath: 'dist/lambda/authentication',
       path: ENDPOINTS.api.ChangePassword,
       methods: [HttpMethod.POST],
       authorizer: lambdaAuthorizer,
@@ -399,7 +395,7 @@ export class HandTermCdkStack extends Stack {
       ...defaultLambdaProps,
       id: 'GetUserFunction',
       handler: 'getUser.handler',
-      codePath: 'lambda/userStorage',
+      codePath: 'dist/lambda/userStorage',
       path: ENDPOINTS.api.GetUser,
       methods: [HttpMethod.GET],
       authorizer: lambdaAuthorizer,
@@ -415,7 +411,7 @@ export class HandTermCdkStack extends Stack {
       ...defaultLambdaProps,
       id: 'SetUserFunction',
       handler: 'setUser.handler',
-      codePath: 'lambda/userStorage',
+      codePath: 'dist/lambda/userStorage',
       path: ENDPOINTS.api.SetUser,
       methods: [HttpMethod.POST],
       authorizer: lambdaAuthorizer,
@@ -425,7 +421,7 @@ export class HandTermCdkStack extends Stack {
       ...defaultLambdaProps,
       id: 'SaveLogFunction',
       handler: 'saveLog.handler',
-      codePath: 'lambda/userStorage',
+      codePath: 'dist/lambda/userStorage',
       path: ENDPOINTS.api.SaveLog,
       methods: [HttpMethod.POST],
       authorizer: lambdaAuthorizer,
@@ -435,7 +431,7 @@ export class HandTermCdkStack extends Stack {
       ...defaultLambdaProps,
       id: 'GetLogFunction',
       handler: 'getLog.handler',
-      codePath: 'lambda/userStorage',
+      codePath: 'dist/lambda/userStorage',
       path: ENDPOINTS.api.GetLog,
       methods: [HttpMethod.POST, HttpMethod.GET],
       authorizer: lambdaAuthorizer,
@@ -445,7 +441,7 @@ export class HandTermCdkStack extends Stack {
       ...defaultLambdaProps,
       id: 'ListLogFunction',
       handler: 'listLog.handler',
-      codePath: 'lambda/userStorage',
+      codePath: 'dist/lambda/userStorage',
       path: ENDPOINTS.api.ListLog,
       methods: [HttpMethod.POST, HttpMethod.GET],
       authorizer: lambdaAuthorizer,
@@ -455,7 +451,7 @@ export class HandTermCdkStack extends Stack {
       ...defaultLambdaProps,
       id: 'GetFileFunction',
       handler: 'getFile.handler',
-      codePath: 'lambda/userStorage',
+      codePath: 'dist/lambda/userStorage',
       path: ENDPOINTS.api.GetFile,
       methods: [HttpMethod.GET],
       authorizer: lambdaAuthorizer,
@@ -465,7 +461,7 @@ export class HandTermCdkStack extends Stack {
       ...defaultLambdaProps,
       id: 'PutFileFunction',
       handler: 'putFile.handler',
-      codePath: 'lambda/userStorage',
+      codePath: 'dist/lambda/userStorage',
       path: ENDPOINTS.api.PutFile,
       methods: [HttpMethod.POST],
       authorizer: lambdaAuthorizer,
@@ -475,7 +471,7 @@ export class HandTermCdkStack extends Stack {
       ...defaultLambdaProps,
       id: 'ListRecentReposFunction',
       handler: 'listRecentRepos.handler',
-      codePath: 'lambda/authentication',
+      codePath: 'dist/lambda/authentication',
       path: '/list-recent-repos',
       methods: [HttpMethod.GET],
       authorizer: lambdaAuthorizer,
@@ -486,7 +482,7 @@ export class HandTermCdkStack extends Stack {
       ...defaultLambdaProps,
       id: 'GetRepoTreeFunction',
       handler: 'getRepoTree.handler',
-      codePath: 'lambda/authentication',
+      codePath: 'dist/lambda/authentication',
       path: '/get-repo-tree',
       methods: [HttpMethod.GET],
       authorizer: lambdaAuthorizer,
@@ -514,7 +510,7 @@ export class HandTermCdkStack extends Stack {
       ...defaultLambdaProps,
       id: 'CheckSessionFunction',
       handler: 'checkSession.handler',
-      codePath: 'lambda/authentication',
+      codePath: 'dist/lambda/authentication',
       path: '/check-session',
       methods: [HttpMethod.GET],
     });
@@ -523,7 +519,7 @@ export class HandTermCdkStack extends Stack {
       ...defaultLambdaProps,
       id: 'SignOutFunction',
       handler: 'signOut.handler',
-      codePath: 'lambda/authentication',
+      codePath: 'dist/lambda/authentication',
       path: '/signout',
       methods: [HttpMethod.GET, HttpMethod.POST],
     });
@@ -532,7 +528,7 @@ export class HandTermCdkStack extends Stack {
       ...defaultLambdaProps,
       id: 'GitHubAuthRedirectFunction',
       handler: 'githubAuthRedirect.handler',
-      codePath: 'lambda/authentication',
+      codePath: 'dist/lambda/authentication',
       environment: {
         ...defaultLambdaProps.environment,
         REDIRECT_URI: `${httpApi.url}oauth_callback`,
@@ -546,7 +542,7 @@ export class HandTermCdkStack extends Stack {
       id: 'OAuthCallbackFunction',
       handler: 'oauth_callback.handler',
       role: lambdaExecutionRole,
-      codePath: 'lambda/authentication',
+      codePath: 'dist/lambda/authentication',
       environment: {
         ...defaultLambdaProps.environment,
         FRONTEND_URL: 'https://handterm.com', // Replace with your actual frontend URL

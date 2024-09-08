@@ -2,9 +2,7 @@
 
 import { CognitoIdentityProviderClient, ChangePasswordCommand } from '@aws-sdk/client-cognito-identity-provider';
 
-const cognito = new CognitoIdentityProviderClient({ region: 'us-east-1' });
-
-const allowedOrigins = ['http://localhost:5173', 'https://handterm.com'];
+const cognito = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
 
 export const handler = async (event: { body: string }) => {
   const body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;

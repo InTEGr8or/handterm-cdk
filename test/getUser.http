@@ -1,5 +1,5 @@
 ### Sign Up
-POST https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/signUp
+POST https://22k5nam6ed.execute-api.us-east-1.amazonaws.com/signUp
 Content-Type: application/json
 
 {

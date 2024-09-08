@@ -5,17 +5,18 @@
   "license": "Apache-2.0",
   "type": "commonjs",
   "scripts": {
-    "cpCdk": "cp ../handterm/src/shared/endpoints.ts lambda/cdkshared/",
+    "cpCdk": "cp ../handterm/src/shared/endpoints.ts lambda/cdkshared/ && echo 'endpoints.ts copied'",
     "clean": "bash clean.sh",
     "build": "yarn clean && tsc",
-    "predeploy": "yarn install && yarn build",
-    "deploy": "yarn && yarn cpCdk && yarn build && yarn synth && dotenv -- cdk deploy --profile mark --region us-east-1",
+    "predeploy": "yarn cpCdk && yarn build && yarn synth",
+    "deploy": "dotenv -- cdk deploy --profile mark --region us-east-1",
     "destroy": "dotenv -- cdk destroy",
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "dotenv -- node bin/cdk.js",
     "synth": "dotenv -- cdk synth",
-    "check-env": "bash check_env.sh"
+    "check-env": "bash check_env.sh",
+    "layer": "cd lambdaLayer/nodejs && yarn install --production"
   },
   "dependencies": {
     "@aws-sdk/client-cloudwatch-logs": "^3.643.0",

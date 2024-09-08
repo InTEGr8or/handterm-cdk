@@ -15,7 +15,7 @@ echo "GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:+Set}"
 echo "COGNITO_USER_POOL_ID: ${COGNITO_USER_POOL_ID:+Set}"
 echo "COGNITO_APP_CLIENT_ID: ${COGNITO_APP_CLIENT_ID:+Set}"
 
-if [ -z "$GITHUB_CLIENT_ID" ] || [ -z "$GITHUB_CLIENT_SECRET" ]; then
+if [ -z "$GITHUB_CLIENT_ID" ] || [ -z "$GITHUB_CLIENT_SECRET" ] || [ -z "$COGNITO_APP_CLIENT_ID" ]; then
     echo "Error: GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET must be set in the environment"
     echo "Please ensure you have a .env file in the project root with these variables set"
     echo "Example:"

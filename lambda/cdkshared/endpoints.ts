@@ -2,7 +2,6 @@
 
 export const ENDPOINTS = {
     aws: {
-        region: 'us-east-1',
         cognito: {
             url: 'https://cognito-idp.us-east-1.amazonaws.com',
         },
@@ -13,7 +12,7 @@ export const ENDPOINTS = {
         },
     },
     api: {
-        BaseUrl: 'https://1s6kn7lp23.execute-api.us-east-1.amazonaws.com',
+        BaseUrl: 'https://22k5nam6ed.execute-api.us-east-1.amazonaws.com',
         SignUp: '/signUp',
         ConfirmSignUp: '/confirm-signup',
         GetLog: '/getLog',
