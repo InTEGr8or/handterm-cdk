@@ -7,13 +7,15 @@ export const cognitoClient = new CognitoIdentityProviderClient({ region: process
 export const handler = async (event: APIGatewayTokenAuthorizerEvent): Promise<APIGatewaySimpleAuthorizerWithContextResult<{ [key: string]: string }>> => {
     console.log(`Authorizer invoked with event: ${JSON.stringify(event, null, 2)}`);
 
-    const authHeader = event.authorizationToken;
-    if (!authHeader) {
-        console.log('No Authorization header found');
+    const authToken = event.authorizationToken;
+    console.log(`Authorization token: ${authToken}`);
+
+    if (!authToken) {
+        console.log('No Authorization token found');
         return generatePolicy('user', 'Deny', event.methodArn);
     }
 
-    const token = authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : authHeader;
+    const token = authToken.startsWith('Bearer ') ? authToken.split(' ')[1] : authToken;
 
     const userPoolId = process.env.COGNITO_USER_POOL_ID;
     if (!userPoolId) {
@@ -38,9 +40,11 @@ export const handler = async (event: APIGatewayTokenAuthorizerEvent): Promise<AP
         }, {} as Record<string, string>) ?? {};
 
         const githubId = userAttributes[CognitoAttribute.GH_ID] || '';
+        const githubToken = userAttributes[CognitoAttribute.GH_TOKEN] || '';
         return generatePolicy(userId, 'Allow', event.methodArn, {
             userId,
-            githubId
+            githubId,
+            githubToken
         });
     } catch (error) {
         console.error(`Error in Cognito getUser: ${error}`);

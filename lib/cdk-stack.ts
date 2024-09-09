@@ -267,7 +267,7 @@ export class HandTermCdkStack extends Stack {
       runtime: nodeRuntime,
       handler: 'authorizer.handler',
       role: lambdaExecutionRole,
-      code: lambda.Code.fromAsset('lambda/authentication'),
+      code: lambda.Code.fromAsset('dist/lambda/authentication'),
       logGroup: authorizerLogGroup,
       environment: {
         COGNITO_USER_POOL_ID: userPool.userPoolId,
@@ -452,7 +452,7 @@ export class HandTermCdkStack extends Stack {
       id: 'GetFileFunction',
       handler: 'getFile.handler',
       codePath: 'dist/lambda/userStorage',
-      path: ENDPOINTS.api.GetFile,
+      path: '/getFile',
       methods: [HttpMethod.GET],
       authorizer: lambdaAuthorizer,
     });

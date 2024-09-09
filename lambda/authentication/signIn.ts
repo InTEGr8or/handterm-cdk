@@ -48,10 +48,13 @@ export const handler = async (event: { body: string }) => {
     return {
       statusCode: 200,
       body: JSON.stringify({
-        idToken: IdToken,
-        accessToken: AccessToken,
-        refreshToken: RefreshToken,
+        ...authResponse.AuthenticationResult,
         githubUsername,
+        cookies: [
+          `idToken=${IdToken}; SameSite=None; Secure; Path=/`,
+          `accessToken=${AccessToken}; SameSite=None; Secure; Path=/`,
+          `refreshToken=${RefreshToken}; SameSite=None; Secure; Path=/`
+        ]
       }),
       headers: {
         'Set-Cookie': [
@@ -63,9 +66,21 @@ export const handler = async (event: { body: string }) => {
     };
   } catch (err: any) {
     console.error('SignIn error:', err);
+    if (err.__type === 'UserNotConfirmedException') {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ 
+          code: 'UserNotConfirmed',
+          message: 'User is not confirmed. Please check your email and confirm your account.'
+        }),
+      };
+    }
     return {
-      statusCode: 400,
-      body: JSON.stringify({ message: err.message }),
+      statusCode: 500,
+      body: JSON.stringify({ 
+        code: 'InternalServerError',
+        message: 'An unexpected error occurred. Please try again later.'
+      }),
     };
   }
 };

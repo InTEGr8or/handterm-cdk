@@ -32,9 +32,11 @@ export const handler = async (event: any) => {
 
             userId = event.requestContext.authorizer.lambda.userId;
             githubId = event.requestContext.authorizer.lambda.githubId;
+            githubToken = event.requestContext.authorizer.lambda.githubToken;
 
             console.log('UserId from authorizer:', userId);
             console.log('GitHub ID from authorizer:', githubId);
+            console.log('GitHub Token from authorizer:', githubToken ? '[REDACTED]' : 'Not found');
         } else {
             console.log('No authorizer in requestContext, or no lambda property');
             return {
@@ -59,11 +61,6 @@ export const handler = async (event: any) => {
 
         console.log('UserAttributes (parsed):', JSON.stringify(userAttributes, null, 2));
 
-        if (!githubId || !githubToken) {
-            console.log('GitHub ID or Token not found in authorizer context, checking userAttributes');
-            githubId = userAttributes?.[CognitoAttribute.GH_ID] || '';
-            githubToken = userAttributes?.[CognitoAttribute.GH_TOKEN] || '';
-        }
         if (!userId) {
             console.error('No userId found in request');
             return {
@@ -73,7 +70,6 @@ export const handler = async (event: any) => {
         }
 
         try {
-
             console.log('GetUserFunction completed successfully');
             return {
                 statusCode: 200,
