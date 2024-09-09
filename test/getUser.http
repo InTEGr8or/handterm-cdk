@@ -3,7 +3,7 @@ POST https://22k5nam6ed.execute-api.us-east-1.amazonaws.com/signUp
 Content-Type: application/json
 
 {
-  "username": "testuser@example.com",
+  "username": "testuser",
   "email": "testuser@example.com",
   "password": "TestPassword123!"
 }
@@ -14,8 +14,8 @@ POST https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/signIn
 Content-Type: application/json
 
 {
+  "username": "testuser",
   "email": "testuser@example.com",
-  "username": "testuser@example.com",
   "password": "TestPassword123!"
 }
 
