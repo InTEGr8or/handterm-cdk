@@ -1,54 +1,68 @@
 #!/bin/bash
 
- set -e
+set -e
 
- if [ $# -eq 0 ]; then
-     echo "Please provide the name of the Lambda function as an argument."
-     exit 1
- fi
+if [ $# -eq 0 ]; then
+    echo "Please provide the name of the Lambda function as an argument."
+    exit 1
+fi
 
- FUNCTION_NAME=$1
- LIMIT=${2:-30}
+FUNCTION_NAME=$1
+LIMIT=${2:-30}
 
- STACK_NAME="HandTermCdkStack"
+STACK_NAME="HandTermCdkStack"
 
- LOG_GROUP_NAME=$(aws logs describe-log-groups --query "logGroups[?contains(logGroupName,
- 'HandTerm')].logGroupName" --output json | jq -r ".[] | select(.|test(\"(?i)$FUNCTION_NAME\"))" | head -n)
+LOG_GROUP_NAME=$(aws logs describe-log-groups --query "logGroups[?contains(logGroupName, 'HandTerm')].logGroupName" --output json | jq -r ".[] | select(.|test(\"(?i)$FUNCTION_NAME\"))" | head -n 1)
 
- if [ -z "$LOG_GROUP_NAME" ]; then
-     echo "No log group found for function: $FUNCTION_NAME"
-     exit 1
- fi
+if [ -z "$LOG_GROUP_NAME" ]; then
+    echo "No log group found for function: $FUNCTION_NAME"
+    exit 1
+fi
 
- echo "Log group: $LOG_GROUP_NAME"
+echo "Log group: $LOG_GROUP_NAME"
 
- LATEST_LOG_STREAM=$(aws logs describe-log-streams \
-     --log-group-name "$LOG_GROUP_NAME" \
-     --order-by LastEventTime \
-     --descending \
-     --max-items 1 \
-     --query 'logStreams[0].logStreamName' \
-     --output text)
+LATEST_LOG_STREAMS=$(aws logs describe-log-streams \
+    --log-group-name "$LOG_GROUP_NAME" \
+    --order-by LastEventTime \
+    --descending \
+    --max-items 5 \
+    --query 'logStreams[*].logStreamName' \
+    --output json)
 
- if [ "$LATEST_LOG_STREAM" == "None" ] || [ -z "$LATEST_LOG_STREAM" ]; then
-     echo "No log streams found for Lambda function $FUNCTION_NAME"
-     exit 1
- fi
+if [ "$LATEST_LOG_STREAMS" == "[]" ] || [ -z "$LATEST_LOG_STREAMS" ]; then
+    echo "No log streams found for Lambda function $FUNCTION_NAME"
+    exit 1
+fi
 
- echo "Latest log stream: $LATEST_LOG_STREAM"
+echo "Latest log streams: $LATEST_LOG_STREAMS"
 
- aws logs get-log-events \
-     --log-group-name "$LOG_GROUP_NAME" \
-     --log-stream-name "$LATEST_LOG_STREAM" \
-     --limit $LIMIT \
-     --output json | jq -r '.events[].message' | while read -r line; do
-         timestamp=$(echo "$line" | grep -oP '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z' || true)       
-         message=$(echo "$line" | sed 's/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z//')
-         if [ -n "$timestamp" ]; then
-             echo -e "\e[32m$timestamp\e[0m$message"
-         else
-             echo "$line"
-         fi
-     done
+echo "Fetching last $LIMIT log events..."
+LOG_EVENTS=""
+for STREAM in $(echo "$LATEST_LOG_STREAMS" | jq -r '.[]'); do
+    EVENTS=$(aws logs get-log-events \
+        --log-group-name "$LOG_GROUP_NAME" \
+        --log-stream-name "$STREAM" \
+        --limit $LIMIT \
+        --start-from-head \
+        --output json)
+    
+    if [ -n "$EVENTS" ] && [ "$(echo "$EVENTS" | jq '.events | length')" -gt 0 ]; then
+        LOG_EVENTS="$EVENTS"
+        break
+    fi
+done
 
- echo "Last $LIMIT log events displayed."
+if [ -z "$LOG_EVENTS" ] || [ "$(echo "$LOG_EVENTS" | jq '.events | length')" -eq 0 ]; then
+    echo "No log events found in any of the recent streams. The function might not have been invoked recently."
+else
+    echo "Last $LIMIT log events:"
+    echo "$LOG_EVENTS" | jq -r '.events[].message' | while read -r line; do
+        if [[ $line =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z ]]; then
+            timestamp=${line:0:24}
+            message=${line:24}
+            echo -e "\033[32m$timestamp\033[0m$message"
+        else
+            echo "$line"
+        fi
+    done
+fi
