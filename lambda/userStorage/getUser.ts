@@ -5,8 +5,8 @@ const cognitoClient = new CognitoIdentityProviderClient({ region: process.env.AW
 
 export const handler: APIGatewayProxyHandler = async (event) => {
     console.log('GetUserFunction invoked');
-    console.log('Event:', JSON.stringify(event, null, 2));
-    console.log('Environment variables:', JSON.stringify(process.env, null, 2));
+    console.log('Event:', event);
+    console.log('Environment variables:', process.env);
 
     try {
         console.log('Checking event structure');
@@ -18,13 +18,13 @@ export const handler: APIGatewayProxyHandler = async (event) => {
             };
         }
 
-        console.log('RequestContext:', JSON.stringify(event.requestContext, null, 2));
+        console.log('RequestContext:', event.requestContext);
 
         let userId, userAttributes, githubId, githubToken;
 
         // Check if the authorizer is present
-        if (event.requestContext.authorizer && event.requestContext.authorizer.lambda) {
-            console.log('Authorizer found:', JSON.stringify(event.requestContext.authorizer, null, 2));
+        if (event.requestContext.authorizer) {
+            console.log('Authorizer found:', event.requestContext.authorizer);
 
             userId = event.requestContext.authorizer.lambda.userId;
             githubId = event.requestContext.authorizer.lambda.githubId;
@@ -33,8 +33,16 @@ export const handler: APIGatewayProxyHandler = async (event) => {
             console.log('UserId from authorizer:', userId);
             console.log('GitHub ID from authorizer:', githubId);
             console.log('GitHub Token from authorizer:', githubToken ? '[REDACTED]' : 'Not found');
+
+            if (!userId) {
+                console.error('No userId found in authorizer');
+                return {
+                    statusCode: 401,
+                    body: JSON.stringify({ message: 'User is not authenticated', error: 'No userId found in authorizer' }),
+                };
+            }
         } else {
-            console.log('No authorizer in requestContext, or no lambda property');
+            console.log('No authorizer in requestContext');
             return {
                 statusCode: 401,
                 body: JSON.stringify({ message: 'User is not authenticated' }),
@@ -43,9 +51,13 @@ export const handler: APIGatewayProxyHandler = async (event) => {
 
         if (!userId) {
             console.error('No userId found in request');
+            console.error('Authorizer content:', event.requestContext.authorizer);
             return {
                 statusCode: 401,
-                body: JSON.stringify({ message: 'User is not authenticated' }),
+                body: JSON.stringify({ 
+                    message: 'User is not authenticated',
+                    error: 'No userId found in authorizer'
+                }),
             };
         }
 
@@ -56,7 +68,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
 
         console.log('Executing GetUserCommand');
         const response = await cognitoClient.send(getUserCommand);
-        console.log('GetUserCommand response:', JSON.stringify(response, null, 2));
+        console.log('GetUserCommand response:', response);
 
         userAttributes = response.UserAttributes?.reduce((acc, attr) => {
             if (attr.Name && attr.Value) {
@@ -65,7 +77,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
             return acc;
         }, {} as Record<string, string>) ?? {};
 
-        console.log('User attributes:', JSON.stringify(userAttributes, null, 2));
+        console.log('User attributes:', userAttributes);
 
         return {
             statusCode: 200,

@@ -48,7 +48,9 @@ export const handler = async (event: { body: string }) => {
     return {
       statusCode: 200,
       body: JSON.stringify({
-        ...authResponse.AuthenticationResult,
+        AccessToken,
+        IdToken,
+        RefreshToken,
         githubUsername,
         cookies: [
           `idToken=${IdToken}; SameSite=None; Secure; Path=/`,

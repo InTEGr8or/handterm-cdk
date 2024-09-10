@@ -4,18 +4,22 @@ import { CognitoAttribute } from './githubUtils';
 
 export const cognitoClient = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
 
-export const handler = async (event: APIGatewayTokenAuthorizerEvent): Promise<APIGatewaySimpleAuthorizerWithContextResult<{ [key: string]: string }>> => {
+interface ExtendedAPIGatewayTokenAuthorizerEvent extends APIGatewayTokenAuthorizerEvent {
+    identitySource?: string[];
+}
+
+export const handler = async (event: ExtendedAPIGatewayTokenAuthorizerEvent): Promise<APIGatewaySimpleAuthorizerWithContextResult<{ [key: string]: string }>> => {
     console.log(`Authorizer invoked with event: ${JSON.stringify(event, null, 2)}`);
 
-    const authToken = event.authorizationToken;
+    const authToken = event.identitySource?.[0];
     console.log(`Authorization token: ${authToken}`);
 
-    if (!authToken) {
-        console.log('No Authorization token found');
+    if (!authToken || !authToken.startsWith('Bearer ')) {
+        console.log('No valid Authorization token found');
         return generatePolicy('user', 'Deny', event.methodArn);
     }
 
-    const token = authToken.startsWith('Bearer ') ? authToken.split(' ')[1] : authToken;
+    const token = authToken.split(' ')[1];
 
     const userPoolId = process.env.COGNITO_USER_POOL_ID;
     if (!userPoolId) {

@@ -8,11 +8,13 @@
     "cpCdk": "cp ../handterm/src/shared/endpoints.ts lambda/cdkshared/ && echo 'endpoints.ts copied'",
     "clean": "bash clean.sh",
     "build": "yarn clean && tsc",
-    "predeploy": "yarn cpCdk && yarn build && yarn synth",
-    "deploy": "dotenv -- cdk deploy --profile mark --region us-east-1",
+    "predeploy": "yarn cpCdk && yarn build",
+    "deploy": "dotenv -- cdk synth --quiet > .aws/synth.yml && dotenv -- cdk deploy --profile mark --region us-east-1 --require-approval never --outputs-file .aws/outputs.json",
+    "postdeploy": "node update-env.js && yarn test:e2e",
     "destroy": "dotenv -- cdk destroy",
     "watch": "tsc -w",
     "test": "jest",
+    "test:e2e": "jest tests/e2e.test.ts",
     "cdk": "dotenv -- node bin/cdk.js",
     "synth": "dotenv -- cdk synth",
     "check-env": "bash check_env.sh",
@@ -20,7 +22,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-cloudwatch-logs": "^3.643.0",
-    "@aws-sdk/client-cognito-identity-provider": "^3.637.0",
+    "@aws-sdk/client-cognito-identity-provider": "^3.645.0",
     "@aws-sdk/client-s3": "^3.425.0",
     "@aws-sdk/client-ssm": "^3.0.0",
     "@octokit/auth-app": "^7.1.1",
@@ -42,12 +44,16 @@
     "@types/jest": "^29.5.12",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "20.14.2",
+    "@types/uuid": "^8.3.0",
     "aws-cdk": "2.148.1",
     "aws-sdk-client-mock": "^4.0.1",
+    "axios": "^0.21.1",
+    "dotenv": "^16.4.5",
     "dotenv-cli": "^7.4.2",
     "jest": "^29.7.0",
     "ts-jest": "^29.1.4",
     "ts-node": "^10.9.2",
-    "typescript": "~5.4.5"
+    "typescript": "~5.4.5",
+    "uuid": "^8.3.2"
   }
 }
