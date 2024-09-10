@@ -44,13 +44,14 @@ export const handler = async (event: any) => {
       body: JSON.stringify({
         IdToken,
         AccessToken,
+        RefreshToken: refreshToken, // Include the original refresh token in the response
       }),
     };
   } catch (err: any) {
     console.error('RefreshToken error:', err);
     return {
       statusCode: 500,
-      body: JSON.stringify({ message: err.message || 'An error occurred during the token refresh process.' }),
+      body: JSON.stringify({ message: err.message || 'An error occurred during the token refresh process.', error: err instanceof Error ? err.message : String(err) }),
     };
   }
 };
