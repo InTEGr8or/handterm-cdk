@@ -1,16 +1,13 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 
-export const handler = async (event: APIGatewayProxyEvent):
-  Promise<APIGatewayProxyResult> => {
+export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   console.log('githubAuthRedirect Event:', JSON.stringify(event, null, 2));
 
   const clientId = process.env.GITHUB_CLIENT_ID;
   const redirectUri = process.env.REDIRECT_URI;
 
   if (!clientId || !redirectUri) {
-    console.error('Missing environment variables:', {
-      clientId, redirectUri
-    });
+    console.error('Missing environment variables:', { clientId, redirectUri });
     return {
       statusCode: 500,
       body: JSON.stringify({
@@ -23,18 +20,12 @@ export const handler = async (event: APIGatewayProxyEvent):
   
   // Extract Cognito user ID from the Authorization header if it exists
   let cognitoUserId: string | null = null;
-  const stateParam = event.queryStringParameters?.state;
-
-  if (stateParam) {
-    try {
-      const decodedState = JSON.parse(Buffer.from(stateParam, 'base64').toString());
-      cognitoUserId = decodedState.userId;
-    } catch (error) {
-      console.error('Error parsing state parameter:', error);
-    }
+  const authHeader = event.headers.Authorization || event.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    // In a real scenario, you'd validate the token and extract the user ID
+    // For now, we'll just set a placeholder value
+    cognitoUserId = 'placeholder-user-id';
   }
-
-  console.log('Cognito User ID:', cognitoUserId);
 
   const state = Buffer.from(JSON.stringify({
     timestamp: Date.now(),
