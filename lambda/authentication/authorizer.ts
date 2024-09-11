@@ -9,7 +9,7 @@ interface ExtendedAPIGatewayTokenAuthorizerEvent extends APIGatewayTokenAuthoriz
 }
 
 export const handler = async (event: ExtendedAPIGatewayTokenAuthorizerEvent): Promise<APIGatewaySimpleAuthorizerWithContextResult<{ [key: string]: string }>> => {
-    console.log(`Authorizer invoked with event: ${JSON.stringify(event, null, 2)}`);
+    console.log(`Authorizer invoked with event: ${event}`);
 
     const authToken = event.identitySource?.[0];
     console.log(`Authorization token: ${authToken}`);

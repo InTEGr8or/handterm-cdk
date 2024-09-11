@@ -76,12 +76,29 @@ export const handler = async (event: { body: string }) => {
           message: 'User is not confirmed. Please check your email and confirm your account.'
         }),
       };
+    } else if (err.__type === 'NotAuthorizedException') {
+      return {
+        statusCode: 401,
+        body: JSON.stringify({ 
+          code: 'NotAuthorized',
+          message: 'Incorrect username or password.'
+        }),
+      };
+    } else if (err.__type === 'UserNotFoundException') {
+      return {
+        statusCode: 404,
+        body: JSON.stringify({ 
+          code: 'UserNotFound',
+          message: 'User does not exist.'
+        }),
+      };
     }
     return {
       statusCode: 500,
       body: JSON.stringify({ 
         code: 'InternalServerError',
-        message: 'An unexpected error occurred. Please try again later.'
+        message: 'An unexpected error occurred. Please try again later.',
+        error: err.message
       }),
     };
   }

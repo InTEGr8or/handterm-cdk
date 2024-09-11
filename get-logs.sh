@@ -66,3 +66,31 @@ else
         fi
     done
 fi
+#!/bin/bash
+
+FUNCTION_NAME=$1
+STACK_NAME="HandTermCdkStack"
+LOG_GROUP_NAME=$(aws logs describe-log-groups --query "logGroups[?contains(logGroupName, '$STACK_NAME')].logGroupName" --output json | jq -r ".[] | select(.|test(\"(?i)$FUNCTION_NAME\"))" | head -n 1)
+
+if [ -z "$LOG_GROUP_NAME" ]; then
+    echo "No log group found for function: $FUNCTION_NAME"
+    exit 1
+fi
+
+echo "Log group: $LOG_GROUP_NAME"
+
+LATEST_LOG_STREAM=$(aws logs describe-log-streams \
+    --log-group-name "$LOG_GROUP_NAME" \
+    --order-by LastEventTime \
+    --descending \
+    --max-items 1 \
+    --query 'logStreams[0].logStreamName' \
+    --output text)
+
+echo "Latest log stream: $LATEST_LOG_STREAM"
+
+aws logs get-log-events \
+    --log-group-name "$LOG_GROUP_NAME" \
+    --log-stream-name "$LATEST_LOG_STREAM" \
+    --limit 100 \
+    --output json | jq -r '.events[].message'
