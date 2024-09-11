@@ -6,10 +6,12 @@ const cognitoClient = new CognitoIdentityProviderClient({ region: process.env.AW
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent) => {
     console.log("GetUserFunction invoked");
     console.log('Full event:', event);
-    console.log('Lambda:', event?.requestContext?.authorizer?.lambda);
 
     try {
-        const accessToken = event.headers.Authorization?.split(' ')[1];
+        const requestContext = event.requestContext;
+        if(!requestContext) return { statusCode: 401, message: 'No requestContext', body: ''}
+        console.log('Lambda:', event?.requestContext?.authorizer?.lambda);
+        const accessToken = event.headers?.authorization?.split(' ')[1];
         if (!accessToken) {
             console.log("accessToken", accessToken);
             return {
@@ -37,7 +39,7 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
         };
     } catch (err) {
         console.error('Error in getUser handler:', err);
-        
+
         let statusCode = 500;
         let errorMessage = 'Internal server error';
 
@@ -50,11 +52,11 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
                 errorMessage = 'Invalid access token format';
             }
         }
-        
+
         return {
             statusCode,
-            body: JSON.stringify({ 
-                message: errorMessage, 
+            body: JSON.stringify({
+                message: errorMessage,
                 error: err instanceof Error ? err.message : String(err)
             }),
         };
