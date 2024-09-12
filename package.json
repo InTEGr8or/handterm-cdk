@@ -15,7 +15,7 @@
     "test": "jest",
     "test:e2e": "jest tests/e2e.test.ts",
     "test:e2e:specific": "jest tests/e2e.test.ts -t",
-    "test:github_auth": "jest tests/github_auth.test.ts",
+    "test:github_auth": "jest tests/github_auth.test.ts && bash ./get-logs.sh callback",
     "destroy": "dotenv -- cdk destroy",
     "watch": "tsc -w",
     "cdk": "dotenv -- node bin/cdk.js",

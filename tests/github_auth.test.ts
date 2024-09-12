@@ -91,10 +91,7 @@ describe('GitHub Authentication Flow', () => {
         console.error('Error headers:', error.response.headers);
         console.error('Full error object:', JSON.stringify(error, null, 2));
         
-        if (error.response.data && error.response.data.importError) {
-          console.error('Import error details:', error.response.data.importError);
-        }
-        
+        // We no longer need to check for ERR_REQUIRE_ESM as we've addressed the import issue
         throw new Error(`OAuth Callback failed: ${JSON.stringify(error.response.data)}`);
       } else {
         console.error('Non-Axios error:', error);
