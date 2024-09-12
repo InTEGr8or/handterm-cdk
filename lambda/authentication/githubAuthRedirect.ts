@@ -43,7 +43,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
   const githubAuthUrl =
     `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=read:user,user:email&state=${state}`;
 
-  console.log('Redirecting to:', githubAuthUrl);
+  console.log('Redirecting to:', githubAuthUrl, redirectUri);
 
   return {
     statusCode: 302,

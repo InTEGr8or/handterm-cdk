@@ -7,7 +7,8 @@
   "scripts": {
     "cpCdk": "cp ../handterm/src/shared/endpoints.ts lambda/cdkshared/ && echo 'endpoints.ts copied'",
     "clean": "bash clean.sh",
-    "build": "yarn clean && tsc",
+    "build": "yarn clean && tsc && yarn copy-lambda",
+    "copy-lambda": "mkdir -p dist/lambda && cp -R lambda/* dist/lambda/",
     "predeploy": "yarn cpCdk && yarn build",
     "deploy": "dotenv -- cdk synth --quiet > .aws/synth.yml && dotenv -- cdk deploy --profile mark --region us-east-1 --require-approval never --outputs-file .aws/outputs.json",
     "postdeploy": "node update-env.js",
@@ -20,7 +21,7 @@
     "cdk": "dotenv -- node bin/cdk.js",
     "synth": "dotenv -- cdk synth",
     "check-env": "bash check_env.sh",
-    "layer": "cd lambdaLayer/nodejs && yarn install --production"
+    "layer": "cd lambdaLayer/nodejs && yarn install --production && cd -"
   },
   "dependencies": {
     "@aws-sdk/client-cloudwatch-logs": "^3.643.0",
@@ -34,7 +35,6 @@
     "aws-cdk-lib": "2.148.1",
     "aws-jwt-verify": "^4.0.1",
     "aws-lambda": "^1.0.7",
-    "aws-sdk": "^2.1574.0",
     "constructs": "^10.0.0",
     "dotenv": "^16.4.5",
     "jsonwebtoken": "^9.0.2",

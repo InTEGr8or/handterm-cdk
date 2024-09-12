@@ -48,6 +48,7 @@ export const handler = async (event: { body: string }) => {
     return {
       statusCode: 200,
       body: JSON.stringify({
+        ...authResponse.AuthenticationResult,
         AccessToken,
         IdToken,
         RefreshToken,

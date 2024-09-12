@@ -12,11 +12,11 @@ try {
   let envContent = fs.readFileSync('.env', 'utf-8');
 
   // Update or add the new values
-  envContent = envContent.replace(/^USER_POOL_ID=.*$/m, `USER_POOL_ID=${userPoolId}`);
+  envContent = envContent.replace(/^COGNITO_USER_POOL_ID=.*$/m, `COGNITO_USER_POOL_ID=${userPoolId}`);
   envContent = envContent.replace(/^API_ENDPOINT=.*$/m, `API_ENDPOINT=${apiEndpoint}`);
 
-  if (!envContent.includes('USER_POOL_ID=')) {
-    envContent += `\nUSER_POOL_ID=${userPoolId}`;
+  if (!envContent.includes('COGNITO_USER_POOL_ID=')) {
+    envContent += `\nCOGNITO_USER_POOL_ID=${userPoolId}`;
   }
   if (!envContent.includes('API_ENDPOINT=')) {
     envContent += `\nAPI_ENDPOINT=${apiEndpoint}`;

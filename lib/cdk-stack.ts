@@ -183,8 +183,8 @@ export class HandTermCdkStack extends Stack {
         cognito.UserPoolClientIdentityProvider.custom('GitHub')
       ],
       oAuth: {
-        callbackUrls: [`${httpApi.url}oauth_callback`],
-        logoutUrls: [`${httpApi.url}signout`]
+        callbackUrls: [`${httpApi.url}${ENDPOINTS.api.OAuthCallback}`],
+        logoutUrls: [`${httpApi.url}${ENDPOINTS.api.SignOut}`]
       },
       authFlows: {
         adminUserPassword: true,
@@ -344,6 +344,13 @@ export class HandTermCdkStack extends Stack {
       codePath: 'dist/lambda/authentication',
       path: ENDPOINTS.api.SignUp,
       methods: [HttpMethod.POST],
+    });
+
+    console.log('SignUp Function Configuration:', {
+      id: 'SignUpFunction',
+      handler: 'index.handler',
+      codePath: 'dist/lambda/authentication/signUp',
+      path: ENDPOINTS.api.SignUp,
     });
 
     // Log the SignUp function configuration
@@ -538,16 +545,14 @@ export class HandTermCdkStack extends Stack {
     });
 
     createLambdaIntegration({
-      scope: this,
+      ...defaultLambdaProps,
       id: 'OAuthCallbackFunction',
       handler: 'oauth_callback.handler',
-      role: lambdaExecutionRole,
       codePath: 'dist/lambda/authentication',
       environment: {
         ...defaultLambdaProps.environment,
         FRONTEND_URL: 'https://handterm.com', // Replace with your actual frontend URL
       },
-      httpApi: httpApi,
       path: '/oauth_callback',
       methods: [HttpMethod.GET, HttpMethod.POST],
     });
@@ -582,8 +587,8 @@ export class HandTermCdkStack extends Stack {
     });
 
     new CfnOutput(this, 'CloudWatchLogsQueryCommand', { 
-      value: `aws logs start-query --log-group-name ${logQuery.logGroupNames[0]} --start-time $([Math]::Floor([decimal](Get-Date).AddHours(-1).Subtract((Get-Date "1/1/1970")).TotalSeconds)) --end-time $([Math]::Floor([decimal](Get-Date).Subtract((Get-Date "1/1/1970")).TotalSeconds)) --query-string "${logQuery.queryString.replace(/\n/g, ' ').trim()}"`,
-      description: 'AWS CLI command to query logs (PowerShell)'
+      value: `aws logs start-query --log-group-name "${logPrefix}*" --start-time $(date -d '1 hour ago' +%s) --end-time $(date +%s) --query-string "${logQuery.queryString.replace(/\n/g, ' ').trim()}"`,
+      description: 'AWS CLI command to query logs (Bash)'
     });
   }
 }
