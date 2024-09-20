@@ -4,6 +4,7 @@
 node_modules
 nodejs
 dist
+*.gz
 
 # CDK asset staging directory
 .cdk.staging
