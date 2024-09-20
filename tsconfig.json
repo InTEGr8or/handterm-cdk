@@ -1,36 +1,63 @@
 {
   "compilerOptions": {
     "target": "ES2020",
+    "useDefineForClassFields": true,
+    "sourceMap": true,
+    "lib": [
+      "ES2020"
+    ],
     "module": "commonjs",
-    "lib": ["es2020"],
+    "outDir": "./dist",
+    /* Bundler mode */
+    "moduleResolution": "Node",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
     "allowJs": true,
     "checkJs": true,
     "declaration": true,
     "strict": true,
+    "noUnusedLocals": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
     "noImplicitThis": true,
     "alwaysStrict": true,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
+    "noUnusedParameters": true,
     "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": false,
-    "inlineSourceMap": true,
+    "noFallthroughCasesInSwitch": true,
     "inlineSources": true,
     "experimentalDecorators": true,
     "strictPropertyInitialization": false,
-    "typeRoots": ["./node_modules/@types"],
-    "outDir": "./dist",
+    "typeRoots": [
+      "./node_modules/@types",
+      "./src/types"
+    ],
     "rootDir": ".",
     "esModuleInterop": true,
-    "resolveJsonModule": true,
-    "moduleResolution": "node",
     "allowSyntheticDefaultImports": true
   },
+  "typeRoots": [
+    "./node_modules/@types"
+  ],
   "ts-node": {
     "esm": false,
     "transpileOnly": true
   },
-  "exclude": ["node_modules", "cdk.out", "dist"],
-  "include": ["lambda/**/*.ts", "lib/**/*.ts"]
+  "include": [
+    "./src/**/*",
+    "./src/types/*.d.ts",
+    "lambda/**/*.ts",
+    "lib/**/*.ts"
+  ],
+  "types": [
+    "node",
+    "jest"
+  ],
+  "exclude": [
+    ".vscode",
+    "node_modules",
+    "cdk.out",
+    "dist",
+  ],
 }
