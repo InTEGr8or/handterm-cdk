@@ -1,6 +1,7 @@
+#!/usr/bin/env node
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
-import { HandTermCdkStack } from '../lib/cdk-stack';
+import { HandTermCdkStack } from '../lib/cdk-stack.js';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 import * as fs from 'fs';

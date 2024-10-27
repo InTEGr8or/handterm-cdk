@@ -154,7 +154,7 @@ export const listRecentRepos = async (userId: string): Promise<APIGatewayProxyRe
 };
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  const { Octokit } = await import('@octokit/rest');
+  const { Octokit: _Octokit } = await import('@octokit/rest');
   try {
     console.log('Event:', JSON.stringify(event, null, 2));
     

@@ -1,5 +1,5 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { CognitoIdentityProviderClient, ConfirmSignUpCommand, AdminGetUserCommand, UserNotFoundException, CodeMismatchException, ExpiredCodeException, NotAuthorizedException } from "@aws-sdk/client-cognito-identity-provider";
+import { CognitoIdentityProviderClient, ConfirmSignUpCommand, AdminGetUserCommand, UserNotFoundException, CodeMismatchException, ExpiredCodeException } from "@aws-sdk/client-cognito-identity-provider";
 
 const cognitoClient = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
 

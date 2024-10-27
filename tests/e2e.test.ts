@@ -36,7 +36,6 @@ describe('Authentication Flow', () => {
         UserPoolId: USER_POOL_ID,
         Username: testUser.username,
       }));
-      console.log('Test user deleted successfully');
     } catch (error) {
       console.error('Error deleting test user:', error);
     }

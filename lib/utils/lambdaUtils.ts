@@ -2,7 +2,7 @@ import { HttpApi, HttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
 import { LayerVersion } from 'aws-cdk-lib/aws-lambda';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import { Runtime, Function as LambdaFunction, Code } from 'aws-cdk-lib/aws-lambda';
-import { Role, ServicePrincipal, PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import { Role, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
 import { HttpLambdaAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import * as logs from 'aws-cdk-lib/aws-logs';

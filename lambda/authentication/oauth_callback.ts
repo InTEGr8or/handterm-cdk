@@ -4,10 +4,33 @@ import { CognitoAttribute, GitHubToCognitoMap } from './githubUtils';
 
 const cognito = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
 
+// Dynamic imports for ES modules
+// Dynamic imports for ES modules
+const getOctokit = async () => {
+  console.log('Importing Octokit modules...');
+  try {
+    const [{ Octokit }, { createOAuthAppAuth }] = await Promise.all([
+      import('@octokit/rest'),
+      import('@octokit/auth-oauth-app')
+    ]);
+    return { Octokit, createOAuthAppAuth };
+  } catch (error) {
+    console.error('Error importing Octokit modules:', error);
+    throw error;
+  }
+};
+
+interface CreateTokenResponse {
+  token: string;
+  type: string;
+  tokenType: string;
+  refreshToken?: string;
+  refreshTokenExpiresAt?: string;
+  expiresAt?: string;
+}
+
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   try {
-    const { Octokit } = await import('@octokit/rest');
-    const { createOAuthAppAuth } = await import('@octokit/auth-oauth-app');
     console.log('Successfully imported Octokit and createOAuthAppAuth');
     console.log('OAuth callback event:', JSON.stringify(event, null, 2));
     console.log('CognitoAttribute enum values:', CognitoAttribute);
@@ -33,71 +56,64 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
     console.log('All required environment variables are set');
 
-    const octokit = new Octokit({
-      authStrategy: createOAuthAppAuth,
-      auth: {
-        clientId: process.env.GITHUB_CLIENT_ID,
-        clientSecret: process.env.GITHUB_CLIENT_SECRET,
-      },
-    });
-
     try {
       console.log('Starting OAuth callback process...');
       console.log('Environment:', process.env.NODE_ENV);
       console.log('Code:', code);
       console.log('Cognito User ID:', cognitoUserId);
 
-      let authResult, user;
+      let authResult: CreateTokenResponse;
+      let user: any;
+
       if (process.env.NODE_ENV === 'test') {
         console.log('Using mock data for testing');
-        // Mock data for testing
         authResult = {
-          authentication: {
-            type: 'token',
-            tokenType: 'bearer',
-            accessToken: 'mock_access_token',
-          },
-          token: 'mock_access_token',
-          refreshToken: 'mock_refresh_token',
-          expiresAt: new Date(Date.now() + 3600000).toISOString(),
-          refreshTokenExpiresAt: new Date(Date.now() + 2592000000).toISOString(),
+          token: 'gho_mock_access_token',
+          type: 'oauth',
+          tokenType: 'bearer',
+          refreshToken: 'ghr_mock_refresh_token',
+          refreshTokenExpiresAt: new Date(Date.now() + 15811200000).toISOString(),
+          expiresAt: new Date(Date.now() + 28800000).toISOString(),
         };
+
         user = {
-          login: 'mock_user',
+          login: 'testuser',
           id: 12345,
-          name: 'Mock User',
-          email: 'mock@example.com',
-          avatar_url: 'https://example.com/avatar.png',
+          name: 'Test User',
+          email: 'test@example.com',
+          avatar_url: 'https://example.com/avatar.png'
         };
       } else {
-        // Real GitHub API calls
-        console.log('Authenticating with GitHub...');
-        try {
-          authResult = await octokit.auth({
-            type: 'oauth-user',
-            code: code,
-          }) as any;
-          console.log("GitHub token response:", {
-            access_token: authResult.token ? `${authResult.token.substring(0, 10)}...` : undefined,
-            expires_in: authResult.expiresAt,
-            refresh_token: authResult.refreshToken ? `${authResult.refreshToken.substring(0, 10)}...` : undefined,
-            refresh_token_expires_in: authResult.refreshTokenExpiresAt,
-          });
-        } catch (authError) {
-          console.error('Error during GitHub authentication:', authError);
-          throw authError;
-        }
+        const { Octokit, createOAuthAppAuth } = await getOctokit();
+        console.log('Successfully created Octokit instance');
 
-        console.log('Fetching authenticated user data...');
+        const auth = createOAuthAppAuth({
+          clientId: process.env.GITHUB_CLIENT_ID!,
+          clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+        });
+
         try {
+          // Type assertion to handle the auth.createToken method
+          const authApp = auth as unknown as {
+            createToken: (params: { code: string }) => Promise<CreateTokenResponse>
+          };
+
+          authResult = await authApp.createToken({
+            code: code!
+          });
+
+          const octokit = new Octokit({
+            auth: authResult.token
+          });
+
           const response = await octokit.users.getAuthenticated();
           user = response.data;
-          console.log('Authenticated user data:', JSON.stringify(user, null, 2));
-        } catch (userError) {
-          console.error('Error fetching authenticated user data:', userError);
-          throw userError;
+        } catch (error) {
+          console.error('Error during GitHub authentication:', error);
+          throw error;
         }
       }
+
       console.log("GitHub user data:", {
         login: user.login,
         id: user.id,

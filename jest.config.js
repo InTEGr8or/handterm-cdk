@@ -1,10 +1,16 @@
 module.exports = {
   testEnvironment: 'node',
-  roots: ['<rootDir>/test', '<rootDir>/tests'],
+  roots: ['<rootDir>/tests'],
   testMatch: ['**/*.test.ts'],
   transform: {
-    '^.+\\.tsx?$': 'ts-jest'
+    '^.+\\.tsx?$': ['ts-jest', {
+      tsconfig: 'tsconfig.json',
+      useESM: true,
+    }]
   },
   preset: 'ts-jest',
   setupFiles: ['dotenv/config'],
+  moduleNameMapper: {
+    '^@octokit/(.*)$': '<rootDir>/node_modules/@octokit/$1',
+  }
 };
