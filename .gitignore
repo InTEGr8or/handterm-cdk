@@ -5,6 +5,8 @@ node_modules
 nodejs
 dist
 *.gz
+.aws/synth.yml
+.aws/outputs.json
 
 # CDK asset staging directory
 .cdk.staging
