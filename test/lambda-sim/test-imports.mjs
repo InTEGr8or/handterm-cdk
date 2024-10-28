@@ -1,6 +1,20 @@
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 import { createRequire } from 'module';
+// Mock AWS SDK
+import { mockClient } from 'aws-sdk-client-mock';
+import { CognitoIdentityProviderClient, AdminUpdateUserAttributesCommand } from '@aws-sdk/client-cognito-identity-provider';
+
+const cognitoMock = mockClient(CognitoIdentityProviderClient);
+
+cognitoMock.on(AdminUpdateUserAttributesCommand).resolves({
+  $metadata: {
+    httpStatusCode: 200,
+    requestId: 'test-request-id',
+    attempts: 1,
+    totalRetryDelay: 0
+  }
+});
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -32,7 +46,7 @@ process.env.AWS_LAMBDA_FUNCTION_NAME = 'test';
 process.env.AWS_REGION = 'us-east-1';
 process.env.GITHUB_CLIENT_ID = 'test-client-id';
 process.env.GITHUB_CLIENT_SECRET = 'test-client-secret';
-process.env.COGNITO_USER_POOL_ID = 'test-user-pool';
+process.env.COGNITO_USER_POOL_ID = 'us-east-1_testPool123';
 process.env.COGNITO_APP_CLIENT_ID = 'test-client-id';
 process.env.FRONTEND_URL = 'http://localhost:5173';
 process.env.NODE_ENV = 'test';
@@ -50,8 +64,13 @@ const mockCognitoResponse = {
 // Mock the CognitoIdentityProviderClient
 global.CognitoIdentityProviderClient = class {
   constructor() {}
-  async send() {
-    return mockCognitoResponse;
+  async send(command) {
+    console.log('Mock Cognito command:', command.constructor.name);
+    // Return success response for AdminUpdateUserAttributes
+    if (command.constructor.name === 'AdminUpdateUserAttributesCommand') {
+      return mockCognitoResponse;
+    }
+    throw new Error(`Unexpected command: ${command.constructor.name}`);
   }
 };
 
