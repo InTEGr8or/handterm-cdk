@@ -4,18 +4,16 @@ import { CognitoAttribute, GitHubToCognitoMap } from './githubUtils';
 
 const cognito = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
 
-// Dynamic imports for ES modules
-// Dynamic imports for ES modules
+import { Octokit } from '@octokit/rest';
+import { createOAuthAppAuth } from '@octokit/auth-oauth-app';
+
 const getOctokit = async () => {
-  console.log('Importing Octokit modules...');
+  console.log('Using Octokit modules...');
   try {
-    const [{ Octokit }, { createOAuthAppAuth }] = await Promise.all([
-      import('@octokit/rest'),
-      import('@octokit/auth-oauth-app')
-    ]);
     return { Octokit, createOAuthAppAuth };
   } catch (error) {
-    console.error('Error importing Octokit modules:', error);
+    console.error('Error with Octokit modules:', error);
+    console.error('Error details:', error instanceof Error ? error.stack : String(error));
     throw error;
   }
 };

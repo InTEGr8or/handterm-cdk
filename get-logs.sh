@@ -51,7 +51,7 @@ LOG_GROUP_NAME=$(aws logs describe-log-groups \
 
 if [ -z "$LOG_GROUP_NAME" ]; then
     echo "No log group found for function: $FUNCTION_NAME"
-    exit 1
+    # exit 1
 fi
 
 echo "Log group: $LOG_GROUP_NAME"
@@ -71,7 +71,7 @@ else
 
     if [ -z "$LATEST_LOG_STREAM" ] || [ "$LATEST_LOG_STREAM" == "None" ]; then
         echo "No log streams found"
-        exit 1
+        # exit 1
     fi
 
     echo "Latest log stream: $LATEST_LOG_STREAM"
@@ -80,6 +80,7 @@ else
     aws logs get-log-events \
         --log-group-name "$LOG_GROUP_NAME" \
         --log-stream-name "$LATEST_LOG_STREAM" \
+        --region us-east-1
         --limit "$LIMIT" \
         --output json | jq -r '.events[].message' | while read -r line; do
             if [[ $line =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z ]]; then
