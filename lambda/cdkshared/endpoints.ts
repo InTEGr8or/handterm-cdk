@@ -11,6 +11,9 @@ export const ENDPOINTS = {
             userKey: 'user_data/{{userId}}/'
         },
     },
+    github: {
+        api: 'https://api.github.com'
+    },
     api: {
         BaseUrl: 'https://22k5nam6ed.execute-api.us-east-1.amazonaws.com',
         SignUp: '/signUp',

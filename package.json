@@ -21,7 +21,7 @@
     "cpCdk": "cp ../handterm/src/shared/endpoints.ts lambda/cdkshared/ && echo 'endpoints.ts copied'",
     "clean": "bash clean.sh",
     "build": "yarn clean && tsc && yarn copy-lambda",
-    "predeploy": "yarn cpCdk && yarn build",
+    "predeploy": "bash check_env.sh && yarn cpCdk && yarn build",
     "deploy": "cdk deploy --profile mark --region us-east-1 --require-approval never --outputs-file .aws/outputs.json",
     "bundle-lambda-test": "esbuild dist/lambda/authentication/oauth_callback.js --bundle --platform=node --target=node18 --format=esm --outfile=dist/lambda/authentication/oauth_callback.bundle.js --external:@aws-sdk/client-cognito-identity-provider --external:aws-sdk --external:os --external:fs --external:path --external:crypto --external:stream --external:util --external:url --external:http --external:https --define:process.env.NODE_ENV='\"test\"' --define:global=globalThis",
     "test:bundle": "node --experimental-vm-modules test/lambda-sim/test-imports.mjs",

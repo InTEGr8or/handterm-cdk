@@ -1,5 +1,4 @@
 // cdk/lambda/authentication/signUp.ts
-
 import { CognitoIdentityProviderClient, SignUpCommand } from "@aws-sdk/client-cognito-identity-provider";
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 

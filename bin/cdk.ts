@@ -8,23 +8,29 @@ import * as dotenv from 'dotenv';
 import * as path from 'path';
 import * as fs from 'fs';
 
+// Load environment variables before anything else
+const envPath = path.resolve(__dirname, '..', '.env');
+console.log(`Attempting to load .env file from: ${envPath}`);
+
+if (fs.existsSync(envPath)) {
+    console.log('.env file found');
+    const result = dotenv.config({ path: envPath });
+    if (result.error) {
+        throw result.error;
+    }
+    console.log('Environment variables loaded:', {
+        GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID ? '[REDACTED]' : 'Not set',
+        GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET ? '[REDACTED]' : 'Not set',
+        COGNITO_APP_CLIENT_ID: process.env.COGNITO_APP_CLIENT_ID ? '[REDACTED]' : 'Not set'
+    });
+} else {
+    console.log('.env file not found');
+    throw new Error('.env file not found. Please create one in the project root.');
+}
+
 async function main() {
     try {
         console.log('Starting CDK deployment...');
-
-        // Get the directory of the current module
-        const currentDir = __dirname;
-        const envPath = path.resolve(currentDir, '..', '.env');
-
-        console.log(`Attempting to load .env file from: ${envPath}`);
-
-        if (fs.existsSync(envPath)) {
-            console.log('.env file found');
-            dotenv.config({ path: envPath });
-        } else {
-            console.log('.env file not found');
-            throw new Error('.env file not found. Please create one in the project root.');
-        }
 
         console.log('Environment variables loaded');
 
