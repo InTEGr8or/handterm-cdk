@@ -1,67 +1,38 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "ES2020",
-    "moduleResolution": "Node",
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "outDir": "./dist",
-    "rootDir": "./",
-    "useDefineForClassFields": true,
-    "sourceMap": true,
-    "lib": [
-      "ES2020"
-    ],
-    /* Bundler mode */
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "noEmit": false,
-    "allowJs": true,
-    "checkJs": true,
+    "target": "ES2018",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "lib": ["es2018"],
     "declaration": true,
     "strict": true,
-    "noUnusedLocals": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
     "noImplicitThis": true,
     "alwaysStrict": true,
-    "noUnusedParameters": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
+    "noFallthroughCasesInSwitch": false,
+    "inlineSourceMap": true,
     "inlineSources": true,
     "experimentalDecorators": true,
     "strictPropertyInitialization": false,
-    "typeRoots": [
-      "./node_modules/@types",
-      "./src/types"
-    ]
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "outDir": "./dist"
+  },
+  "include": ["bin/**/*", "lib/**/*", "lambda/**/*"],
+  "exclude": ["node_modules", "cdk.out"],
+  "ts-node": {
+    "esm": true,
+    "experimentalSpecifiers": true
   },
   "typeRoots": [
     "./node_modules/@types"
-  ],
-  "ts-node": {
-    "esm": true,
-    "experimentalSpecifiers": true,
-    "transpileOnly": true,
-    "moduleTypes": {
-      "bin/*.ts": "esm",
-      "lib/*.ts": "esm"
-    }
-  },
-  "include": [
-    "./src/**/*",
-    "./src/types/*.d.ts",
-    "lambda/**/*.ts",
-    "lib/**/*.ts"
   ],
   "types": [
     "node",
     "jest"
   ],
-  "exclude": [
-    ".vscode",
-    "node_modules",
-    "cdk.out",
-    "dist"
-  ]
 }

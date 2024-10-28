@@ -1,5 +1,10 @@
 // cdk/lib/cdk-stack.ts
-import { ENDPOINTS } from '../lambda/cdkshared/endpoints';
+const { readFileSync } = require('fs');
+const { join } = require('path');
+const endpoints = JSON.parse(
+  readFileSync(join(__dirname, '../lambda/cdkshared/endpoints.json'), 'utf8')
+);
+
 import { createLambdaIntegration } from './utils/lambdaUtils';
 import {
   aws_cognito as cognito,
@@ -183,8 +188,8 @@ export class HandTermCdkStack extends Stack {
         cognito.UserPoolClientIdentityProvider.custom('GitHub')
       ],
       oAuth: {
-        callbackUrls: [`${httpApi.url}${ENDPOINTS.api.OAuthCallback}`],
-        logoutUrls: [`${httpApi.url}${ENDPOINTS.api.SignOut}`]
+        callbackUrls: [`${httpApi.url}${endpoints.api.OAuthCallback}`],
+        logoutUrls: [`${httpApi.url}${endpoints.api.SignOut}`]
       },
       authFlows: {
         adminUserPassword: true,
@@ -206,10 +211,10 @@ export class HandTermCdkStack extends Stack {
     // Define or import the Logs Bucket
     let logsBucket: s3.IBucket;
     try {
-      logsBucket = s3.Bucket.fromBucketName(this, 'ExistingLogsBucket', ENDPOINTS.aws.s3.bucketName);
+      logsBucket = s3.Bucket.fromBucketName(this, 'ExistingLogsBucket', endpoints.aws.s3.bucketName);
     } catch {
       logsBucket = new s3.Bucket(this, 'LogsBucket', {
-        bucketName: ENDPOINTS.aws.s3.bucketName,
+        bucketName: endpoints.aws.s3.bucketName,
         removalPolicy: RemovalPolicy.RETAIN,
         autoDeleteObjects: false,
       });
@@ -331,7 +336,7 @@ export class HandTermCdkStack extends Stack {
         GITHUB_CLIENT_ID: clientId,
         GITHUB_CLIENT_SECRET: clientSecret,
         COGNITO_USER_POOL_ID: userPool.userPoolId,
-        BUCKET_NAME: ENDPOINTS.aws.s3.bucketName,
+        BUCKET_NAME: endpoints.aws.s3.bucketName,
         API_URL: httpApi.url || '',
       },
       layers: [octokitLayer],
@@ -342,7 +347,7 @@ export class HandTermCdkStack extends Stack {
       id: 'SignUpFunction',
       handler: 'signUp.handler',
       codePath: 'dist/lambda/authentication',
-      path: ENDPOINTS.api.SignUp,
+      path: endpoints.api.SignUp,
       methods: [HttpMethod.POST],
     });
 
@@ -350,7 +355,7 @@ export class HandTermCdkStack extends Stack {
       id: 'SignUpFunction',
       handler: 'index.handler',
       codePath: 'dist/lambda/authentication/signUp',
-      path: ENDPOINTS.api.SignUp,
+      path: endpoints.api.SignUp,
     });
 
     // Log the SignUp function configuration
@@ -358,7 +363,7 @@ export class HandTermCdkStack extends Stack {
       id: 'SignUpFunction',
       handler: 'signUp.handler',
       codePath: 'dist/lambda/authentication',
-      path: ENDPOINTS.api.SignUp,
+      path: endpoints.api.SignUp,
     });
 
     createLambdaIntegration({
@@ -366,7 +371,7 @@ export class HandTermCdkStack extends Stack {
       id: 'ConfirmSignUpFunction',
       handler: 'confirmSignUp.handler',
       codePath: 'dist/lambda/authentication',
-      path: ENDPOINTS.api.ConfirmSignUp,
+      path: endpoints.api.ConfirmSignUp,
       methods: [HttpMethod.POST],
     });
 
@@ -375,7 +380,7 @@ export class HandTermCdkStack extends Stack {
       id: 'SignInFunction',
       handler: 'signIn.handler',
       codePath: 'dist/lambda/authentication',
-      path: ENDPOINTS.api.SignIn,
+      path: endpoints.api.SignIn,
       methods: [HttpMethod.POST],
     });
 
@@ -384,7 +389,7 @@ export class HandTermCdkStack extends Stack {
       id: 'RefreshTokenFunction',
       handler: 'refreshToken.handler',
       codePath: 'dist/lambda/authentication',
-      path: ENDPOINTS.api.RefreshToken,
+      path: endpoints.api.RefreshToken,
       methods: [HttpMethod.POST],
     });
 
@@ -393,7 +398,7 @@ export class HandTermCdkStack extends Stack {
       id: 'ChangePasswordFunction',
       handler: 'changePassword.handler',
       codePath: 'dist/lambda/authentication',
-      path: ENDPOINTS.api.ChangePassword,
+      path: endpoints.api.ChangePassword,
       methods: [HttpMethod.POST],
       authorizer: lambdaAuthorizer,
     });
@@ -403,23 +408,23 @@ export class HandTermCdkStack extends Stack {
       id: 'GetUserFunction',
       handler: 'getUser.handler',
       codePath: 'dist/lambda/userStorage',
-      path: ENDPOINTS.api.GetUser,
+      path: endpoints.api.GetUser,
       methods: [HttpMethod.GET],
       authorizer: lambdaAuthorizer,
     });
 
     // Add a log to check if this integration is being created
-    console.log(`Created GetUserFunction integration with path: ${ENDPOINTS.api.GetUser}`);
+    console.log(`Created GetUserFunction integration with path: ${endpoints.api.GetUser}`);
 
     // Log the GetUser endpoint for debugging
-    new CfnOutput(this, 'GetUserEndpoint', { value: `${httpApi.url}${ENDPOINTS.api.GetUser}` });
+    new CfnOutput(this, 'GetUserEndpoint', { value: `${httpApi.url}${endpoints.api.GetUser}` });
 
     createLambdaIntegration({
       ...defaultLambdaProps,
       id: 'SetUserFunction',
       handler: 'setUser.handler',
       codePath: 'dist/lambda/userStorage',
-      path: ENDPOINTS.api.SetUser,
+      path: endpoints.api.SetUser,
       methods: [HttpMethod.POST],
       authorizer: lambdaAuthorizer,
     });
@@ -429,7 +434,7 @@ export class HandTermCdkStack extends Stack {
       id: 'SaveLogFunction',
       handler: 'saveLog.handler',
       codePath: 'dist/lambda/userStorage',
-      path: ENDPOINTS.api.SaveLog,
+      path: endpoints.api.SaveLog,
       methods: [HttpMethod.POST],
       authorizer: lambdaAuthorizer,
     });
@@ -439,7 +444,7 @@ export class HandTermCdkStack extends Stack {
       id: 'GetLogFunction',
       handler: 'getLog.handler',
       codePath: 'dist/lambda/userStorage',
-      path: ENDPOINTS.api.GetLog,
+      path: endpoints.api.GetLog,
       methods: [HttpMethod.POST, HttpMethod.GET],
       authorizer: lambdaAuthorizer,
     });
@@ -449,7 +454,7 @@ export class HandTermCdkStack extends Stack {
       id: 'ListLogFunction',
       handler: 'listLog.handler',
       codePath: 'dist/lambda/userStorage',
-      path: ENDPOINTS.api.ListLog,
+      path: endpoints.api.ListLog,
       methods: [HttpMethod.POST, HttpMethod.GET],
       authorizer: lambdaAuthorizer,
     });
@@ -469,7 +474,7 @@ export class HandTermCdkStack extends Stack {
       id: 'PutFileFunction',
       handler: 'putFile.handler',
       codePath: 'dist/lambda/userStorage',
-      path: ENDPOINTS.api.PutFile,
+      path: endpoints.api.PutFile,
       methods: [HttpMethod.POST],
       authorizer: lambdaAuthorizer,
     });

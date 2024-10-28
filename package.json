@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Backend for HandTerm application",
   "license": "Apache-2.0",
-  "type": "module",
   "jest": {
     "transform": {
       "^.+\\.tsx?$": "ts-jest"
@@ -21,11 +20,9 @@
   "scripts": {
     "cpCdk": "cp ../handterm/src/shared/endpoints.ts lambda/cdkshared/ && echo 'endpoints.ts copied'",
     "clean": "bash clean.sh",
-    "prestart": "yarn build",
     "build": "yarn clean && tsc && yarn copy-lambda",
-    "build:test": "yarn build && yarn bundle-lambda-test",
     "predeploy": "yarn cpCdk && yarn build",
-    "deploy": "dotenv -- cdk synth --quiet > .aws/synth.yml && NODE_OPTIONS=\"--loader ts-node/esm\" dotenv -- ts-node --esm --experimental-specifier-resolution=node bin/cdk.ts deploy --profile mark --region us-east-1 --require-approval never --outputs-file .aws/outputs.json",
+    "deploy": "cdk deploy --profile mark --region us-east-1 --require-approval never --outputs-file .aws/outputs.json",
     "bundle-lambda-test": "esbuild dist/lambda/authentication/oauth_callback.js --bundle --platform=node --target=node18 --format=esm --outfile=dist/lambda/authentication/oauth_callback.bundle.js --external:@aws-sdk/client-cognito-identity-provider --external:aws-sdk --external:os --external:fs --external:path --external:crypto --external:stream --external:util --external:url --external:http --external:https --define:process.env.NODE_ENV='\"test\"' --define:global=globalThis",
     "test:bundle": "node --experimental-vm-modules test/lambda-sim/test-imports.mjs",
     "copy-lambda": "mkdir -p dist/lambda && cp -R lambda/* dist/lambda/",
@@ -64,10 +61,12 @@
     "@types/jest": "^29.5.12",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "20.14.2",
+    "@types/source-map-support": "^0.5.10",
     "@types/uuid": "^8.3.0",
     "aws-cdk": "2.148.1",
     "aws-sdk-client-mock": "^4.1.0",
     "axios": "^0.21.1",
+    "cross-env": "^7.0.3",
     "dotenv": "^16.4.5",
     "dotenv-cli": "^7.4.2",
     "esbuild": "^0.24.0",
