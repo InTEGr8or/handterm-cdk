@@ -1,12 +1,19 @@
 // cdk/lambda/authentication/signIn.ts
-import { CognitoIdentityProviderClient, InitiateAuthCommand, AuthFlowType, AdminGetUserCommand } from "@aws-sdk/client-cognito-identity-provider";
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
+import { 
+  CognitoIdentityProviderClient, 
+  InitiateAuthCommand, 
+  AdminGetUserCommand,
+  AdminGetUserCommandOutput,
+  AttributeType
+} from "@aws-sdk/client-cognito-identity-provider";
+import { CognitoAttribute } from "./githubUtils";
 
 const cognito = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
 
 console.log('SignUp module loaded');
 
-export const handler = async (event: { body: string }) => {
-  const { CognitoAttribute } = await import("./githubUtils");
+export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   const body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
 
   try {
@@ -19,7 +26,7 @@ export const handler = async (event: { body: string }) => {
     }
 
     const authCommand = new InitiateAuthCommand({
-      AuthFlow: 'USER_PASSWORD_AUTH' as AuthFlowType,
+      AuthFlow: 'USER_PASSWORD_AUTH',
       ClientId: clientId,
       AuthParameters: {
         USERNAME: username,
@@ -43,7 +50,7 @@ export const handler = async (event: { body: string }) => {
     });
     const userDetails = await cognito.send(getUserCommand);
 
-    const githubUsername = userDetails.UserAttributes?.find(attr => attr.Name === CognitoAttribute.GH_USERNAME)?.Value;
+    const githubUsername = userDetails.UserAttributes?.find((attr: AttributeType) => attr.Name === CognitoAttribute.GH_USERNAME)?.Value;
 
     return {
       statusCode: 200,

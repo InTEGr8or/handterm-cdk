@@ -351,12 +351,6 @@ export class HandTermCdkStack extends Stack {
       methods: [HttpMethod.POST],
     });
 
-    console.log('SignUp Function Configuration:', {
-      id: 'SignUpFunction',
-      handler: 'index.handler',
-      codePath: 'dist/lambda/authentication/signUp',
-      path: endpoints.api.SignUp,
-    });
 
     // Log the SignUp function configuration
     console.log('SignUp Function Configuration:', {

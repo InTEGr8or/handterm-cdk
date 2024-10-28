@@ -46,8 +46,8 @@
     "@octokit/auth-app": "^7.1.1",
     "@octokit/auth-oauth-app": "^8.1.1",
     "@octokit/rest": "^21.0.2",
-    "@types/aws-lambda": "^8.10.140",
-    "aws-cdk-lib": "2.148.1",
+    "@types/aws-lambda": "^8.10.145",
+    "aws-cdk-lib": "2.164.1",
     "aws-jwt-verify": "^4.0.1",
     "aws-lambda": "^1.0.7",
     "constructs": "^10.0.0",
@@ -63,7 +63,7 @@
     "@types/node": "20.14.2",
     "@types/source-map-support": "^0.5.10",
     "@types/uuid": "^8.3.0",
-    "aws-cdk": "2.148.1",
+    "aws-cdk": "2.164.1",
     "aws-sdk-client-mock": "^4.1.0",
     "axios": "^0.21.1",
     "cross-env": "^7.0.3",
@@ -76,5 +76,6 @@
     "typescript": "~5.4.5",
     "uuid": "^8.3.2"
   },
-  "packageManager": "yarn@4.5.0"
+  "packageManager": "yarn@4.5.0",
+  "type": "commonjs"
 }

@@ -24,7 +24,7 @@ export const ENDPOINTS = {
         TokenHandler: '/tokenHandler',
         RefreshToken: '/refreshToken',
         CheckSession: '/check-session',
-        GetUser: '/getUser',
+        GetUser: 'getUser',
         SetUser: '/setUser',
         GetFile: '/getFile',
         PutFile: '/putFile',
