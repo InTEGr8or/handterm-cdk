@@ -7,7 +7,7 @@ import {
   AdminGetUserCommandOutput,
   AttributeType
 } from "@aws-sdk/client-cognito-identity-provider";
-import { CognitoAttribute } from "./githubUtils";
+import { CognitoAttribute } from "./githubUtils.js";
 
 const cognito = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
 

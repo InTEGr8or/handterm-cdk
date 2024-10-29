@@ -4,9 +4,9 @@ sourceMapSupport.install();
 
 const cdk = require('aws-cdk-lib');
 const { HandTermCdkStack } = require('../lib/cdk-stack');
-import * as dotenv from 'dotenv';
-import * as path from 'path';
-import * as fs from 'fs';
+const dotenv = require('dotenv');
+const path = require('path');
+const fs = require('fs');
 
 // Load environment variables before anything else
 const envPath = path.resolve(__dirname, '..', '.env');
@@ -58,9 +58,9 @@ async function main() {
                 account: process.env.CDK_DEFAULT_ACCOUNT, 
                 region: process.env.CDK_DEFAULT_REGION 
             },
-            githubClientId: process.env.GITHUB_CLIENT_ID!,
-            githubClientSecret: process.env.GITHUB_CLIENT_SECRET!,
-            cognitoAppClientId: process.env.COGNITO_APP_CLIENT_ID!,
+            githubClientId: process.env.GITHUB_CLIENT_ID,
+            githubClientSecret: process.env.GITHUB_CLIENT_SECRET,
+            cognitoAppClientId: process.env.COGNITO_APP_CLIENT_ID,
         });
 
         console.log('HandTermCdkStack instantiated');

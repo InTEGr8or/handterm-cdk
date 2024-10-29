@@ -1,9 +1,10 @@
 #!/bin/bash
 
-# Remove all files from the dist directory
-rm -rf dist/*
+# Remove the dist directory completely and recreate it
+rm -rf dist
+mkdir -p dist
 
-# Remove all .js and .d.ts files from lambda, lib, and bin directories
+# Remove all .js, .d.ts, and .js.map files from lambda, lib, and bin directories
 find lambda lib bin -type f \( -name "*.js" -o -name "*.d.ts" -o -name "*.js.map" \) -delete
 
 echo "Cleaned dist directory and removed compiled files from lambda, lib, and bin directories."

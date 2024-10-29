@@ -1,11 +1,14 @@
-
 const { register } = require('ts-node');
 
 register({
-  transpileOnly: true,
   compilerOptions: {
     module: 'commonjs',
     moduleResolution: 'node',
-    esModuleInterop: true
-  }
+    target: 'ES2018',
+    esModuleInterop: true,
+    allowJs: true,
+    strict: true
+  },
+  transpileOnly: true,
+  esm: false
 });

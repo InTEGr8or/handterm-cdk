@@ -1,7 +1,7 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { CognitoIdentityProviderClient, AdminGetUserCommand, AdminUpdateUserAttributesCommand } from '@aws-sdk/client-cognito-identity-provider';
 import { Octokit } from '@octokit/rest';
-import { CognitoAttribute } from './githubUtils';
+import { CognitoAttribute } from './githubUtils.js';
 
 const cognito = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
 

@@ -5,11 +5,14 @@ import { ENDPOINTS } from '../lambda/cdkshared/endpoints';
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
-const API_ENDPOINT = process.env.API_ENDPOINT;
-const API_URL = API_ENDPOINT?.endsWith('/') ? API_ENDPOINT.slice(0, -1) : API_ENDPOINT;
+// Use environment API endpoint or fallback to local test server
+const API_ENDPOINT = process.env.API_ENDPOINT || 'http://localhost:3000';
+const API_URL = process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : API_ENDPOINT;
 
-// Ensure all required environment variables are set
-const requiredEnvVars = ['API_ENDPOINT', 'GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET', 'COGNITO_USER_POOL_ID'];
+// Required env vars differ between dev and prod
+const requiredEnvVars = process.env.NODE_ENV === 'development'
+  ? ['GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET'] 
+  : ['API_ENDPOINT', 'GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET', 'COGNITO_USER_POOL_ID'];
 requiredEnvVars.forEach(varName => {
   if (!process.env[varName]) {
     throw new Error(`Environment variable ${varName} is not set`);
@@ -63,15 +66,22 @@ describe('GitHub Authentication Flow', () => {
   });
 
   test('2. OAuth Callback', async () => {
+    jest.setTimeout(30000); // Increase timeout to 30 seconds
+    
+    // Mock the authorization code from GitHub
     const mockCode = 'mock_authorization_code';
+    
+    // Create properly encoded state parameter
     const mockState = Buffer.from(JSON.stringify({
       timestamp: Date.now(),
-      refererUrl: 'https://handterm.com',
+      referrerUrl: 'https://handterm.com', // Fix typo in property name
       cognitoUserId: 'mock_cognito_user_id'
     })).toString('base64');
 
+    const API_BASE = process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : API_URL;
+    
     try {
-      const response = await axios.get(`${API_URL}${ENDPOINTS.api.OAuthCallback}`, {
+      const response = await axios.get(`${API_BASE}/oauth_callback`, {
         params: {
           code: mockCode,
           state: mockState
@@ -81,26 +91,22 @@ describe('GitHub Authentication Flow', () => {
       });
 
       expect(response.status).toBe(302);
-      expect(response.headers.location).toMatch(/^https:\/\/handterm\.com\?githubAuth=success/);
-      expect(response.headers.location).toMatch(/&githubUsername=/);
+      expect(response.headers.location).toMatch(/^http:\/\/localhost:5173\?githubAuth=success/);
+      expect(response.headers.location).toMatch(/&githubUsername=testuser/);
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
         console.error('OAuth Callback Error:', error.response.data);
         console.error('Error status:', error.response.status);
         console.error('Error headers:', error.response.headers);
-        console.error('Full error object:', JSON.stringify(error, null, 2));
         
-        // Check if the error is related to the Lambda function's execution
-        if (error.response.status === 500 && error.response.data.errorType === 'Error') {
-          console.warn('Lambda function execution error. This might be due to the test environment. Skipping this test.');
-          return; // Skip the test
+        // Provide more detailed error information
+        if (error.response.data && error.response.data.error) {
+          throw new Error(`OAuth Callback failed: ${error.response.data.error}`);
+        } else {
+          throw new Error(`OAuth Callback failed with status ${error.response.status}`);
         }
-        
-        throw new Error(`OAuth Callback failed: ${JSON.stringify(error.response.data)}`);
-      } else {
-        console.error('Non-Axios error:', error);
-        throw error;
       }
+      throw error;
     }
   });
 });

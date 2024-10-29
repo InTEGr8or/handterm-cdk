@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   testEnvironment: 'node',
   roots: ['<rootDir>/tests'],
   testMatch: ['**/*.test.ts'],
@@ -20,5 +20,7 @@ module.exports = {
   ],
   moduleNameMapper: {
     '^@octokit/(.*)$': '<rootDir>/node_modules/@octokit/$1',
-  }
+    '^(\\.{1,2}/.*)\\.js$': '$1'
+  },
+  extensionsToTreatAsEsm: ['.ts']
 };
