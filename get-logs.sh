@@ -1,6 +1,7 @@
 #!/bin/bash
 
-set -e
+# Instead of set -e, we'll handle errors manually
+trap 'echo "Error on line $LINENO"' ERR
 
 function print_usage() {
     echo "Usage: $0 <function-name> [options]"
@@ -42,53 +43,68 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-STACK_NAME="HandTermCdkStack"
+# Get AWS region from configuration or default to us-east-1
+AWS_REGION=$(aws configure get region || echo "us-east-1")
 
 # Find the log group
 LOG_GROUP_NAME=$(aws logs describe-log-groups \
     --query "logGroups[?contains(logGroupName, '/HandTermCdkStack/')].logGroupName" \
-    --output json | jq -r ".[] | select(.|test(\"(?i)$FUNCTION_NAME\"))" | head -n 1)
+    --output json | jq -r ".[] | select(.|test(\"(?i)$FUNCTION_NAME\"))" | head -n 1) || true
 
 if [ -z "$LOG_GROUP_NAME" ]; then
     echo "No log group found for function: $FUNCTION_NAME"
-    # exit 1
+    exit 1
 fi
 
 echo "Log group: $LOG_GROUP_NAME"
 
 if [ "$TAIL" = true ]; then
     echo "Tailing logs (Ctrl+C to stop)..."
-    aws logs tail "$LOG_GROUP_NAME" --follow --format short
+    aws logs tail "$LOG_GROUP_NAME" --follow --format short --region "$AWS_REGION" || true
 else
-    # Get the most recent log stream
+    # Get the most recent log stream with better error handling
+    echo "Checking log streams for group: $LOG_GROUP_NAME for $FUNCTION_NAME in $AWS_REGION"
+    
+    # First, let's see what streams are actually available
+    echo "Available log streams:"
+    aws logs describe-log-streams \
+        --log-group-name "$LOG_GROUP_NAME" \
+        --order-by LastEventTime \
+        --descending \
+        --max-items 5 \
+        --region "$AWS_REGION" \
+        --output json | jq -r '.logStreams[].logStreamName'
+    
+    # Now get the latest stream
     LATEST_LOG_STREAM=$(aws logs describe-log-streams \
         --log-group-name "$LOG_GROUP_NAME" \
         --order-by LastEventTime \
         --descending \
         --max-items 1 \
-        --query 'logStreams[0].logStreamName' \
-        --output text)
+        --region "$AWS_REGION" \
+        --output json | jq -r '.logStreams[0].logStreamName')
 
-    if [ -z "$LATEST_LOG_STREAM" ] || [ "$LATEST_LOG_STREAM" == "None" ]; then
-        echo "No log streams found"
-        # exit 1
-    fi
+    # Escape the $ in [$LATEST]
+    LATEST_LOG_STREAM=${LATEST_LOG_STREAM//\$/\\$}
 
     echo "Latest log stream: $LATEST_LOG_STREAM"
     echo "Fetching last $LIMIT log events..."
 
-    aws logs get-log-events \
-        --log-group-name "$LOG_GROUP_NAME" \
-        --log-stream-name "$LATEST_LOG_STREAM" \
-        --region us-east-1
-        --limit "$LIMIT" \
-        --output json | jq -r '.events[].message' | while read -r line; do
-            if [[ $line =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z ]]; then
-                timestamp=${line:0:24}
-                message=${line:24}
-                echo -e "\033[32m$timestamp\033[0m$message"
-            else
-                echo "$line"
-            fi
-        done
+    # Construct the command string
+    CMD="aws logs get-log-events --log-group-name \"$LOG_GROUP_NAME\" --log-stream-name \"$LATEST_LOG_STREAM\" --region \"$AWS_REGION\" --output json"
+    
+    # Echo the command for debugging
+    echo "Executing command:"
+    echo "$CMD"
+    
+    # Execute the command and format the output
+    eval "$CMD" | jq -r '.events[].message' | while read -r line; do
+        if [[ $line =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z ]]; then
+            timestamp=${line:0:24}
+            message=${line:24}
+            echo -e "\033[32m$timestamp\033[0m$message"
+        else
+            echo "$line"
+        fi
+    done
 fi
