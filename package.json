@@ -3,20 +3,6 @@
   "version": "1.0.0",
   "description": "Backend for HandTerm application",
   "license": "Apache-2.0",
-  "jest": {
-    "transform": {
-      "^.+\\.tsx?$": "ts-jest"
-    },
-    "testEnvironment": "node",
-    "moduleFileExtensions": [
-      "ts",
-      "tsx",
-      "js",
-      "jsx",
-      "json",
-      "node"
-    ]
-  },
   "scripts": {
     "cpCdk": "cp ../handterm/src/shared/endpoints.ts lambda/cdkshared/ && echo 'endpoints.ts copied'",
     "clean": "bash clean.sh",

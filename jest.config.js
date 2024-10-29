@@ -10,6 +10,14 @@ module.exports = {
   },
   preset: 'ts-jest',
   setupFiles: ['dotenv/config'],
+  moduleFileExtensions: [
+    "ts",
+    "tsx",
+    "js",
+    "jsx",
+    "json",
+    "node"
+  ],
   moduleNameMapper: {
     '^@octokit/(.*)$': '<rootDir>/node_modules/@octokit/$1',
   }
