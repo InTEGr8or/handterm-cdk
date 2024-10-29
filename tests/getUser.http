@@ -1,5 +1,6 @@
+@baseUrl = {{$dotenv ../API_URL}}
 ### Sign Up
-POST https://22k5nam6ed.execute-api.us-east-1.amazonaws.com/signUp
+POST {{baseUrl}}/signUp
 Content-Type: application/json
 
 {
@@ -10,7 +11,7 @@ Content-Type: application/json
 
 ### Sign In
 # @name signIn
-POST https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/signIn
+POST {{baseUrl}}/signIn
 Content-Type: application/json
 
 {
@@ -20,11 +21,11 @@ Content-Type: application/json
 }
 
 ### Get User (using token from Sign In response)
-GET https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/getUser
+GET {{baseUrl}}/getUser
 Authorization: Bearer {{ signIn.response.body.AccessToken }}
 
 ### Refresh Token
-POST https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/refreshToken
+POST {{baseUrl}}/refreshToken
 Content-Type: application/json
 
 {
@@ -32,5 +33,5 @@ Content-Type: application/json
 }
 
 ### Sign Out
-POST https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/signout
+POST {{baseUrl}}/signout
 Authorization: Bearer {{ signIn.response.body.AccessToken }}

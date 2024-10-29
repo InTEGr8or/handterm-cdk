@@ -1,17 +1,73 @@
+GET https://api.github.com
+### Variables Reference
+# Using parent directory's .env file
+@baseUrl = {{$dotenv API_URL}}
+@redirectUrl = {{baseUrl}}/oauth_callback
+@githubClientId = {{$dotenv GITHUB_CLIENT_ID}}
+@githubClientSecret = {{$dotenv GITHUB_CLIENT_SECRET}}
+@cognitoUserPoolId = {{$dotenv COGNITO_USER_POOL_ID}}
+@cognitoAppClientId = {{$dotenv COGNITO_APP_CLIENT_ID}}
+@cognitoAccessToken = {{$dotenv ACCESS_TOKEN}}
+@githubTestRepo = {{$dotenv GITHUB_TEST_REPO}}
+
+GET {{baseUrl}}
+
 ### Step 1: Initiate GitHub OAuth flow
-GET https://github.com/login/oauth/authorize?client_id={{client_id}}&redirect_uri={{redirect_uri}}&scope=user:email
+GET https://github.com/login/oauth/authorize?client_id={{githubClientId}}&redirect_uri={{redirectUrl}}&scope=user:email
 
 ### Step 2: GitHub redirects to your callback URL (simulate this by making a request to your API)
-GET {{api_url}}/oauth_callback?code={{code}}&state={{state}}
+GET {{baseUrl}}/oauth_callback?code={{code}}&state={{state}}
 
 ### Step 3: Get user information (requires access token)
 GET https://api.github.com/user
 Authorization: token {{access_token}}
 
-### Variables
-@client_id = YOUR_GITHUB_CLIENT_ID
-@redirect_uri = https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com/oauth_callback
-@api_url = https://x7jzrjfuv8.execute-api.us-east-1.amazonaws.com
-@code = YOUR_AUTHORIZATION_CODE
-@state = YOUR_STATE_VALUE
-@access_token = YOUR_ACCESS_TOKEN
+### Test 1: Get Initial State
+# @name getState
+GET {{baseUrl}}/github_auth
+Accept: application/json
+
+### Test 2: Initiate GitHub Auth Flow
+# @name githubAuth
+# This should redirect to GitHub's OAuth page using the state from previous request
+GET {{baseUrl}}/github_auth
+    ?state={{getState.response.headers.state}}
+Accept: application/json
+
+### Test 2: Mock OAuth Callback
+# @name oauthCallback
+# This simulates GitHub's callback after user authorization
+# The state parameter should match what was returned in the auth redirect
+GET {{baseUrl}}/oauth_callback
+    ?code=test_code
+    &state={{githubAuth.response.headers.state}}
+
+### Test 3: Get User Details After Auth
+# @name getUser
+# This checks if the GitHub auth data was properly stored
+GET {{baseUrl}}/getUser
+Authorization: Bearer {{cognitoAccessToken}}
+Accept: application/json
+
+### Test 4: List Recent Repos
+# @name listRepos
+# This verifies GitHub API access is working
+GET {{baseUrl}}/list-recent-repos
+Authorization: Bearer {{cognitoAccessToken}}
+Accept: application/json
+
+### Test 5: Get Repo Tree
+# @name getRepoTree
+# This tests GitHub API integration
+GET {{baseUrl}}/get-repo-tree?repo={{githubTestRepo}}
+Authorization: Bearer {{cognitoAccessToken}}
+Accept: application/json
+
+### Variables Reference:
+# API_ENDPOINT - The API Gateway endpoint URL (e.g. https://xyz.execute-api.region.amazonaws.com/)
+# GITHUB_CLIENT_ID - GitHub OAuth App client ID
+# GITHUB_CLIENT_SECRET - GitHub OAuth App client secret
+# COGNITO_USER_POOL_ID - Cognito User Pool ID (e.g. us-east-1_abc123)
+# COGNITO_APP_CLIENT_ID - Cognito App Client ID
+# ACCESS_TOKEN - Valid Cognito access token (from successful login)
+# GITHUB_TEST_REPO - GitHub repository to test (format: owner/repo)

@@ -1,0 +1,57 @@
+@API_URL={{$dotenv API_URL}}
+@CLIENT_ID={{$dotenv GITHUB_CLIENT_ID}}
+@CLIENT_SECRET={{$dotenv GITHUB_CLIENT_SECRET}}
+@REDIRECT_URI={{API_URL}}/oauth_callback
+@code=2469
+
+### Step 1: Initiate GitHub OAuth flow
+# This request would typically be triggered by a user action in your application
+GET {{API_URL}}/github_auth
+
+### Step 2: GitHub redirects user to your callback URL with a code
+# This is simulated here, as it would normally happen in the browser
+GET {{REDIRECT_URI}}?code={{code}}
+
+### Step 3: Exchange code for access token
+# Your server makes this request to GitHub
+POST https://github.com/login/oauth/access_token
+Content-Type: application/json
+Accept: application/json
+
+{
+  "client_id": "{{CLIENT_ID}}",
+  "client_secret": "{{CLIENT_SECRET}}",
+  "code": "{{code}}",
+  "redirect_uri": "{{REDIRECT_URI}}"
+}
+
+### Step 4: Use the access token to access the GitHub API
+GET https://api.github.com/user
+Authorization: Bearer {{access_token}}
+
+### Step 5: Check the scopes on a token
+POST https://api.github.com/applications/{{CLIENT_ID}}/token
+Authorization: Basic {{base64_encode CLIENT_ID:CLIENT_SECRET}}
+Content-Type: application/json
+
+{
+  "access_token": "{{access_token}}"
+}
+
+### Step 6: Reset a token
+PATCH https://api.github.com/applications/{{CLIENT_ID}}/token
+Authorization: Basic {{base64_encode CLIENT_ID:CLIENT_SECRET}}
+Content-Type: application/json
+
+{
+  "access_token": "{{access_token}}"
+}
+
+### Step 7: Delete an authorization
+DELETE https://api.github.com/applications/{{CLIENT_ID}}/token
+Authorization: Basic {{base64_encode CLIENT_ID:CLIENT_SECRET}}
+Content-Type: application/json
+
+{
+  "access_token": "{{access_token}}"
+}
