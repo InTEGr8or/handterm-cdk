@@ -1,3 +1,4 @@
+```mermaid
 flowchart TD
     A[User] -->|1. Initiates GitHub Auth| B(Frontend)
     B -->|2. Redirects to GitHub| C[GitHub OAuth]
@@ -36,3 +37,4 @@ subgraph "Refresh Process"
     RP3[Update Tokens in Cognito]
     RP4[Use New Access Token]
 end
+```

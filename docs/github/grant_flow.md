@@ -1,3 +1,4 @@
+```mermaid
 sequenceDiagram
     participant User
     participant Frontend
@@ -37,3 +38,4 @@ sequenceDiagram
     GitHub->>Backend: New Access & Refresh Tokens
     Backend->>Cognito: Update Tokens
     Cognito->>Backend: Confirm Update
+```
