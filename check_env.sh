@@ -7,6 +7,12 @@ if [ -f .env ]; then
     source .env
 else
     echo ".env file not found"
+    echo "Please create a .env file in the project root with the required variables:"
+    echo "GITHUB_CLIENT_ID=your_client_id_here"
+    echo "GITHUB_CLIENT_SECRET=your_client_secret_here"
+    echo "COGNITO_USER_POOL_ID=your_user_pool_id_here"
+    echo "COGNITO_APP_CLIENT_ID=your_app_client_id_here"
+    exit 1
 fi
 
 echo "Environment variables:"

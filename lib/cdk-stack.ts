@@ -1,11 +1,12 @@
 // cdk/lib/cdk-stack.ts
-const { readFileSync } = require('fs');
-const { join } = require('path');
+import { readFileSync } from 'fs';
+import { join } from 'path';
+import { createLambdaIntegration } from './utils/lambdaUtils';
+import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
+
 const endpoints = JSON.parse(
   readFileSync(join(__dirname, '../lambda/cdkshared/endpoints.json'), 'utf8')
 );
-
-import { createLambdaIntegration } from './utils/lambdaUtils';
 import {
   aws_cognito as cognito,
   aws_s3 as s3,
@@ -87,7 +88,92 @@ export class HandTermCdkStack extends Stack {
 
     // GitHub Identity Provider is now created before the User Pool Client
 
-    // Define the HTTP API
+    // Import OpenAPI specification
+    const apiSpec = JSON.parse(readFileSync('openapi/api-spec.json', 'utf8'));
+
+    // Define the HTTP API with OpenAPI spec
+    // Define the Lambda Authorizer first
+    const authorizerLogGroup = new logs.LogGroup(this, 'AuthorizerLogGroup', {
+      logGroupName: `${logPrefix}AuthorizerFunction`,
+      retention: logs.RetentionDays.ONE_WEEK,
+      removalPolicy: RemovalPolicy.DESTROY
+    });
+
+
+    // Create or import the Logs Bucket
+    let logsBucket: s3.IBucket;
+    try {
+      logsBucket = s3.Bucket.fromBucketName(this, 'LogsBucket', endpoints.aws.s3.bucketName);
+      console.log(`Using existing bucket: ${endpoints.aws.s3.bucketName}`);
+    } catch {
+      logsBucket = new s3.Bucket(this, 'LogsBucket', {
+        bucketName: endpoints.aws.s3.bucketName,
+        removalPolicy: RemovalPolicy.RETAIN,
+        autoDeleteObjects: false,
+      });
+      console.log(`Created new bucket: ${endpoints.aws.s3.bucketName}`);
+    }
+
+    // Define the Lambda Execution Role first
+
+    const lambdaExecutionRole = new iam.Role(this, 'LambdaExecutionRole', {
+      assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
+      managedPolicies: [
+        iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')
+      ],
+      inlinePolicies: {
+        CognitoAccess: new iam.PolicyDocument({
+          statements: [
+            new iam.PolicyStatement({
+              actions: [
+                'cognito-idp:AdminCreateUser',
+                'cognito-idp:AdminGetUser',
+                'cognito-idp:AdminUpdateUserAttributes',
+                'cognito-idp:AdminSetUserPassword',
+                'cognito-idp:ListUsers'
+              ],
+              resources: [userPool.userPoolArn]
+            })
+          ]
+        }),
+        S3Access: new iam.PolicyDocument({
+          statements: [
+            new iam.PolicyStatement({
+              actions: [
+                's3:GetObject',
+                's3:PutObject',
+                's3:ListBucket'
+              ],
+              resources: [
+                logsBucket.bucketArn,
+                `${logsBucket.bucketArn}/*`
+              ]
+            })
+          ]
+        })
+      }
+    });
+
+    const authorizerFunction = new lambda.Function(this, 'AuthorizerFunction', {
+      runtime: nodeRuntime,
+      handler: 'authorizer.handler',
+      role: lambdaExecutionRole,
+      code: lambda.Code.fromAsset('dist/lambda/authentication'),
+      logGroup: authorizerLogGroup,
+      environment: {
+        COGNITO_USER_POOL_ID: userPool.userPoolId,
+      },
+    });
+
+    // Grant write permissions to the Lambda function for the log group
+    authorizerLogGroup.grantWrite(authorizerFunction);
+
+    // Add CloudWatch Logs permissions to the Lambda execution role
+    authorizerFunction.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['logs:CreateLogStream', 'logs:PutLogEvents'],
+      resources: [authorizerLogGroup.logGroupArn],
+    }));
+
     const httpApi = new HttpApi(this, 'HandTermApi', {
       apiName: 'HandTermService',
       description: 'This service serves authentication requests.',
@@ -97,6 +183,32 @@ export class HandTermCdkStack extends Stack {
         allowHeaders: ['Content-Type', 'Authorization'],
         allowCredentials: true,
       },
+      createDefaultStage: true,
+      defaultIntegration: new HttpLambdaIntegration('DefaultIntegration', authorizerFunction)
+    });
+
+    // Export OpenAPI specification to S3
+    const apiSpecBucket = new s3.Bucket(this, 'HandTermApiSpecBucket', {
+      bucketName: `${this.stackName.toLowerCase()}-api-spec`,
+      publicReadAccess: true,
+      blockPublicAccess: new s3.BlockPublicAccess({
+        blockPublicAcls: false,
+        blockPublicPolicy: false,
+        ignorePublicAcls: false,
+        restrictPublicBuckets: false
+      }),
+      websiteIndexDocument: 'api-spec.json', // Changed to .json since we're using JSON now
+      removalPolicy: RemovalPolicy.RETAIN
+    });
+
+    new s3deploy.BucketDeployment(this, 'DeployApiSpec', {
+      sources: [s3deploy.Source.asset('openapi')],
+      destinationBucket: apiSpecBucket,
+    });
+
+    new CfnOutput(this, 'ApiSpecUrl', {
+      value: `${apiSpecBucket.bucketWebsiteUrl}/api-spec.json`,
+      description: 'URL for the OpenAPI specification'
     });
 
     // Add access logging to the API Gateway
@@ -208,85 +320,9 @@ export class HandTermCdkStack extends Stack {
       description: 'Cognito User Pool Client ID',
     });
 
-    // Define or import the Logs Bucket
-    let logsBucket: s3.IBucket;
-    try {
-      logsBucket = s3.Bucket.fromBucketName(this, 'ExistingLogsBucket', endpoints.aws.s3.bucketName);
-    } catch {
-      logsBucket = new s3.Bucket(this, 'LogsBucket', {
-        bucketName: endpoints.aws.s3.bucketName,
-        removalPolicy: RemovalPolicy.RETAIN,
-        autoDeleteObjects: false,
-      });
-    }
-
-    // Define the Lambda Execution Role
-    const lambdaExecutionRole = new iam.Role(this, 'LambdaExecutionRole', {
-      assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
-      managedPolicies: [
-        iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')
-      ],
-      inlinePolicies: {
-        CognitoAccess: new iam.PolicyDocument({
-          statements: [
-            new iam.PolicyStatement({
-              actions: [
-                'cognito-idp:AdminCreateUser',
-                'cognito-idp:AdminGetUser',
-                'cognito-idp:AdminUpdateUserAttributes',
-                'cognito-idp:AdminSetUserPassword',
-                'cognito-idp:ListUsers'
-              ],
-              resources: [userPool.userPoolArn]
-            })
-          ]
-        }),
-        S3Access: new iam.PolicyDocument({
-          statements: [
-            new iam.PolicyStatement({
-              actions: [
-                's3:GetObject',
-                's3:PutObject',
-                's3:ListBucket'
-              ],
-              resources: [
-                logsBucket.bucketArn,
-                `${logsBucket.bucketArn}/*`
-              ]
-            })
-          ]
-        })
-      }
-    });
 
     // Remove any explicit permissions added to individual functions
 
-    // Define the Lambda Authorizer
-    const authorizerLogGroup = new logs.LogGroup(this, 'AuthorizerLogGroup', {
-      logGroupName: `${logPrefix}AuthorizerFunction`,
-      retention: logs.RetentionDays.ONE_WEEK,
-      removalPolicy: RemovalPolicy.DESTROY
-    });
-
-    const authorizerFunction = new lambda.Function(this, 'AuthorizerFunction', {
-      runtime: nodeRuntime,
-      handler: 'authorizer.handler',
-      role: lambdaExecutionRole,
-      code: lambda.Code.fromAsset('dist/lambda/authentication'),
-      logGroup: authorizerLogGroup,
-      environment: {
-        COGNITO_USER_POOL_ID: userPool.userPoolId,
-      },
-    });
-
-    // Grant write permissions to the Lambda function for the log group
-    authorizerLogGroup.grantWrite(authorizerFunction);
-
-    // Add CloudWatch Logs permissions to the Lambda execution role
-    authorizerFunction.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['logs:CreateLogStream', 'logs:PutLogEvents'],
-      resources: [authorizerLogGroup.logGroupArn],
-    }));
 
     const lambdaAuthorizer = new HttpLambdaAuthorizer('LambdaAuthorizer', authorizerFunction, {
       authorizerName: 'LambdaAuthorizer',
@@ -580,12 +616,12 @@ export class HandTermCdkStack extends Stack {
     }));
 
     // Add outputs for CLI convenience
-    new CfnOutput(this, 'LogGroupPrefix', { 
+    new CfnOutput(this, 'LogGroupPrefix', {
       value: logPrefix,
       description: 'Prefix for all log groups in this stack'
     });
 
-    new CfnOutput(this, 'CloudWatchLogsQueryCommand', { 
+    new CfnOutput(this, 'CloudWatchLogsQueryCommand', {
       value: `aws logs start-query --log-group-name "${logPrefix}*" --start-time $(date -d '1 hour ago' +%s) --end-time $(date +%s) --query-string "${logQuery.queryString.replace(/\n/g, ' ').trim()}"`,
       description: 'AWS CLI command to query logs (Bash)'
     });
