@@ -2,42 +2,38 @@
 const sourceMapSupport = require('source-map-support');
 sourceMapSupport.install();
 
-const cdk = require('aws-cdk-lib');
-const { HandTermCdkStack } = require('../lib/cdk-stack');
 const dotenv = require('dotenv');
 const path = require('path');
 const fs = require('fs');
 
-// Load environment variables before anything else
-const envPath = path.resolve(__dirname, '..', '.env');
-console.log(`Attempting to load .env file from: ${envPath}`);
-
-if (fs.existsSync(envPath)) {
-    console.log('.env file found');
-    const result = dotenv.config({ path: envPath });
-    if (result.error) {
-        throw result.error;
-    }
-    console.log('Environment variables loaded:', {
-        GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID ? '[REDACTED]' : 'Not set',
-        GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET ? '[REDACTED]' : 'Not set',
-        COGNITO_APP_CLIENT_ID: process.env.COGNITO_APP_CLIENT_ID ? '[REDACTED]' : 'Not set'
-    });
-} else {
-    console.log('.env file not found');
-    throw new Error('.env file not found. Please create one in the project root.');
-}
-
 async function main() {
+    const cdk = await import('aws-cdk-lib');
+    const { HandTermCdkStack } = await import('../dist/lib/cdk-stack.js').catch(err => {
+        console.error('Error importing CDK stack:', err);
+        throw err;
+    });
+
+    // Load environment variables before anything else
+    const envPath = path.resolve(__dirname, '..', '.env');
+    console.log(`Attempting to load .env file from: ${envPath}`);
+
+    if (fs.existsSync(envPath)) {
+        console.log('.env file found');
+        const result = dotenv.config({ path: envPath });
+        if (result.error) {
+            throw result.error;
+        }
+        console.log('Environment variables loaded:', {
+            GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID ? '[REDACTED]' : 'Not set',
+            GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET ? '[REDACTED]' : 'Not set',
+            COGNITO_APP_CLIENT_ID: process.env.COGNITO_APP_CLIENT_ID ? '[REDACTED]' : 'Not set'
+        });
+    } else {
+        console.log('.env file not found');
+        throw new Error('.env file not found. Please create one in the project root.');
+    }
     try {
         console.log('Starting CDK deployment...');
-
-        console.log('Environment variables loaded');
-
-        // Log the values of the environment variables (redacted for security)
-        console.log('GITHUB_CLIENT_ID:', process.env.GITHUB_CLIENT_ID ? '[REDACTED]' : 'Not set');
-        console.log('GITHUB_CLIENT_SECRET:', process.env.GITHUB_CLIENT_SECRET ? '[REDACTED]' : 'Not set');
-        console.log('COGNITO_APP_CLIENT_ID:', process.env.COGNITO_APP_CLIENT_ID ? '[REDACTED]' : 'Not set');
 
         const app = new cdk.App();
         console.log('CDK App created');

@@ -1,4 +1,4 @@
-import { handler } from '../authentication/authorizer';
+import { handler } from '../authentication/authorizer.js';
 import { APIGatewayTokenAuthorizerEvent } from 'aws-lambda';
 import { mockClient } from 'aws-sdk-client-mock';
 import { CognitoIdentityProviderClient, GetUserCommand } from '@aws-sdk/client-cognito-identity-provider';

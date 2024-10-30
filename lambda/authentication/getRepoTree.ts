@@ -1,6 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { Octokit } from '@octokit/rest';
-import { getValidGitHubToken } from './githubUtils';
+import { getValidGitHubToken } from './githubUtils.js';
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   try {
