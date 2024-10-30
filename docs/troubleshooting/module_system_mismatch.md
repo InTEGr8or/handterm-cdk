@@ -216,12 +216,23 @@ Integrating the ESM-only @octokit/rest package into a CommonJS project.
    - Replace __dirname/require with ESM equivalents
    - Use dynamic imports when needed
 
+## Project Decisions
+
+1. **Import Extensions**
+   - Decision: Generally avoid .js extensions in import statements
+   - Error: "ERR_MODULE_NOT_FOUND: Cannot find module './file' imported from '...'"
+   - Rationale: While Node.js ESM technically requires extensions, our build tooling (esbuild) handles the resolution
+   - Implementation: Configure build tools to handle extension resolution rather than hardcoding in source
+   - Exception 1: Lambda function imports must use .js extensions due to AWS Lambda's ESM requirements
+   - Exception 2: Direct Node.js execution (like tests) may require .js extensions
+   - Note: We maintain .js extensions only in Lambda function imports and test files, all other imports should omit extensions
+
 ## Prevention
 
 1. **Project Setup**
-   - Choose module system upfront
-   - Document decision in README
-   - Use consistent file extensions
+   - Choose module system upfront (We use ESM)
+   - Document decisions in this guide
+   - Use consistent patterns across all code
 
 2. **Dependencies**
    - Check package compatibility
