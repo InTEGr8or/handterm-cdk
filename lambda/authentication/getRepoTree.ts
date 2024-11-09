@@ -1,8 +1,19 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { Octokit } from '@octokit/rest';
+// Use dynamic import for Octokit
 import { getValidGitHubToken } from './githubUtils.js';
 
+const getOctokit = async () => {
+  try {
+    const Octokit = await import('@octokit/rest');
+    return Octokit.Octokit;
+  } catch (error) {
+    console.error('Error importing Octokit:', error);
+    throw error;
+  }
+};
+
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+  const Octokit = await getOctokit();
   try {
     const userId = event.requestContext.authorizer?.lambda?.userId;
     if (!userId) {

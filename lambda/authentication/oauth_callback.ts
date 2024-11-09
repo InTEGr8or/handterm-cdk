@@ -1,8 +1,7 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { CognitoIdentityProviderClient, AdminUpdateUserAttributesCommand } from '@aws-sdk/client-cognito-identity-provider';
 import { CognitoAttribute, GitHubToCognitoMap } from './githubUtils.js';
-import { Octokit } from '@octokit/rest';
-import { createOAuthAppAuth } from '@octokit/auth-oauth-app';
+// Use dynamic imports for Octokit and createOAuthAppAuth
 
 // Ensure ESM imports are properly handled
 // Remove unnecessary destructuring since Octokit is already the class
@@ -12,7 +11,12 @@ const cognito = new CognitoIdentityProviderClient({ region: process.env.AWS_REGI
 const getOctokit = async () => {
   console.log('Using Octokit modules...');
   try {
-    return { Octokit, createOAuthAppAuth };
+    const Octokit = await import('@octokit/rest');
+    const createOAuthAppAuth = await import('@octokit/auth-oauth-app');
+    return { 
+      Octokit: Octokit.Octokit, 
+      createOAuthAppAuth: createOAuthAppAuth.createOAuthAppAuth 
+    };
   } catch (error) {
     console.error('Error with Octokit modules:', error);
     console.error('Error details:', error instanceof Error ? error.stack : String(error));

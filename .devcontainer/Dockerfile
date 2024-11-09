@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y \
     unzip \
     && curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" \
     && unzip awscliv2.zip \
-    && ./aws/install \
+    && ./aws/install --update\
     && rm -rf awscliv2.zip aws
 
 # Install CDK
@@ -64,3 +64,27 @@ RUN chown -R node:node /home/node/.config/aider
 
 # Add Aider to PATH
 ENV PATH="/opt/conda/envs/aider-chat/bin:${PATH}"
+FROM node:18-bullseye
+
+# Install basic development tools
+RUN apt update && apt install -y less man-db sudo
+
+# Ensure default `node` user has access to `sudo`
+ARG USERNAME=node
+RUN echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
+    && chmod 0440 /etc/sudoers.d/$USERNAME
+
+# Set `DEVCONTAINER` environment variable to help with orientation
+ENV DEVCONTAINER=true
+
+# Install AWS CDK
+RUN npm install -g aws-cdk
+
+# Set working directory
+WORKDIR /workspace
+
+# Install global dev tools
+RUN npm install -g typescript ts-node esbuild
+
+# Switch to node user
+USER node

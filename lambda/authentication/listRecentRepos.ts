@@ -1,7 +1,16 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { CognitoIdentityProviderClient, AdminGetUserCommand, AdminUpdateUserAttributesCommand } from '@aws-sdk/client-cognito-identity-provider';
-import { Octokit } from '@octokit/rest';
+// Use dynamic import for Octokit
 import { CognitoAttribute } from './githubUtils.js';
+const getOctokit = async () => {
+  try {
+    const Octokit = await import('@octokit/rest');
+    return Octokit.Octokit;
+  } catch (error) {
+    console.error('Error importing Octokit:', error);
+    throw error;
+  }
+};
 
 const cognito = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
 
@@ -77,6 +86,7 @@ export const listRecentRepos = async (userId: string): Promise<APIGatewayProxyRe
 
     console.log('GitHub token retrieved successfully');
 
+    const Octokit = await getOctokit();
     const octokit = new Octokit({ auth: githubToken });
 
     try {
@@ -154,7 +164,6 @@ export const listRecentRepos = async (userId: string): Promise<APIGatewayProxyRe
 };
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  const { Octokit: _Octokit } = await import('@octokit/rest');
   try {
     console.log('Event:', JSON.stringify(event, null, 2));
     

@@ -1,17 +1,23 @@
 #!/usr/bin/env node
-const sourceMapSupport = require('source-map-support');
-sourceMapSupport.install();
 
 const dotenv = require('dotenv');
 const path = require('path');
 const fs = require('fs');
 
+// Disable debugger attachment and inspector
+process.env.NODE_OPTIONS = '';
+process.execArgv = process.execArgv.filter(arg => !arg.includes('--inspect'));
+
 async function main() {
     const cdk = await import('aws-cdk-lib');
-    const { HandTermCdkStack } = await import('../dist/lib/cdk-stack.js').catch(err => {
+    let HandTermCdkStack;
+    try {
+        const module = await import('../dist/lib/cdk-stack.js');
+        HandTermCdkStack = module.HandTermCdkStack;
+    } catch (err) {
         console.error('Error importing CDK stack:', err);
         throw err;
-    });
+    }
 
     // Load environment variables before anything else
     const envPath = path.resolve(__dirname, '..', '.env');
@@ -23,6 +29,10 @@ async function main() {
         if (result.error) {
             throw result.error;
         }
+        console.log('Environment check in cdk.cjs:');
+        console.log('GITHUB_CLIENT_ID:', process.env.GITHUB_CLIENT_ID ? '[SET]' : '[NOT SET]');
+        console.log('GITHUB_CLIENT_SECRET:', process.env.GITHUB_CLIENT_SECRET ? '[SET]' : '[NOT SET]');
+        console.log('COGNITO_APP_CLIENT_ID:', process.env.COGNITO_APP_CLIENT_ID ? '[SET]' : '[NOT SET]');
         console.log('Environment variables loaded:', {
             GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID ? '[REDACTED]' : 'Not set',
             GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET ? '[REDACTED]' : 'Not set',
@@ -61,9 +71,11 @@ async function main() {
 
         console.log('HandTermCdkStack instantiated');
 
-        const assembly = app.synth();
+        const assembly = app.synth({
+            outdir: './cdk.out'
+        });
         console.log('CDK app synthesized');
-
+        console.log('CDK app synthesized to:', assembly.directory);
         return assembly;
     } catch (error) {
         console.error('Error during CDK deployment:');
@@ -98,11 +110,28 @@ process.on('uncaughtException', (error) => {
     process.exit(1);
 });
 
-// Run the main function
-main().catch((error) => {
-    console.error('Error in main:');
+// Run the main function with enhanced error logging
+main().then((assembly) => {
+    console.log('CDK deployment completed successfully');
+}).catch((error) => {
+    console.error('CDK Deployment Error:');
     console.error('Error name:', error.name);
     console.error('Error message:', error.message);
     console.error('Stack trace:', error.stack);
+    
+    // Log additional context if available
+    if (error.context) {
+        console.error('Error context:', error.context);
+    }
+    
+    // Log AWS specific error details if present
+    if (error.requestId || error.code || error.region) {
+        console.error('AWS Error Details:', {
+            requestId: error.requestId,
+            code: error.code,
+            region: error.region
+        });
+    }
+    
     process.exit(1);
 });

@@ -1,0 +1,13 @@
+services:
+  devcontainer:
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    volumes:
+      - .:/workspace:cached
+      - ${HOME}/.aws:/home/node/.aws:cached
+    command: sleep infinity
+    environment:
+      - AWS_PROFILE=default
+      - NODE_ENV=development
+    working_dir: /workspace

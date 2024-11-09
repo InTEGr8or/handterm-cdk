@@ -5,7 +5,8 @@ import { fileURLToPath } from 'url';
 import { createLambdaIntegration } from './utils/lambdaUtils.js';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const __dirname = dirname(process.argv[1]);
+const __filename = process.argv[1];
 const endpoints = JSON.parse(
   readFileSync(join(__dirname, '../lambda/cdkshared/endpoints.json'), 'utf8')
 );

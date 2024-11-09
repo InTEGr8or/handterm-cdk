@@ -1,31 +1,54 @@
-{                                                                                 
-     "name": "Node.js & TypeScript",                                               
-     "build": {                                                                    
-         "dockerfile": "Dockerfile",                                               
-         "args": {                                                                 
-             "VARIANT": "18"                                                       
-         }                                                                         
-     },                                                                            
-     "customizations": {                                                           
-         "vscode": {                                                               
-             "settings": {                                                         
-                 "terminal.integrated.defaultProfile.linux": "bash"                
-             },                                                                    
-             "extensions": [                                                       
-                 "dbaeumer.vscode-eslint",                                         
-                 "ms-vscode.vscode-typescript-tslint-plugin",                      
-                 "ms-azuretools.vscode-docker",                                    
-                 "amazonwebservices.aws-toolkit-vscode"                            
-             ]                                                                     
-         }                                                                         
-     },                                                                            
-     "features": {
-         "ghcr.io/devcontainers/features/fish:1": {}
-     },
-     "forwardPorts": [3000],                                                       
-     "postCreateCommand": "yarn install && npm install -g aws-cdk",                
-     "remoteUser": "node",
-     "mounts": [
-         "source=${localWorkspaceFolder}/.aider.conf.yml,target=/home/${containerUser}/.aider.conf.yml,type=bind,consistency=cached"
-     ]
- }                              
+{
+    "name": "AWS CDK Development",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "args": {
+            "VARIANT": "18"
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "terminal.integrated.defaultProfile.linux": "bash",
+                "typescript.tsdk": "node_modules/typescript/lib",
+                "editor.formatOnSave": true,
+                "editor.codeActionsOnSave": {
+                    "source.fixAll.eslint": true
+                },
+                "javascript.preferences.importModuleSpecifier": "relative",
+                "typescript.preferences.importModuleSpecifier": "relative",
+                "javascript.updateImportsOnFileMove.enabled": "always",
+                "typescript.updateImportsOnFileMove.enabled": "always"
+            },
+            "extensions": [
+                "dbaeumer.vscode-eslint",
+                "ms-vscode.vscode-typescript-next",
+                "ms-azuretools.vscode-docker",
+                "amazonwebservices.aws-toolkit-vscode",
+                "esbenp.prettier-vscode",
+                "redhat.vscode-yaml",
+                "christian-kohler.npm-intellisense",
+                "christian-kohler.path-intellisense",
+                "ms-azuretools.vscode-aws-cdk",
+                "AmazonWebServices.aws-toolkit-vscode",
+                "ms-azuretools.vscode-docker",
+                "hashicorp.terraform",
+                "ms-vscode.vscode-typescript-tslint-plugin"
+            ]
+        }
+    },
+    "features": {
+        "ghcr.io/devcontainers/features/node:1": {
+            "version": "18.19"
+        },
+        "ghcr.io/devcontainers/features/python:1": {},
+        "ghcr.io/devcontainers/features/aws-cli:1": {},
+        "ghcr.io/devcontainers/features/git:1": {}
+    },
+    "forwardPorts": [3000],
+    "postCreateCommand": "npm install && npm install -g aws-cdk typescript ts-node aws-sam-cli && aws --version && cdk --version",
+    "remoteUser": "node",
+    "mounts": [
+        "source=${localWorkspaceFolder}/.aws,target=/home/node/.aws,type=bind,consistency=cached"
+    ]
+}
