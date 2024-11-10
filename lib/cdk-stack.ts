@@ -1,15 +1,8 @@
-// cdk/lib/cdk-stack.ts
+import * as cdk from 'aws-cdk-lib';
 import { readFileSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
-import { createLambdaIntegration } from './utils/lambdaUtils.js';
+import { join } from 'path';
+import { createLambdaIntegration } from './utils/lambdaUtils';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
-
-const __dirname = dirname(process.argv[1]);
-const __filename = process.argv[1];
-const endpoints = JSON.parse(
-  readFileSync(join(__dirname, '../lambda/cdkshared/endpoints.json'), 'utf8')
-);
 import {
   aws_cognito as cognito,
   aws_s3 as s3,
@@ -18,10 +11,6 @@ import {
   aws_apigatewayv2 as apigatewayv2,
   RemovalPolicy,
   aws_iam as iam,
-  App,
-  CfnOutput,
-  Stack,
-  StackProps,
   aws_cloudwatch as cloudwatch,
 } from "aws-cdk-lib";
 import { Construct } from 'constructs';
@@ -34,28 +23,28 @@ const stackName = 'HandTermCdkStack';
 const logPrefix = `/${stackName}/`;
 const nodeRuntime = lambda.Runtime.NODEJS_18_X;
 
-interface HandTermCdkStackProps extends StackProps {
+interface HandTermCdkStackProps extends cdk.StackProps {
   githubClientId: string;
   githubClientSecret: string;
   cognitoAppClientId: string;
 }
 
-export class HandTermCdkStack extends Stack {
+export class HandTermCdkStack extends cdk.Stack {
+  public readonly githubClientId: string;
+  public readonly githubClientSecret: string;
+  public readonly cognitoAppClientId: string;
   public userPool: cognito.UserPool;
 
   constructor(scope: Construct, id: string, props: HandTermCdkStackProps) {
     super(scope, id, props);
-    this.initializeStack(props.githubClientId, props.githubClientSecret, props.cognitoAppClientId).catch(error => {
-      console.error('Failed to initialize stack:', error);
-      throw error;
-    });
-  }
 
-  private async initializeStack(clientId: string, clientSecret: string, cognitoAppClientId: string): Promise<void> {
-    console.log('GitHub Client ID:', clientId);
-    console.log('GitHub Client Secret:', clientSecret ? '[REDACTED]' : 'Not set');
-    console.log('Cognito App Client ID:', cognitoAppClientId);
+    this.githubClientId = props.githubClientId;
+    this.githubClientSecret = props.githubClientSecret;
+    this.cognitoAppClientId = props.cognitoAppClientId;
 
+    const endpoints = JSON.parse(
+      readFileSync(join(__dirname, '../lambda/cdkshared/endpoints.json'), 'utf8')
+    );
 
     // Cognito User Pool with custom attributes
     const userPool = new cognito.UserPool(this, 'HandTermUserPool', {
@@ -89,19 +78,7 @@ export class HandTermCdkStack extends Stack {
       },
     });
 
-    // GitHub Identity Provider is now created before the User Pool Client
-
-    // Import OpenAPI specification
-    const apiSpec = JSON.parse(readFileSync('openapi/api-spec.json', 'utf8'));
-
-    // Define the HTTP API with OpenAPI spec
-    // Define the Lambda Authorizer first
-    const authorizerLogGroup = new logs.LogGroup(this, 'AuthorizerLogGroup', {
-      logGroupName: `${logPrefix}AuthorizerFunction`,
-      retention: logs.RetentionDays.ONE_WEEK,
-      removalPolicy: RemovalPolicy.DESTROY
-    });
-
+    this.userPool = userPool;
 
     // Create or import the Logs Bucket
     let logsBucket: s3.IBucket;
@@ -117,8 +94,7 @@ export class HandTermCdkStack extends Stack {
       console.log(`Created new bucket: ${endpoints.aws.s3.bucketName}`);
     }
 
-    // Define the Lambda Execution Role first
-
+    // Define the Lambda Execution Role
     const lambdaExecutionRole = new iam.Role(this, 'LambdaExecutionRole', {
       assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
       managedPolicies: [
@@ -157,6 +133,13 @@ export class HandTermCdkStack extends Stack {
       }
     });
 
+    // Define the Lambda Authorizer
+    const authorizerLogGroup = new logs.LogGroup(this, 'AuthorizerLogGroup', {
+      logGroupName: `${logPrefix}AuthorizerFunction`,
+      retention: logs.RetentionDays.ONE_WEEK,
+      removalPolicy: RemovalPolicy.DESTROY
+    });
+
     const authorizerFunction = new lambda.Function(this, 'AuthorizerFunction', {
       runtime: nodeRuntime,
       handler: 'authorizer.handler',
@@ -177,6 +160,7 @@ export class HandTermCdkStack extends Stack {
       resources: [authorizerLogGroup.logGroupArn],
     }));
 
+    // Create the HTTP API
     const httpApi = new HttpApi(this, 'HandTermApi', {
       apiName: 'HandTermService',
       description: 'This service serves authentication requests.',
@@ -187,93 +171,16 @@ export class HandTermCdkStack extends Stack {
         allowCredentials: true,
       },
       createDefaultStage: true,
-      defaultIntegration: new HttpLambdaIntegration('DefaultIntegration', authorizerFunction)
     });
 
-    // Export OpenAPI specification to S3
-    const apiSpecBucket = new s3.Bucket(this, 'HandTermApiSpecBucket', {
-      bucketName: `${this.stackName.toLowerCase()}-api-spec`,
-      publicReadAccess: true,
-      blockPublicAccess: new s3.BlockPublicAccess({
-        blockPublicAcls: false,
-        blockPublicPolicy: false,
-        ignorePublicAcls: false,
-        restrictPublicBuckets: false
-      }),
-      websiteIndexDocument: 'api-spec.json', // Changed to .json since we're using JSON now
-      removalPolicy: RemovalPolicy.RETAIN
-    });
-
-    new s3deploy.BucketDeployment(this, 'DeployApiSpec', {
-      sources: [s3deploy.Source.asset('openapi')],
-      destinationBucket: apiSpecBucket,
-    });
-
-    new CfnOutput(this, 'ApiSpecUrl', {
-      value: `${apiSpecBucket.bucketWebsiteUrl}/api-spec.json`,
-      description: 'URL for the OpenAPI specification'
-    });
-
-    // Add access logging to the API Gateway
-    const logGroup = new logs.LogGroup(this, 'ApiGatewayAccessLogs', {
-      logGroupName: `${logPrefix}ApiGatewayAccessLogs`,
-      retention: logs.RetentionDays.ONE_WEEK,
-      removalPolicy: RemovalPolicy.DESTROY
-    });
-
-    // Create or update the stage
-    const stageName = 'prod';
-    let stage = httpApi.defaultStage;
-
-    if (!stage) {
-      stage = new apigatewayv2.HttpStage(this, 'ProdStage', {
-        httpApi,
-        stageName,
-        autoDeploy: true,
-      });
-    }
-
-    // Configure access logging for the stage
-    const cfnStage = stage.node.defaultChild as apigatewayv2.CfnStage;
-    cfnStage.accessLogSettings = {
-      destinationArn: logGroup.logGroupArn,
-      format: JSON.stringify({
-        requestId: "$context.requestId",
-        ip: "$context.identity.sourceIp",
-        requestTime: "$context.requestTime",
-        httpMethod: "$context.httpMethod",
-        routeKey: "$context.routeKey",
-        status: "$context.status",
-        protocol: "$context.protocol",
-        responseLength: "$context.responseLength",
-        integrationLatency: "$context.integrationLatency",
-        authorizerError: "$context.authorizer.error"
-      })
-    };
-
-    // Ensure the stage is set as the default stage for the API
-    if (stage !== httpApi.defaultStage) {
-      httpApi.addStage('default', {
-        stageName,
-        autoDeploy: true,
-      });
-    }
-
-    // Output the log group name for easy access
-    new CfnOutput(this, 'ApiGatewayLogGroupName', {
-      value: logGroup.logGroupName,
-      description: 'Name of the CloudWatch Log Group for API Gateway access logs',
-    });
-
-    // Cognito User Pool Client
     // Create the GitHub Identity Provider
     const githubProvider = new cognito.CfnUserPoolIdentityProvider(this, 'GitHubIdentityProvider', {
       userPoolId: userPool.userPoolId,
       providerName: 'GitHub',
       providerType: 'OIDC',
       providerDetails: {
-        client_id: clientId,
-        client_secret: clientSecret,
+        client_id: this.githubClientId,
+        client_secret: this.githubClientSecret,
         attributes_request_method: 'GET',
         oidc_issuer: 'https://github.com',
         authorize_scopes: 'openid user:email',
@@ -294,7 +201,7 @@ export class HandTermCdkStack extends Stack {
       },
     });
 
-    // Create the User Pool Client after the GitHub Identity Provider
+    // Create the User Pool Client
     const userPoolClient = new cognito.UserPoolClient(this, 'HandTermCognitoUserPoolClient', {
       userPool,
       userPoolClientName: 'HandTermCognitoUserPoolClient',
@@ -317,16 +224,7 @@ export class HandTermCdkStack extends Stack {
     // Ensure the client is created after the identity provider
     userPoolClient.node.addDependency(githubProvider);
 
-    // Output the Cognito User Pool Client ID
-    new CfnOutput(this, 'CognitoUserPoolClientId', {
-      value: userPoolClient.userPoolClientId,
-      description: 'Cognito User Pool Client ID',
-    });
-
-
-    // Remove any explicit permissions added to individual functions
-
-
+    // Create the Lambda Authorizer
     const lambdaAuthorizer = new HttpLambdaAuthorizer('LambdaAuthorizer', authorizerFunction, {
       authorizerName: 'LambdaAuthorizer',
       identitySource: ['$request.header.Authorization'],
@@ -334,37 +232,14 @@ export class HandTermCdkStack extends Stack {
       responseTypes: [HttpLambdaResponseType.SIMPLE],
     });
 
-    // Add a default route with the Lambda authorizer for all methods except OPTIONS
-    httpApi.addRoutes({
-      path: '/{proxy+}',
-      methods: [HttpMethod.GET, HttpMethod.POST, HttpMethod.PUT, HttpMethod.DELETE, HttpMethod.PATCH],
-      authorizer: lambdaAuthorizer,
-      integration: new HttpLambdaIntegration('DefaultIntegration', authorizerFunction),
-    });
-
-    // Define the Identity Pool
-    const identityPool = new cognito.CfnIdentityPool(this, 'IdentityPool', {
-      allowUnauthenticatedIdentities: false,
-      cognitoIdentityProviders: [
-        {
-          clientId: userPoolClient.userPoolClientId,
-          providerName: userPool.userPoolProviderName,
-        },
-      ],
-    });
-
+    // Create the Octokit Layer
     const octokitLayer = new lambda.LayerVersion(this, 'OctokitLayer', {
       code: lambda.Code.fromAsset('lambdaLayer'),
       compatibleRuntimes: [lambda.Runtime.NODEJS_18_X],
       description: 'Octokit REST API client',
     });
 
-    // Log the ARN of the created layer
-    new CfnOutput(this, 'OctokitLayerArn', {
-      value: octokitLayer.layerVersionArn,
-      description: 'ARN of the Octokit Layer',
-    });
-
+    // Define common Lambda properties
     const defaultLambdaProps = {
       scope: this,
       role: lambdaExecutionRole,
@@ -372,8 +247,8 @@ export class HandTermCdkStack extends Stack {
       environment: {
         COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
         COGNITO_USER_POOL_CLIENT_ID: userPoolClient.userPoolClientId,
-        GITHUB_CLIENT_ID: clientId,
-        GITHUB_CLIENT_SECRET: clientSecret,
+        GITHUB_CLIENT_ID: this.githubClientId,
+        GITHUB_CLIENT_SECRET: this.githubClientSecret,
         COGNITO_USER_POOL_ID: userPool.userPoolId,
         BUCKET_NAME: endpoints.aws.s3.bucketName,
         API_URL: httpApi.url || '',
@@ -381,271 +256,149 @@ export class HandTermCdkStack extends Stack {
       layers: [octokitLayer],
     };
 
-    createLambdaIntegration({
-      ...defaultLambdaProps,
-      id: 'SignUpFunction',
-      handler: 'signUp.handler',
-      codePath: 'dist/lambda/authentication',
-      path: endpoints.api.SignUp,
-      methods: [HttpMethod.POST],
-    });
-
-
-    // Log the SignUp function configuration
-    console.log('SignUp Function Configuration:', {
-      id: 'SignUpFunction',
-      handler: 'signUp.handler',
-      codePath: 'dist/lambda/authentication',
-      path: endpoints.api.SignUp,
-    });
-
-    createLambdaIntegration({
-      ...defaultLambdaProps,
-      id: 'ConfirmSignUpFunction',
-      handler: 'confirmSignUp.handler',
-      codePath: 'dist/lambda/authentication',
-      path: endpoints.api.ConfirmSignUp,
-      methods: [HttpMethod.POST],
-    });
-
-    createLambdaIntegration({
-      ...defaultLambdaProps,
-      id: 'SignInFunction',
-      handler: 'signIn.handler',
-      codePath: 'dist/lambda/authentication',
-      path: endpoints.api.SignIn,
-      methods: [HttpMethod.POST],
-    });
-
-    createLambdaIntegration({
-      ...defaultLambdaProps,
-      id: 'RefreshTokenFunction',
-      handler: 'refreshToken.handler',
-      codePath: 'dist/lambda/authentication',
-      path: endpoints.api.RefreshToken,
-      methods: [HttpMethod.POST],
-    });
-
-    createLambdaIntegration({
-      ...defaultLambdaProps,
-      id: 'ChangePasswordFunction',
-      handler: 'changePassword.handler',
-      codePath: 'dist/lambda/authentication',
-      path: endpoints.api.ChangePassword,
-      methods: [HttpMethod.POST],
-      authorizer: lambdaAuthorizer,
-    });
-
-    createLambdaIntegration({
-      ...defaultLambdaProps,
-      id: 'GetUserFunction',
-      handler: 'getUser.handler',
-      codePath: 'dist/lambda/userStorage',
-      path: endpoints.api.GetUser,
-      methods: [HttpMethod.GET],
-      authorizer: lambdaAuthorizer,
-    });
-
-    // Add a log to check if this integration is being created
-    console.log(`Created GetUserFunction integration with path: ${endpoints.api.GetUser}`);
-
-    // Log the GetUser endpoint for debugging
-    new CfnOutput(this, 'GetUserEndpoint', { value: `${httpApi.url}${endpoints.api.GetUser}` });
-
-    createLambdaIntegration({
-      ...defaultLambdaProps,
-      id: 'SetUserFunction',
-      handler: 'setUser.handler',
-      codePath: 'dist/lambda/userStorage',
-      path: endpoints.api.SetUser,
-      methods: [HttpMethod.POST],
-      authorizer: lambdaAuthorizer,
-    });
-
-    createLambdaIntegration({
-      ...defaultLambdaProps,
-      id: 'SaveLogFunction',
-      handler: 'saveLog.handler',
-      codePath: 'dist/lambda/userStorage',
-      path: endpoints.api.SaveLog,
-      methods: [HttpMethod.POST],
-      authorizer: lambdaAuthorizer,
-    });
-
-    createLambdaIntegration({
-      ...defaultLambdaProps,
-      id: 'GetLogFunction',
-      handler: 'getLog.handler',
-      codePath: 'dist/lambda/userStorage',
-      path: endpoints.api.GetLog,
-      methods: [HttpMethod.POST, HttpMethod.GET],
-      authorizer: lambdaAuthorizer,
-    });
-
-    createLambdaIntegration({
-      ...defaultLambdaProps,
-      id: 'ListLogFunction',
-      handler: 'listLog.handler',
-      codePath: 'dist/lambda/userStorage',
-      path: endpoints.api.ListLog,
-      methods: [HttpMethod.POST, HttpMethod.GET],
-      authorizer: lambdaAuthorizer,
-    });
-
-    createLambdaIntegration({
-      ...defaultLambdaProps,
-      id: 'GetFileFunction',
-      handler: 'getFile.handler',
-      codePath: 'dist/lambda/userStorage',
-      path: '/getFile',
-      methods: [HttpMethod.GET],
-      authorizer: lambdaAuthorizer,
-    });
-
-    createLambdaIntegration({
-      ...defaultLambdaProps,
-      id: 'PutFileFunction',
-      handler: 'putFile.handler',
-      codePath: 'dist/lambda/userStorage',
-      path: endpoints.api.PutFile,
-      methods: [HttpMethod.POST],
-      authorizer: lambdaAuthorizer,
-    });
-
-    createLambdaIntegration({
-      ...defaultLambdaProps,
-      id: 'ListRecentReposFunction',
-      handler: 'listRecentRepos.handler',
-      codePath: 'dist/lambda/authentication',
-      path: '/list-recent-repos',
-      methods: [HttpMethod.GET],
-      authorizer: lambdaAuthorizer,
-      timeout: Duration.seconds(10), // Increase timeout to 10 seconds
-    });
-
-    const getRepoTreeFunction = createLambdaIntegration({
-      ...defaultLambdaProps,
-      id: 'GetRepoTreeFunction',
-      handler: 'getRepoTree.handler',
-      codePath: 'dist/lambda/authentication',
-      path: '/get-repo-tree',
-      methods: [HttpMethod.GET],
-      authorizer: lambdaAuthorizer,
-      environment: {
-        ...defaultLambdaProps.environment,
-        COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
+    // Create Lambda integrations for each endpoint
+    const lambdaIntegrations = [
+      {
+        id: 'SignUpFunction',
+        handler: 'signUp.handler',
+        path: endpoints.api.SignUp,
+        methods: [HttpMethod.POST],
       },
-    });
+      {
+        id: 'ConfirmSignUpFunction',
+        handler: 'confirmSignUp.handler',
+        path: endpoints.api.ConfirmSignUp,
+        methods: [HttpMethod.POST],
+      },
+      {
+        id: 'SignInFunction',
+        handler: 'signIn.handler',
+        path: endpoints.api.SignIn,
+        methods: [HttpMethod.POST],
+      },
+      {
+        id: 'SignOutFunction',
+        handler: 'signOut.handler',
+        path: endpoints.api.SignOut,
+        methods: [HttpMethod.GET, HttpMethod.POST],
+      },
+      {
+        id: 'ChangePasswordFunction',
+        handler: 'changePassword.handler',
+        path: endpoints.api.ChangePassword,
+        methods: [HttpMethod.POST],
+        authorizer: lambdaAuthorizer,
+      },
+      {
+        id: 'RefreshTokenFunction',
+        handler: 'refreshToken.handler',
+        path: endpoints.api.RefreshToken,
+        methods: [HttpMethod.POST],
+      },
+      {
+        id: 'CheckSessionFunction',
+        handler: 'checkSession.handler',
+        path: endpoints.api.CheckSession,
+        methods: [HttpMethod.GET],
+      },
+      {
+        id: 'GetUserFunction',
+        handler: 'getUser.handler',
+        path: endpoints.api.GetUser,
+        methods: [HttpMethod.GET],
+        authorizer: lambdaAuthorizer,
+      },
+      {
+        id: 'SetUserFunction',
+        handler: 'setUser.handler',
+        path: endpoints.api.SetUser,
+        methods: [HttpMethod.POST],
+        authorizer: lambdaAuthorizer,
+      },
+      {
+        id: 'GetLogFunction',
+        handler: 'getLog.handler',
+        path: endpoints.api.GetLog,
+        methods: [HttpMethod.GET, HttpMethod.POST],
+        authorizer: lambdaAuthorizer,
+      },
+      {
+        id: 'ListLogFunction',
+        handler: 'listLog.handler',
+        path: endpoints.api.ListLog,
+        methods: [HttpMethod.GET, HttpMethod.POST],
+        authorizer: lambdaAuthorizer,
+      },
+      {
+        id: 'SaveLogFunction',
+        handler: 'saveLog.handler',
+        path: endpoints.api.SaveLog,
+        methods: [HttpMethod.POST],
+        authorizer: lambdaAuthorizer,
+      },
+      {
+        id: 'GetFileFunction',
+        handler: 'getFile.handler',
+        path: endpoints.api.GetFile,
+        methods: [HttpMethod.GET],
+        authorizer: lambdaAuthorizer,
+      },
+      {
+        id: 'PutFileFunction',
+        handler: 'putFile.handler',
+        path: endpoints.api.PutFile,
+        methods: [HttpMethod.POST],
+        authorizer: lambdaAuthorizer,
+      },
+      {
+        id: 'ListRecentReposFunction',
+        handler: 'listRecentRepos.handler',
+        path: endpoints.api.ListRecentRepos,
+        methods: [HttpMethod.GET],
+        authorizer: lambdaAuthorizer,
+        timeout: Duration.seconds(10),
+      },
+      {
+        id: 'GetRepoTreeFunction',
+        handler: 'getRepoTree.handler',
+        path: endpoints.api.GetRepoTree,
+        methods: [HttpMethod.GET],
+        authorizer: lambdaAuthorizer,
+      },
+      {
+        id: 'GitHubAuthRedirectFunction',
+        handler: 'githubAuthRedirect.handler',
+        path: endpoints.api.GitHubAuth,
+        methods: [HttpMethod.GET],
+      },
+      {
+        id: 'OAuthCallbackFunction',
+        handler: 'oauth_callback.handler',
+        path: endpoints.api.OAuthCallback,
+        methods: [HttpMethod.GET, HttpMethod.POST],
+      },
+    ];
 
-    // Log the Cognito App Client ID
-    new CfnOutput(this, 'CognitoAppClientId', {
-      value: userPoolClient.userPoolClientId,
-      description: 'Cognito App Client ID',
-    });
-
-    // Log the ARN of the GetRepoTreeFunction
-    if (getRepoTreeFunction) {
-      new CfnOutput(this, 'GetRepoTreeFunctionArn', {
-        value: getRepoTreeFunction.functionArn,
-        description: 'ARN of the GetRepoTree Function',
+    // Create all Lambda integrations
+    lambdaIntegrations.forEach(integration => {
+      createLambdaIntegration({
+        ...defaultLambdaProps,
+        id: integration.id,
+        handler: integration.handler,
+        codePath: integration.id.includes('User') || integration.id.includes('Log') || integration.id.includes('File')
+          ? 'dist/lambda/userStorage'
+          : 'dist/lambda/authentication',
+        path: integration.path,
+        methods: integration.methods,
+        authorizer: integration.authorizer,
+        timeout: integration.timeout,
       });
-    }
-
-    createLambdaIntegration({
-      ...defaultLambdaProps,
-      id: 'CheckSessionFunction',
-      handler: 'checkSession.handler',
-      codePath: 'dist/lambda/authentication',
-      path: '/check-session',
-      methods: [HttpMethod.GET],
     });
 
-    createLambdaIntegration({
-      ...defaultLambdaProps,
-      id: 'SignOutFunction',
-      handler: 'signOut.handler',
-      codePath: 'dist/lambda/authentication',
-      path: '/signout',
-      methods: [HttpMethod.GET, HttpMethod.POST],
-    });
-
-    createLambdaIntegration({
-      ...defaultLambdaProps,
-      id: 'GitHubAuthRedirectFunction',
-      handler: 'githubAuthRedirect.handler',
-      codePath: 'dist/lambda/authentication',
-      environment: {
-        ...defaultLambdaProps.environment,
-        REDIRECT_URI: `${httpApi.url}oauth_callback`,
-      },
-      path: '/github_auth',
-      methods: [HttpMethod.GET],
-    });
-
-    createLambdaIntegration({
-      ...defaultLambdaProps,
-      id: 'OAuthCallbackFunction',
-      handler: 'oauth_callback.handler',
-      codePath: 'dist/lambda/authentication',
-      environment: {
-        ...defaultLambdaProps.environment,
-        FRONTEND_URL: 'https://handterm.com', // Replace with your actual frontend URL
-      },
-      path: '/oauth_callback',
-      methods: [HttpMethod.GET, HttpMethod.POST],
-    });
-
-    new CfnOutput(this, 'ApiEndpoint', { value: httpApi.url || '' });
-    new CfnOutput(this, 'UserPoolId', { value: userPool.userPoolId });
-    new CfnOutput(this, 'UserPoolClientId', { value: userPoolClient.userPoolClientId });
-    new CfnOutput(this, 'IdentityPoolId', { value: identityPool.ref });
-    new CfnOutput(this, 'BucketName', { value: logsBucket.bucketName });
-
-
-    // Add CloudWatch dashboard
-    const dashboard = new cloudwatch.Dashboard(this, 'HandTermDashboard', {
-      dashboardName: 'HandTermLogs'
-    });
-
-    const logQuery = {
-      logGroupNames: [`${logPrefix}*`],
-      queryString: ` fields @timestamp, @message | sort @timestamp desc | limit 30 `,
-    };
-
-    dashboard.addWidgets(new cloudwatch.LogQueryWidget({
-      title: 'Recent Logs',
-      queryString: logQuery.queryString,
-      logGroupNames: logQuery.logGroupNames,
-    }));
-
-    // Add outputs for CLI convenience
-    new CfnOutput(this, 'LogGroupPrefix', {
-      value: logPrefix,
-      description: 'Prefix for all log groups in this stack'
-    });
-
-    new CfnOutput(this, 'CloudWatchLogsQueryCommand', {
-      value: `aws logs start-query --log-group-name "${logPrefix}*" --start-time $(date -d '1 hour ago' +%s) --end-time $(date +%s) --query-string "${logQuery.queryString.replace(/\n/g, ' ').trim()}"`,
-      description: 'AWS CLI command to query logs (Bash)'
-    });
+    // Add outputs
+    new cdk.CfnOutput(this, 'ApiEndpoint', { value: httpApi.url || '' });
+    new cdk.CfnOutput(this, 'UserPoolId', { value: userPool.userPoolId });
+    new cdk.CfnOutput(this, 'UserPoolClientId', { value: userPoolClient.userPoolClientId });
+    new cdk.CfnOutput(this, 'BucketName', { value: logsBucket.bucketName });
   }
 }
-
-const app = new App();
-const githubClientId = process.env.GITHUB_CLIENT_ID;
-const githubClientSecret = process.env.GITHUB_CLIENT_SECRET;
-
-if (!githubClientId || !githubClientSecret) {
-  console.error('Error: GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET must be set in the environment');
-  console.error('Please ensure you have a .env file in the project root with these variables set');
-  console.error('Example:');
-  console.error('GITHUB_CLIENT_ID=your_client_id_here');
-  console.error('GITHUB_CLIENT_SECRET=your_client_secret_here');
-  process.exit(1);
-}
-
-new HandTermCdkStack(app, stackName, {
-  githubClientId,
-  githubClientSecret,
-  cognitoAppClientId: process.env.COGNITO_APP_CLIENT_ID!,
-});

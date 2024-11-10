@@ -14,5 +14,6 @@ dist
 cdk.out
 .env
 .env.sh
+.envrc
 .aider.tags.*
 !update-env.js

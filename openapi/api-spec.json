@@ -11,7 +11,7 @@
   },
   "servers": [
     {
-      "url": "https://22k5nam6ed.execute-api.us-east-1.amazonaws.com",
+      "url": "https://drypicnke5.execute-api.us-east-1.amazonaws.com/",
       "description": "Production server"
     }
   ],

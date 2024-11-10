@@ -1,5 +1,5 @@
 {
-  "app": "node -r ./ts-node-esm-register.js bin/cdk.cjs",
+  "app": "npx ts-node --prefer-ts-exts bin/cdk.ts",
   "watch": {
     "include": [
       "**"

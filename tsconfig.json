@@ -1,11 +1,10 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "noEmit": true,
-    "allowImportingTsExtensions": true,
-    "lib": ["es2022", "dom"],
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "noEmit": false,
+    "lib": ["es2022"],
     "allowJs": true,
     "checkJs": false,
     "declaration": true,
@@ -29,19 +28,18 @@
     "baseUrl": ".",
     "paths": {
       "*": ["*", "dist/*"]
-    }
+    },
+    "stripInternal": true,
+    "declarationDir": "./dist/types",
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true
   },
   "include": ["bin/**/*", "lib/**/*", "lambda/**/*"],
-  "exclude": ["node_modules", "cdk.out"],
-  "ts-node": {
-    "esm": true,
-    "experimentalSpecifiers": true
-  },
-  "typeRoots": [
-    "./node_modules/@types"
-  ],
-  "types": [
-    "node",
-    "jest"
-  ],
+  "exclude": [
+    "node_modules",
+    "cdk.out",
+    "dist",
+    "**/*.js",
+    "**/*.d.ts"
+  ]
 }
