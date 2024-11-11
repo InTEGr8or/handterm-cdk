@@ -2,20 +2,16 @@ import * as cdk from 'aws-cdk-lib';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { createLambdaIntegration } from './utils/lambdaUtils';
-import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 import {
   aws_cognito as cognito,
   aws_s3 as s3,
   aws_lambda as lambda,
   aws_logs as logs,
-  aws_apigatewayv2 as apigatewayv2,
   RemovalPolicy,
   aws_iam as iam,
-  aws_cloudwatch as cloudwatch,
 } from "aws-cdk-lib";
 import { Construct } from 'constructs';
 import { HttpMethod, HttpApi, CorsHttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
-import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import { HttpLambdaAuthorizer, HttpLambdaResponseType } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import { Duration } from 'aws-cdk-lib';
 
@@ -27,6 +23,16 @@ interface HandTermCdkStackProps extends cdk.StackProps {
   githubClientId: string;
   githubClientSecret: string;
   cognitoAppClientId: string;
+}
+
+// Define the structure for Lambda integrations
+interface LambdaIntegration {
+  id: string;
+  handler: string;
+  path: string;
+  methods: HttpMethod[];
+  authorizer?: HttpLambdaAuthorizer;
+  timeout?: Duration;
 }
 
 export class HandTermCdkStack extends cdk.Stack {
@@ -151,15 +157,6 @@ export class HandTermCdkStack extends cdk.Stack {
       },
     });
 
-    // Grant write permissions to the Lambda function for the log group
-    authorizerLogGroup.grantWrite(authorizerFunction);
-
-    // Add CloudWatch Logs permissions to the Lambda execution role
-    authorizerFunction.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['logs:CreateLogStream', 'logs:PutLogEvents'],
-      resources: [authorizerLogGroup.logGroupArn],
-    }));
-
     // Create the HTTP API
     const httpApi = new HttpApi(this, 'HandTermApi', {
       apiName: 'HandTermService',
@@ -207,7 +204,7 @@ export class HandTermCdkStack extends cdk.Stack {
       userPoolClientName: 'HandTermCognitoUserPoolClient',
       supportedIdentityProviders: [
         cognito.UserPoolClientIdentityProvider.COGNITO,
-        cognito.UserPoolClientIdentityProvider.custom('GitHub')
+        cognito.UserPoolClientIdentityProvider.custom(githubProvider.ref)
       ],
       oAuth: {
         callbackUrls: [`${httpApi.url}${endpoints.api.OAuthCallback}`],
@@ -220,9 +217,6 @@ export class HandTermCdkStack extends cdk.Stack {
         userSrp: true
       }
     });
-
-    // Ensure the client is created after the identity provider
-    userPoolClient.node.addDependency(githubProvider);
 
     // Create the Lambda Authorizer
     const lambdaAuthorizer = new HttpLambdaAuthorizer('LambdaAuthorizer', authorizerFunction, {
@@ -257,7 +251,7 @@ export class HandTermCdkStack extends cdk.Stack {
     };
 
     // Create Lambda integrations for each endpoint
-    const lambdaIntegrations = [
+    const lambdaIntegrations: LambdaIntegration[] = [
       {
         id: 'SignUpFunction',
         handler: 'signUp.handler',
@@ -312,41 +306,6 @@ export class HandTermCdkStack extends cdk.Stack {
         id: 'SetUserFunction',
         handler: 'setUser.handler',
         path: endpoints.api.SetUser,
-        methods: [HttpMethod.POST],
-        authorizer: lambdaAuthorizer,
-      },
-      {
-        id: 'GetLogFunction',
-        handler: 'getLog.handler',
-        path: endpoints.api.GetLog,
-        methods: [HttpMethod.GET, HttpMethod.POST],
-        authorizer: lambdaAuthorizer,
-      },
-      {
-        id: 'ListLogFunction',
-        handler: 'listLog.handler',
-        path: endpoints.api.ListLog,
-        methods: [HttpMethod.GET, HttpMethod.POST],
-        authorizer: lambdaAuthorizer,
-      },
-      {
-        id: 'SaveLogFunction',
-        handler: 'saveLog.handler',
-        path: endpoints.api.SaveLog,
-        methods: [HttpMethod.POST],
-        authorizer: lambdaAuthorizer,
-      },
-      {
-        id: 'GetFileFunction',
-        handler: 'getFile.handler',
-        path: endpoints.api.GetFile,
-        methods: [HttpMethod.GET],
-        authorizer: lambdaAuthorizer,
-      },
-      {
-        id: 'PutFileFunction',
-        handler: 'putFile.handler',
-        path: endpoints.api.PutFile,
         methods: [HttpMethod.POST],
         authorizer: lambdaAuthorizer,
       },

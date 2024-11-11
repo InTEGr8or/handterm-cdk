@@ -1,6 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { CognitoIdentityProviderClient, AdminUpdateUserAttributesCommand } from '@aws-sdk/client-cognito-identity-provider';
-import { CognitoAttribute, GitHubToCognitoMap } from './githubUtils.js';
+import { CognitoAttribute, GitHubToCognitoMap } from './authTypes';
 // Use dynamic imports for Octokit and createOAuthAppAuth
 
 // Ensure ESM imports are properly handled

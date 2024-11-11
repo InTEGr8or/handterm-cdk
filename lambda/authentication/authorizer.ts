@@ -1,6 +1,6 @@
 import { APIGatewayTokenAuthorizerEvent, APIGatewaySimpleAuthorizerWithContextResult } from 'aws-lambda';
 import { CognitoIdentityProviderClient, GetUserCommand } from '@aws-sdk/client-cognito-identity-provider';
-import { CognitoAttribute } from './githubUtils.js';
+import { CognitoAttribute } from './authTypes';
 
 export const cognitoClient = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
 

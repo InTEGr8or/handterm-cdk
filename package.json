@@ -8,12 +8,10 @@
     "cpCdk": "cp ../handterm/src/shared/endpoints.json lambda/cdkshared/ && mkdir -p dist/lambda/cdkshared && cp lambda/cdkshared/endpoints.json dist/lambda/cdkshared/ && echo 'endpoints.json copied'",
     "clean": "bash clean.sh",
     "build": "NODE_ENV=production tsc && npm run copy-lambda && npm run bundle-lambda",
-    "bundle-lambda": "esbuild dist/lambda/**/*.js --bundle --platform=node --target=node18 --format=esm --outdir=dist/lambda --allow-overwrite '--external:@aws-sdk/*' '--external:aws-sdk' '--external:@octokit/*' --minify",
+    "bundle-lambda": "esbuild dist/lambda/**/*.js --bundle --platform=node --target=node20 --format=cjs --outdir=dist/lambda --allow-overwrite '--external:@aws-sdk/*' '--external:aws-sdk' '--external:@octokit/*' --minify",
     "predeploy": "rm -rf dist/lib && mkdir -p dist/lib && npm run cpCdk && npm run build && npx tsc lib/cdk-stack.ts lib/utils/lambdaUtils.ts --outDir dist/lib",
-    "deploy": "npx cdk deploy --require-approval never --outputs-file .aws/outputs.json",
-    "cdk-list": "npx cdk list",
-    "cdk-diff": "npx cdk diff",
-    "bundle-lambda-test": "esbuild lambda/authentication/oauth_callback.ts --bundle --platform=node --target=node18 --format=esm --outfile=dist/lambda/authentication/oauth_callback.bundle.js --external:@aws-sdk/client-cognito-identity-provider --external:aws-sdk --external:os --external:fs --external:path --external:crypto --external:stream --external:util --external:url --external:http --external:https --define:process.env.NODE_ENV='\"test\"' --define:global=globalThis --loader:.ts=ts",
+    "deploy": "direnv exec . npx cdk deploy --profile mark --region us-east-1 --require-approval never --outputs-file .aws/outputs.json",
+    "bundle-lambda-test": "esbuild lambda/authentication/oauth_callback.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/lambda/authentication/oauth_callback.bundle.js --external:@aws-sdk/client-cognito-identity-provider --external:aws-sdk --external:os --external:fs --external:path --external:crypto --external:stream --external:util --external:url --external:http --external:https --define:process.env.NODE_ENV='\"test\"' --define:global=globalThis --loader:.ts=ts",
     "test:bundle": "npm run bundle-lambda-test && node --experimental-vm-modules test/lambda-sim/test-imports.mjs",
     "copy-lambda": "mkdir -p dist/lambda && cp -R lambda/* dist/lambda/",
     "postdeploy": "node update-env.js",
@@ -25,7 +23,7 @@
     "test:github_auth:local": "NODE_ENV=development node --loader ts-node/esm test/lambda-sim/local-server.ts & sleep 2 && jest tests/github_auth.test.ts",
     "destroy": "dotenv -- cdk destroy",
     "watch": "tsc -w",
-    "synth": "npx cdk synth",
+    "synth": "direnv exec . npx cdk synth --profile mark --region us-east-1",
     "check-env": "direnv status",
     "layer": "cd lambdaLayer/nodejs && npm install --production && cd -"
   },
@@ -41,7 +39,7 @@
     "source-map-support": "^0.5.21"
   },
   "engines": {
-    "node": "18.x"
+    "node": "20.x"
   },
   "devDependencies": {
     "@aws-sdk/client-cognito-identity-provider": "^3.682.0",

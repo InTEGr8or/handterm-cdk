@@ -1,19 +1,21 @@
 // cdk/lambda/authentication/signIn.ts
-import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { 
-  CognitoIdentityProviderClient, 
-  InitiateAuthCommand, 
+import {
+  CognitoIdentityProviderClient,
+  InitiateAuthCommand,
   AdminGetUserCommand,
-  AdminGetUserCommandOutput,
   AttributeType
 } from "@aws-sdk/client-cognito-identity-provider";
-import { CognitoAttribute } from "./githubUtils.js";
+import {
+  APIGatewayProxyEvent,
+  APIGatewayProxyResult,
+  CognitoAttribute
+} from './authTypes';
 
 const cognito = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
 
 console.log('SignUp module loaded');
 
-export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
   const body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
 
   try {
@@ -74,42 +76,50 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         ].join(', ')
       }
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('SignIn error:', err);
-    if (err.__type === 'UserNotConfirmedException') {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ 
-          code: 'UserNotConfirmed',
-          message: 'User is not confirmed. Please check your email and confirm your account.'
-        }),
-      };
-    } else if (err.__type === 'NotAuthorizedException') {
-      return {
-        statusCode: 401,
-        body: JSON.stringify({ 
-          code: 'NotAuthorized',
-          message: 'Incorrect username or password.'
-        }),
-      };
-    } else if (err.__type === 'UserNotFoundException') {
-      return {
-        statusCode: 404,
-        body: JSON.stringify({ 
-          code: 'UserNotFound',
-          message: 'User does not exist.'
-        }),
-      };
+    if (err && typeof err === 'object' && '__type' in err) {
+      const typedError = err as { __type: string };
+      if (typedError.__type === 'UserNotConfirmedException') {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({
+            code: 'UserNotConfirmed',
+            message: 'User is not confirmed. Please check your email and confirm your account.'
+          }),
+        };
+      } else if (typedError.__type === 'NotAuthorizedException') {
+        return {
+          statusCode: 401,
+          body: JSON.stringify({
+            code: 'NotAuthorized',
+            message: 'Incorrect username or password.'
+          }),
+        };
+      } else if (typedError.__type === 'UserNotFoundException') {
+        return {
+          statusCode: 404,
+          body: JSON.stringify({
+            code: 'UserNotFound',
+            message: 'User does not exist.'
+          }),
+        };
+      }
     }
     return {
       statusCode: 500,
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         code: 'InternalServerError',
         message: 'An unexpected error occurred. Please try again later.',
-        error: err.message
+        error: err instanceof Error ? err.message : 'Unknown error'
       }),
     };
   }
+}
+
+// Compatibility export for CommonJS
+module.exports = {
+  handler
 };
 
 console.log('Module exports:', module.exports, null, 2);
