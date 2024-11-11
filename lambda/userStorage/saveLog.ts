@@ -1,38 +1,59 @@
-// cdk/lambda/userStorage/saveLog.ts
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
-const s3Client = new S3Client({ region: "us-east-1" });
+const s3Client = new S3Client({ region: process.env.AWS_REGION });
 
-let domain = 'logs';
-const bucketName = process.env.BUCKET_NAME;
-
-export const handler = async (event: any) => {
-    const userId = event.requestContext.authorizer.lambda.userId;
-    if (!userId) {
-        return { statusCode: 401, body: JSON.stringify({ message: 'Unauthorized. userId not found.' }) };
-    }
-    const { key, content, extension } = JSON.parse(event.body); // Example payload
-    console.log('saveLog called with userId:', userId, 'key:', key, 'extension:', extension);
-
-    const fileExtension = extension || 'json';
-    if (key.match(/@\w*/)) {
-        domain = key.split(' ')[0].replace('@', '');
-    }
-    // TODO: replace('_', '/') to partition by folder, which is S3-optimal.
-    const contentKey = content.slice(0, 200).toLowerCase().replace(/\s/g, '_').replace(/[^a-zA-Z0-9\/_]/g, '');
-    let keyPath = `user_data/${userId}/${domain}/${key.replace(/(l\d{4})-(\d{2})-(\d{2})/g, '$1/$2/$3').replace('_', '/')}_${contentKey}.${fileExtension}`;
+export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+    // Add null checks and provide a fallback
+    const userId = event.requestContext?.authorizer?.lambda?.userId || 'unknown-user';
 
     try {
-        const command = new PutObjectCommand({
-            Bucket: bucketName,
-            Key: keyPath,
-            Body: content,
-        });
-        await s3Client.send(command);
+        const body = JSON.parse(event.body || '{}');
 
-        return { statusCode: 200, body: JSON.stringify({ message: 'Log saved' }) };
-    } catch (err) {
-        console.log('Error:', err);
-        return { statusCode: 500, body: JSON.stringify(err) };
+        if (!body.log) {
+            return {
+                statusCode: 400,
+                body: JSON.stringify({ message: 'No log data provided' })
+            };
+        }
+
+        const logKey = `user-logs/${userId}/${Date.now()}.json`;
+
+        const params = {
+            Bucket: process.env.BUCKET_NAME || '',
+            Key: logKey,
+            Body: JSON.stringify(body.log),
+            ContentType: 'application/json'
+        };
+
+        // Add additional error checking for environment variables
+        if (!params.Bucket) {
+            return {
+                statusCode: 500,
+                body: JSON.stringify({ message: 'Bucket name not configured' })
+            };
+        }
+
+        await s3Client.send(new PutObjectCommand(params));
+
+        return {
+            statusCode: 200,
+            body: JSON.stringify({
+                message: 'Log saved successfully',
+                logKey
+            })
+        };
+    } catch (error) {
+        console.error('Error saving log:', error);
+        return {
+            statusCode: 500,
+            body: JSON.stringify({
+                message: 'Failed to save log',
+                error: error instanceof Error ? error.message : 'Unknown error'
+            })
+        };
     }
 };
+
+// For CommonJS compatibility
+module.exports = { handler };

@@ -4,27 +4,20 @@ import { AttributeType } from "@aws-sdk/client-cognito-identity-provider";
 export interface APIGatewayProxyEvent {
   body: string | null;
 }
-const APIGatewayProxyEvent: APIGatewayProxyEvent = { body: null };
 
 export interface APIGatewayProxyResult {
   statusCode: number;
   body: string;
   headers?: Record<string, string | string[]>;
 }
-const APIGatewayProxyResult: APIGatewayProxyResult = {
-  statusCode: 200,
-  body: ''
-};
 
 export interface AuthenticationResult {
   IdToken?: string;
   AccessToken?: string;
   RefreshToken?: string;
 }
-const AuthenticationResult: AuthenticationResult = {};
 
 export interface UserAttribute extends AttributeType {}
-const UserAttribute: UserAttribute = { Name: '' };
 
 export const CognitoAttribute = {
   GH_TOKEN: 'custom:gh_token',
@@ -44,12 +37,4 @@ export const GitHubToCognitoMap = {
   id: CognitoAttribute.GH_ID,
 };
 
-// Compatibility export for CommonJS and ES modules
-module.exports = {
-  APIGatewayProxyEvent,
-  APIGatewayProxyResult,
-  AuthenticationResult,
-  UserAttribute,
-  CognitoAttribute,
-  GitHubToCognitoMap
-};
+// Remove the default export that was causing type errors

@@ -1,15 +1,36 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
+import { CognitoIdentityProviderClient, GlobalSignOutCommand } from '@aws-sdk/client-cognito-identity-provider';
 
-export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+const cognitoClient = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
+
+export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
   console.log('SignOut request received:', event);
 
-  // Here you would handle the sign-out logic, such as clearing session cookies or tokens
-  // For now, we'll just return a success message
+  try {
+    const accessToken = event.headers?.Authorization?.split(' ')[1];
 
-  return {
-    statusCode: 200,
-    body: JSON.stringify({
-      message: 'SignOut handled successfully',
-    }),
-  };
-};
+    if (!accessToken) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ message: 'No access token provided' })
+      };
+    }
+
+    const command = new GlobalSignOutCommand({ AccessToken: accessToken });
+    await cognitoClient.send(command);
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ message: 'Successfully signed out' })
+    };
+  } catch (error) {
+    console.error('SignOut error:', error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ message: 'Failed to sign out' })
+    };
+  }
+}
+
+// For CommonJS compatibility
+module.exports = { handler };

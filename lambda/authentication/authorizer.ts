@@ -2,14 +2,14 @@ import { APIGatewayTokenAuthorizerEvent, APIGatewaySimpleAuthorizerWithContextRe
 import { CognitoIdentityProviderClient, GetUserCommand } from '@aws-sdk/client-cognito-identity-provider';
 import { CognitoAttribute } from './authTypes';
 
-export const cognitoClient = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
+const cognitoClient = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
 
 interface ExtendedAPIGatewayTokenAuthorizerEvent extends APIGatewayTokenAuthorizerEvent {
     identitySource?: string[];
 }
 
-export const handler = async (event: ExtendedAPIGatewayTokenAuthorizerEvent): Promise<APIGatewaySimpleAuthorizerWithContextResult<{ [key: string]: string }>> => {
-    console.log(`Authorizer invoked with event: ${event}`);
+export async function handler(event: ExtendedAPIGatewayTokenAuthorizerEvent): Promise<APIGatewaySimpleAuthorizerWithContextResult<{ [key: string]: string }>> {
+    console.log(`Authorizer invoked with event: ${JSON.stringify(event)}`);
 
     const authToken = event.identitySource?.[0];
     console.log(`Authorization token: ${authToken}`);
@@ -54,7 +54,7 @@ export const handler = async (event: ExtendedAPIGatewayTokenAuthorizerEvent): Pr
         console.error(`Error in Cognito getUser: ${error}`);
         return generatePolicy('user', 'Deny', event.methodArn);
     }
-};
+}
 
 function generatePolicy(principalId: string, effect: 'Allow' | 'Deny', resource: string, context = {}): APIGatewaySimpleAuthorizerWithContextResult<{ [key: string]: string }> {
     return {
@@ -66,3 +66,6 @@ function generatePolicy(principalId: string, effect: 'Allow' | 'Deny', resource:
         }
     };
 }
+
+// For CommonJS compatibility
+module.exports = { handler };
