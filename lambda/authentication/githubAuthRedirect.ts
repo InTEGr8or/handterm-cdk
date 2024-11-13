@@ -4,7 +4,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
   console.log('githubAuthRedirect Event:', JSON.stringify(event, null, 2));
 
   const clientId = process.env.GITHUB_CLIENT_ID;
-  const redirectUri = process.env.REDIRECT_URI;
+  const redirectUri = `${process.env.REDIRECT_URI}`;
 
   if (!clientId || !redirectUri) {
     console.error('Missing environment variables:', { clientId, redirectUri });
@@ -17,7 +17,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
   }
 
   const refererUrl = event.headers.referer || 'https://handterm.com';
-  
+
   // Extract Cognito user ID from the Authorization header if it exists
   let cognitoUserId: string | null = null;
   const authHeader = event.headers.Authorization || event.headers.authorization;
@@ -36,6 +36,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
   console.log('State before encoding:', JSON.stringify({
     timestamp: Date.now(),
     refererUrl: encodeURIComponent(refererUrl),
+    redirectUri: redirectUri,
     cognitoUserId: cognitoUserId,
   }, null, 2));
   console.log('Encoded state:', state);

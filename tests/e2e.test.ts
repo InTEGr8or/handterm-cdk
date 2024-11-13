@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { CognitoIdentityProviderClient, AdminDeleteUserCommand, AdminConfirmSignUpCommand, AdminGetUserCommand } from "@aws-sdk/client-cognito-identity-provider";
 import dotenv from 'dotenv';
 import path from 'path';
-import { ENDPOINTS } from '../lambda/cdkshared/endpoints';
+import ENDPOINTS from '../lambda/cdkshared/endpoints.json';
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 

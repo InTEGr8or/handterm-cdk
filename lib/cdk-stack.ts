@@ -233,6 +233,9 @@ export class HandTermCdkStack extends cdk.Stack {
       description: 'Octokit REST API client',
     });
 
+    const redirectUri = httpApi.url + endpoints.api.OAuthCallback.replace('/','');
+    console.log(redirectUri);
+
     // Define common Lambda properties
     const defaultLambdaProps = {
       scope: this,
@@ -246,6 +249,7 @@ export class HandTermCdkStack extends cdk.Stack {
         COGNITO_USER_POOL_ID: userPool.userPoolId,
         BUCKET_NAME: endpoints.aws.s3.bucketName,
         API_URL: httpApi.url || '',
+        REDIRECT_URI: redirectUri
       },
       layers: [octokitLayer],
     };
@@ -356,6 +360,7 @@ export class HandTermCdkStack extends cdk.Stack {
 
     // Add outputs
     new cdk.CfnOutput(this, 'ApiEndpoint', { value: httpApi.url || '' });
+    new cdk.CfnOutput(this, 'RedirectUri', { value: defaultLambdaProps.environment.REDIRECT_URI })
     new cdk.CfnOutput(this, 'UserPoolId', { value: userPool.userPoolId });
     new cdk.CfnOutput(this, 'UserPoolClientId', { value: userPoolClient.userPoolClientId });
     new cdk.CfnOutput(this, 'BucketName', { value: logsBucket.bucketName });

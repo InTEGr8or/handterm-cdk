@@ -6,7 +6,7 @@ const cognitoClient = new CognitoIdentityProviderClient({ region: process.env.AW
 
 export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
   try {
-    const { code } = event.queryStringParameters || {};
+    const { code, state } = event.queryStringParameters || {};
 
     if (!code) {
       return {
@@ -14,6 +14,23 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
         body: JSON.stringify({ message: 'No authorization code provided' })
       };
     }
+    if (!state) {
+      return {
+        statusCode: 404,
+        body: JSON.stringify({
+          message: 'No `state` property passed back to callback'
+        })
+      }
+    }
+
+    let decodedState;
+    try {
+      decodedState = JSON.parse(Buffer.from(state, 'base64').toString('utf-8'));
+    } catch (error) {
+      console.error('Error decoding state:', error);
+      return {statusCode: 400, body:'Invalid state parameter.'};
+    }
+    console.log('Decoded state:', decodedState);
 
     // GitHub OAuth token exchange logic
     const tokenResponse = await axios.post('https://github.com/login/oauth/access_token', {
@@ -62,11 +79,13 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
       }
     }
 
+    const refererUrl = decodeURIComponent(decodedState.refererUrl) || 'https://handterm.com';
+
     // Redirect to frontend with success
     return {
       statusCode: 302,
       headers: {
-        'Location': `${process.env.API_URL}?githubLogin=success`
+        'Location': `${refererUrl}?githubLogin=success`
       },
       body: ''
     };
