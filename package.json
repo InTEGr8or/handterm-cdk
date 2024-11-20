@@ -8,11 +8,12 @@
     "cpCdk": "cp ../handterm/src/shared/endpoints.json lambda/cdkshared/ && mkdir -p dist/lambda/cdkshared && cp lambda/cdkshared/endpoints.json dist/lambda/cdkshared/ && echo 'endpoints.json copied'",
     "clean": "bash clean.sh",
     "build": "NODE_ENV=production tsc && npm run copy-lambda && npm run bundle-lambda",
-    "bundle-lambda": "esbuild dist/lambda/**/*.js --bundle --platform=node --target=node20 --format=cjs --outdir=dist/lambda --allow-overwrite '--external:@aws-sdk/*' '--external:aws-sdk' '--external:@octokit/*' --minify",
-    "predeploy": "rm -rf dist/lib && mkdir -p dist/lib && npm run cpCdk && npm run build && npx tsc lib/cdk-stack.ts lib/utils/lambdaUtils.ts --outDir dist/lib",
-    "deploy": "direnv exec . npx cdk deploy --profile mark --region us-east-1 --require-approval never --outputs-file .aws/outputs.json",
-    "bundle-lambda-test": "esbuild lambda/authentication/oauth_callback.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/lambda/authentication/oauth_callback.bundle.js --external:@aws-sdk/client-cognito-identity-provider --external:aws-sdk --external:os --external:fs --external:path --external:crypto --external:stream --external:util --external:url --external:http --external:https --define:process.env.NODE_ENV='\"test\"' --define:global=globalThis --loader:.ts=ts",
-    "test:bundle": "npm run bundle-lambda-test && node --experimental-vm-modules test/lambda-sim/test-imports.mjs",
+    "bundle-lambda": "esbuild dist/lambda/**/*.js --bundle --platform=node --target=node20 --format=cjs --outdir=dist/lambda --allow-overwrite '--external:@aws-sdk/*' '--external:aws-sdk' --minify",
+    "predeploy": "rm -rf dist/lib && mkdir -p dist/lib && npm run cpCdk && npm run build",
+    "deploy": "direnv exec . npx cdk deploy --app \"npx ts-node --prefer-ts-exts bin/cdk.ts\" --profile mark --region us-east-1 --require-approval never --outputs-file .aws/outputs.json",
+    "bundle-lambda-test": "esbuild lambda/authentication/oauth_callback.ts lambda/authentication/listRecentRepos.ts --bundle --platform=node --target=node20 --format=cjs --outdir=dist/lambda/authentication --alias:@aws-sdk/client-cognito-identity-provider=/home/mstouffer/repos/handterm-proj/handterm-cdk/test/lambda-sim/mock-aws-sdk.js --alias:@octokit/rest=/home/mstouffer/repos/handterm-proj/handterm-cdk/test/lambda-sim/mock-octokit.js --resolve-extensions=.ts,.js --outbase=lambda/authentication --external:os --external:fs --external:path --external:crypto --external:stream --external:util --external:url --external:http --external:https --define:process.env.NODE_ENV='\"test\"' --define:global=globalThis --loader:.ts=ts",
+    "test:bundle": "cp test/lambda-sim/mock-github-utils.js dist/lambda/authentication/githubUtils.js && npm run bundle-lambda-test && node test/lambda-sim/test-imports.mjs",
+    "test:lambda": "jest lambda/authentication/__tests__/listRecentRepos.test.ts",
     "copy-lambda": "mkdir -p dist/lambda && cp -R lambda/* dist/lambda/",
     "postdeploy": "node update-env.js",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
@@ -23,7 +24,7 @@
     "test:github_auth:local": "NODE_ENV=development node --loader ts-node/esm test/lambda-sim/local-server.ts & sleep 2 && jest tests/github_auth.test.ts",
     "destroy": "dotenv -- cdk destroy",
     "watch": "tsc -w",
-    "synth": "direnv exec . npx cdk synth --profile mark --region us-east-1",
+    "synth": "direnv exec . npx cdk synth --app \"npx ts-node --prefer-ts-exts bin/cdk.ts\" --profile mark --region us-east-1",
     "check-env": "direnv status",
     "layer": "cd lambdaLayer/nodejs && npm install --production && cd -"
   },
@@ -33,6 +34,7 @@
     "@aws-sdk/client-sso-oidc": "^3.679.0",
     "@aws-sdk/client-sts": "^3.679.0",
     "@octokit/auth-app": "^7.1.1",
+    "@octokit/rest": "^21.0.2",
     "aws-lambda": "^1.0.7",
     "dotenv": "^16.4.5",
     "jsonwebtoken": "^9.0.2",
@@ -48,7 +50,6 @@
     "@babel/core": "^7.26.0",
     "@babel/preset-env": "^7.26.0",
     "@octokit/auth-oauth-app": "^8.1.1",
-    "@octokit/rest": "^21.0.2",
     "@types/aws-lambda": "^8.10.145",
     "@types/express": "^5.0.0",
     "@types/jest": "^29.5.14",
@@ -76,14 +77,5 @@
     "typescript": "~5.6.3",
     "uuid": "^11.0.1",
     "webpack": "^5.96.1"
-  },
-  "packageManager": "npm@10.8.2",
-  "main": "jest.config.js",
-  "directories": {
-    "doc": "docs",
-    "lib": "lib",
-    "test": "tests"
-  },
-  "keywords": [],
-  "author": ""
+  }
 }

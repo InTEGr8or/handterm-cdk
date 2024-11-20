@@ -1,19 +1,48 @@
 import express from 'express';
 import { handler as oauthCallbackHandler } from '../../lambda/authentication/oauth_callback.js';
 import { APIGatewayProxyEvent } from '@types/aws-lambda';
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load environment variables
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 const app = express();
 const port = 3000;
 
+// Middleware to log all requests
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  next();
+});
+
+// Set up JSON parsing middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Comprehensive environment variable setup
+const requiredEnvVars = [
+  'NODE_ENV', 'FRONTEND_URL', 'GITHUB_CLIENT_ID',
+  'GITHUB_CLIENT_SECRET', 'COGNITO_USER_POOL_ID'
+];
+
+requiredEnvVars.forEach(varName => {
+  process.env[varName] = process.env[varName] ||
+    (varName === 'NODE_ENV' ? 'development' :
+     varName === 'FRONTEND_URL' ? 'http://localhost:5173' :
+     `test-${varName.toLowerCase()}`);
+});
+
+console.log('Local server environment:', {
+  NODE_ENV: process.env.NODE_ENV,
+  FRONTEND_URL: process.env.FRONTEND_URL,
+  GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID ? 'Set' : 'Not set',
+  GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET ? 'Set' : 'Not set',
+  COGNITO_USER_POOL_ID: process.env.COGNITO_USER_POOL_ID
+});
+
 // Mock OAuth callback endpoint
 app.get('/oauth_callback', async (req, res) => {
-  // Set test environment variables
-  process.env.NODE_ENV = 'test';
-  process.env.FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
-  process.env.GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID || 'test-client-id';
-  process.env.GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET || 'test-client-secret';
-  process.env.COGNITO_USER_POOL_ID = process.env.COGNITO_USER_POOL_ID || 'test-pool-id';
-  
   const event = {
     queryStringParameters: req.query,
     headers: req.headers,
@@ -23,58 +52,62 @@ app.get('/oauth_callback', async (req, res) => {
         path: '/oauth_callback'
       }
     }
-  } as APIGatewayProxyEvent;
-
-  console.log('Handling OAuth callback request:', {
-    queryParams: req.query,
-    headers: req.headers
-  });
+  } as unknown as APIGatewayProxyEvent;
 
   try {
     const result = await oauthCallbackHandler(event);
-    console.log('Lambda handler response:', result);
-    
-    // Set status code from Lambda response
+
+    // Comprehensive response handling
     res.status(result.statusCode);
-    
-    // Add headers from Lambda response
+
     if (result.headers) {
       Object.entries(result.headers).forEach(([key, value]) => {
-        res.setHeader(key, value);
+        res.setHeader(key, String(value));
       });
     }
-    
-    // Handle both string and object body responses
+
     if (result.body) {
-      if (typeof result.body === 'string') {
-        try {
-          const parsedBody = JSON.parse(result.body);
-          res.json(parsedBody);
-        } catch {
-          res.send(result.body);
-        }
-      } else {
-        res.json(result.body);
+      try {
+        const parsedBody = typeof result.body === 'string'
+          ? JSON.parse(result.body)
+          : result.body;
+        res.json(parsedBody);
+      } catch {
+        res.send(result.body);
       }
     } else {
       res.end();
     }
   } catch (error) {
-    console.error('Error handling request:', error);
-    console.error('Error details:', error instanceof Error ? error.stack : String(error));
-    
-    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
-    const errorResponse = { 
-      error: errorMessage,
-      errorType: error instanceof Error ? error.constructor.name : typeof error,
-      stack: error instanceof Error ? error.stack : undefined
-    };
-    
-    console.error('Sending error response:', errorResponse);
-    res.status(500).json(errorResponse);
+    console.error('OAuth Callback Error:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      details: error instanceof Error ? error.message : String(error)
+    });
   }
 });
 
-app.listen(port, () => {
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Unhandled Error:', err);
+  res.status(500).json({
+    error: 'Unexpected Server Error',
+    details: err.message
+  });
+});
+
+const server = app.listen(port, () => {
   console.log(`Test server running at http://localhost:${port}`);
+  console.log('Available endpoints:');
+  console.log('- GET /oauth_callback');
+});
+
+// Graceful shutdown
+process.on('SIGINT', () => {
+  console.log('Shutting down server...');
+  server.close(() => {
+    console.log('Server stopped.');
+    process.exit(0);
+  });
 });

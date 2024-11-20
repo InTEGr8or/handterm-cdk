@@ -29,6 +29,7 @@
         "ListRecentRepos": "/list-recent-repos",
         "GetRepoTree": "/get-repo-tree",
         "GitHubAuth": "/github_auth",
-        "OAuthCallback": "/oauth_callback"
+        "OAuthCallback": "/oauth_callback",
+        "RequestLogger": "/requestLogger"
     }
 }

@@ -1,11 +1,11 @@
-export default {
+module.exports = {
   testEnvironment: 'node',
-  roots: ['<rootDir>/tests'],
+  roots: ['<rootDir>/tests', '<rootDir>/lambda'],
   testMatch: ['**/*.test.ts'],
   transform: {
     '^.+\\.tsx?$': ['ts-jest', {
       tsconfig: 'tsconfig.json',
-      useESM: true,
+      useESM: false,
     }]
   },
   preset: 'ts-jest',
@@ -19,8 +19,16 @@ export default {
     "node"
   ],
   moduleNameMapper: {
-    '^@octokit/(.*)$': '<rootDir>/node_modules/@octokit/$1',
     '^(\\.{1,2}/.*)\\.js$': '$1'
   },
-  extensionsToTreatAsEsm: ['.ts']
+  // Transform @octokit modules
+  transformIgnorePatterns: [
+    '/node_modules/(?!(@octokit)/)'
+  ],
+  transform: {
+    '^.+\\.(ts|tsx|js|jsx|mjs)$': ['ts-jest', {
+      tsconfig: 'tsconfig.json',
+      useESM: true
+    }]
+  }
 };

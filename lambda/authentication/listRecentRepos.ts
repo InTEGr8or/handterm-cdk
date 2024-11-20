@@ -1,9 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { Octokit } from '@octokit/rest';
 import { CognitoIdentityProviderClient, GetUserCommand } from '@aws-sdk/client-cognito-identity-provider';
 import { getValidGitHubToken } from './githubUtils';
-
-const cognito = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     console.log('List recent repos handler invoked');
@@ -19,6 +16,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
         const token = authToken.startsWith('Bearer ') ? authToken.split(' ')[1] : authToken;
 
+        // Initialize the client inside the handler
+        const cognito = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
         const getUserCommand = new GetUserCommand({ AccessToken: token });
         const userResponse = await cognito.send(getUserCommand);
         const cognitoUserId = userResponse.Username;
@@ -31,6 +30,9 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         }
 
         const githubToken = await getValidGitHubToken(cognitoUserId);
+
+        // Dynamically import Octokit
+        const { Octokit } = await import('@octokit/rest');
 
         const octokit = new Octokit({
             auth: githubToken
