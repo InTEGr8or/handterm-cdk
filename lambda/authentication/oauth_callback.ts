@@ -85,7 +85,7 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
     return {
       statusCode: 302,
       headers: {
-        'Location': `${refererUrl}?githubLogin=success`
+        'Location': `${refererUrl}?githubLogin=success&githubUsername=${githubUser.login}`
       },
       body: ''
     };
