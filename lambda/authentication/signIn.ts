@@ -6,7 +6,6 @@ import {
   AttributeType
 } from "@aws-sdk/client-cognito-identity-provider";
 import {
-  APIGatewayProxyEvent,
   APIGatewayProxyResult,
   CognitoAttribute
 } from './authTypes';
@@ -15,11 +14,25 @@ const cognito = new CognitoIdentityProviderClient({ region: process.env.AWS_REGI
 
 console.log('SignUp module loaded');
 
-export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
-  const body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
+export async function handler(event: any): Promise<APIGatewayProxyResult> {
+  // Safe logging: log metadata without sensitive information
+  console.log('SignIn Request Received', {
+    requestId: event.requestContext?.requestId,
+    sourceIp: event.requestContext?.identity?.sourceIp,
+    userAgent: event.headers?.['user-agent'],
+    origin: event.headers?.origin,
+    referer: event.headers?.referer,
+    // Log only safe, non-sensitive metadata
+    bodyLength: event.body ? event.body.length : 0,
+    contentType: event.headers?.['content-type']
+  });
 
   try {
+    const body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
+
+    // Sanitize input: remove actual credentials before any logging
     const { username, password } = body;
+
     const clientId = process.env.COGNITO_APP_CLIENT_ID;
     const userPoolId = process.env.COGNITO_USER_POOL_ID;
 
@@ -77,7 +90,12 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
       }
     };
   } catch (err: unknown) {
-    console.error('SignIn error:', err);
+    console.error('SignIn Error', {
+      errorType: err instanceof Error ? err.name : 'Unknown',
+      errorMessage: err instanceof Error ? err.message : 'Unknown error',
+      requestId: event.requestContext?.requestId
+    });
+
     if (err && typeof err === 'object' && '__type' in err) {
       const typedError = err as { __type: string };
       if (typedError.__type === 'UserNotConfirmedException') {

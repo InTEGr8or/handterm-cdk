@@ -1,36 +1,43 @@
 import axios from 'axios';
 import dotenv from 'dotenv';
 import path from 'path';
-import { ENDPOINTS } from '../lambda/cdkshared/endpoints';
+import ENDPOINTS from '../lambda/cdkshared/endpoints.json';
 
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
+// Enhanced environment configuration
+dotenv.config({
+  path: path.resolve(__dirname, '../.env'),
+  debug: process.env.DEBUG === 'true'
+});
 
-// Use environment API endpoint or fallback to local test server
+// Comprehensive API URL determination
 const API_ENDPOINT = process.env.API_ENDPOINT || 'http://localhost:3000';
-const API_URL = process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : API_ENDPOINT;
+const API_URL = process.env.NODE_ENV === 'development'
+  ? 'http://localhost:3000'
+  : API_ENDPOINT;
 
-// Required env vars differ between dev and prod
+// Enhanced environment variable validation
 const requiredEnvVars = process.env.NODE_ENV === 'development'
-  ? ['GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET'] 
+  ? ['GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET']
   : ['API_ENDPOINT', 'GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET', 'COGNITO_USER_POOL_ID'];
-requiredEnvVars.forEach(varName => {
-  if (!process.env[varName]) {
-    throw new Error(`Environment variable ${varName} is not set`);
-  }
-});
 
-// Set default values for test environment
+const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+if (missingVars.length > 0) {
+  console.error('Missing required environment variables:', missingVars);
+  throw new Error(`Missing environment variables: ${missingVars.join(', ')}`);
+}
+
+// Set robust default values for test environment
 process.env.FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
-process.env.NODE_ENV = 'test';
+process.env.NODE_ENV = process.env.NODE_ENV || 'test';
 
-console.log('Test environment variables:', {
-  API_ENDPOINT: process.env.API_ENDPOINT,
-  GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID ? 'Set' : 'Not set',
-  GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET ? 'Set' : 'Not set',
-  COGNITO_USER_POOL_ID: process.env.COGNITO_USER_POOL_ID,
-  FRONTEND_URL: process.env.FRONTEND_URL,
-  NODE_ENV: process.env.NODE_ENV
-});
+// Enhanced logging with more context
+console.group('GitHub Auth Test Environment');
+console.log('API Endpoint:', API_URL);
+console.log('Frontend URL:', process.env.FRONTEND_URL);
+console.log('Environment:', process.env.NODE_ENV);
+console.log('GitHub Client ID:', process.env.GITHUB_CLIENT_ID ? '✓ Set' : '✗ Not Set');
+console.log('Cognito User Pool ID:', process.env.COGNITO_USER_POOL_ID ? '✓ Set' : '✗ Not Set');
+console.groupEnd();
 
 describe('GitHub Authentication Flow', () => {
   // This test verifies the initial step of the GitHub OAuth flow:
@@ -67,10 +74,10 @@ describe('GitHub Authentication Flow', () => {
 
   test('2. OAuth Callback', async () => {
     jest.setTimeout(30000); // Increase timeout to 30 seconds
-    
+
     // Mock the authorization code from GitHub
     const mockCode = 'mock_authorization_code';
-    
+
     // Create properly encoded state parameter
     const mockState = Buffer.from(JSON.stringify({
       timestamp: Date.now(),
@@ -79,7 +86,7 @@ describe('GitHub Authentication Flow', () => {
     })).toString('base64');
 
     const API_BASE = process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : API_URL;
-    
+
     try {
       const response = await axios.get(`${API_BASE}/oauth_callback`, {
         params: {
@@ -98,7 +105,7 @@ describe('GitHub Authentication Flow', () => {
         console.error('OAuth Callback Error:', error.response.data);
         console.error('Error status:', error.response.status);
         console.error('Error headers:', error.response.headers);
-        
+
         // Provide more detailed error information
         if (error.response.data && error.response.data.error) {
           throw new Error(`OAuth Callback failed: ${error.response.data.error}`);
