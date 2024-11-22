@@ -5,28 +5,75 @@ import {
   AdminUpdateUserAttributesCommand,
   AttributeType
 } from "@aws-sdk/client-cognito-identity-provider";
-import { Octokit } from '@octokit/rest';
-import { createOAuthAppAuth } from '@octokit/auth-oauth-app';
+import type { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
 import {
   CognitoAttribute as ImportedCognitoAttribute
 } from './authTypes';
 
-interface GitHubUser {
-  id: number;
-  login: string;
+// Precise type definitions using Octokit's types
+type GitHubRepo = RestEndpointMethodTypes["repos"]["listForAuthenticatedUser"]["response"]["data"][0];
+type GitHubTreeItem = RestEndpointMethodTypes["git"]["getTree"]["response"]["data"]["tree"][0];
+type GitHubBlobContent = RestEndpointMethodTypes["git"]["getBlob"]["response"]["data"];
+
+// Extended Octokit type with REST methods
+type OctokitWithRest = any;
+
+interface GitHubRepoTreeOptions {
+  owner: string;
+  repo: string;
+  sha?: string;
+  recursive?: boolean;
+  path?: string;
 }
 
-interface AuthResult {
-  access_token: string;
-  expires_in: number;
-  refresh_token: string;
-  refresh_token_expires_in: number;
+interface GitHubRepoListOptions {
+  sort?: 'created' | 'updated' | 'pushed' | 'full_name';
+  direction?: 'asc' | 'desc';
+  per_page?: number;
+}
+
+interface GitHubTokenRefreshError extends Error {
+  code?: 'GITHUB_AUTH_REQUIRED' | 'GITHUB_TOKEN_REFRESH_FAILED';
+}
+
+interface GitHubAuthResponse {
+  token: string;
+  type: string;
+  tokenType?: string;
+  expiresAt?: string;
 }
 
 const cognito = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
 
+async function getOctokitModule() {
+  try {
+    const { Octokit } = await import('@octokit/rest');
+    return Octokit;
+  } catch (error) {
+    console.error('Error importing Octokit:', error);
+    throw error;
+  }
+}
+
+async function getAppModule() {
+  try {
+    const { App } = await import('@octokit/app');
+    return App;
+  } catch (error) {
+    console.error('Error importing App:', error);
+    throw error;
+  }
+}
+
 export async function getValidGitHubToken(cognitoUserId: string): Promise<string> {
   console.log('githubUtils: Getting valid GitHub token for user:', cognitoUserId);
+
+  // Validate required GitHub App environment variables
+  if (!process.env.GITHUB_APP_ID || !process.env.GITHUB_APP_PRIVATE_KEY) {
+    const error = new Error('GitHub App configuration is missing') as GitHubTokenRefreshError;
+    error.code = 'GITHUB_AUTH_REQUIRED';
+    throw error;
+  }
 
   const user = await cognito.send(new AdminGetUserCommand({
     UserPoolId: process.env.COGNITO_USER_POOL_ID,
@@ -34,164 +81,153 @@ export async function getValidGitHubToken(cognitoUserId: string): Promise<string
   }));
 
   const githubUsername = user.UserAttributes?.find((attr: AttributeType) => attr.Name === ImportedCognitoAttribute.GH_USERNAME)?.Value;
+  const githubId = user.UserAttributes?.find((attr: AttributeType) => attr.Name === ImportedCognitoAttribute.GH_ID)?.Value;
   const accessToken = user.UserAttributes?.find((attr: AttributeType) => attr.Name === ImportedCognitoAttribute.GH_TOKEN)?.Value;
-  const refreshToken = user.UserAttributes?.find((attr: AttributeType) => attr.Name === ImportedCognitoAttribute.GH_REFRESH_TOKEN)?.Value;
   const expiresAt = parseInt(user.UserAttributes?.find((attr: AttributeType) => attr.Name === ImportedCognitoAttribute.GH_TOKEN_EXPIRES)?.Value || '0', 10);
-  const refreshTokenExpiresAt = parseInt(user.UserAttributes?.find((attr: AttributeType) => attr.Name === ImportedCognitoAttribute.GH_REFRESH_EXPIRES)?.Value || '0', 10);
 
   console.log('Parsed token info:', {
     githubUsername,
+    githubId,
     accessToken: accessToken?.substring(0, 10),
-    refreshToken: refreshToken?.substring(0, 10),
-    expiresAt,
-    refreshTokenExpiresAt
+    expiresAt
   });
 
-  if (githubUsername && (!accessToken || !refreshToken || !expiresAt || !refreshTokenExpiresAt)) {
-    console.log('User has GitHub username but missing token information. Attempting to fetch and update.');
-    return await fetchAndUpdateGitHubData(cognitoUserId, githubUsername);
-  }
-
-  if (!accessToken || !refreshToken) {
-    console.error('GitHub tokens not found');
-    throw new Error('GitHub tokens not found');
+  if (!githubId || !githubUsername) {
+    const error = new Error('GitHub user information is incomplete') as GitHubTokenRefreshError;
+    error.code = 'GITHUB_AUTH_REQUIRED';
+    throw error;
   }
 
   const now = Math.floor(Date.now() / 1000);
   console.log('Current time:', now);
 
-  if (now < expiresAt) {
+  // Check if existing token is still valid
+  if (accessToken && now < expiresAt) {
     console.log('Access token is still valid');
     return accessToken;
   }
 
-  if (now >= refreshTokenExpiresAt) {
-    console.error('GitHub refresh token has expired');
-    throw new Error('GitHub refresh token has expired. User needs to re-authenticate.');
-  }
-
-  console.log('Token is expired, attempting to refresh');
-  const octokit = new Octokit({
-    authStrategy: createOAuthAppAuth,
-    auth: {
-      clientId: process.env.GITHUB_CLIENT_ID,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET,
-      clientType: 'oauth-app',
-    },
-  });
-
   try {
-    console.log('Calling GitHub API to refresh token');
-    const authResult = await octokit.auth({
-      type: 'refresh',
-      refreshToken: refreshToken,
-    }) as AuthResult;
-    console.log('GitHub token refresh result:', authResult);
+    // Create GitHub App instance
+    const App = await getAppModule();
+    const app = new App({
+      appId: process.env.GITHUB_APP_ID,
+      privateKey: process.env.GITHUB_APP_PRIVATE_KEY,
+    });
 
-    if (!authResult.access_token) {
-      console.error('No access token in refresh response:', authResult);
-      throw new Error('No access token in refresh response');
+    // Find the installation for the specific user
+    const { data: installation } = await (app.octokit as OctokitWithRest).rest.apps.getUserInstallation({
+      username: githubUsername
+    });
+
+    if (!installation.id) {
+      const error = new Error(`No GitHub App installation found for user: ${githubUsername}`) as GitHubTokenRefreshError;
+      error.code = 'GITHUB_AUTH_REQUIRED';
+      throw error;
     }
 
-    const { access_token, expires_in, refresh_token, refresh_token_expires_in } = authResult;
-    const now = Math.floor(Date.now() / 1000);
-    const newExpiresAt = now + expires_in;
-    const newRefreshTokenExpiresAt = now + refresh_token_expires_in;
+    // Get an installation Octokit instance
+    const octokit = await app.getInstallationOctokit(installation.id);
+    const auth = await octokit.auth() as GitHubAuthResponse;
 
-    console.log('Updating Cognito user attributes with new token info');
+    if (!auth.token) {
+      throw new Error('Failed to get installation token');
+    }
+
+    const newToken = auth.token;
+    const newExpiresAt = Math.floor(Date.now() / 1000) + 3600; // Token expires in 1 hour
+
+    // Update Cognito with new token information
     await updateCognitoAttributes(
       cognitoUserId,
-      access_token,
-      refresh_token,
+      newToken,
       newExpiresAt,
-      newRefreshTokenExpiresAt,
-      undefined,
-      undefined
+      githubId,
+      githubUsername
     );
 
-    console.log('Token refresh successful');
-    return access_token;
+    console.log('GitHub token refreshed successfully');
+    return newToken;
+
   } catch (error) {
     console.error('Error refreshing GitHub token:', error);
-    if (error instanceof Error && error.message.includes('bad_refresh_token')) {
-      throw new Error('GitHub refresh token is invalid or expired. User needs to re-authenticate.');
-    }
-    throw new Error('Failed to refresh GitHub token');
+    const refreshError = new Error('Failed to refresh GitHub token') as GitHubTokenRefreshError;
+    refreshError.code = 'GITHUB_TOKEN_REFRESH_FAILED';
+    throw refreshError;
   }
 }
 
-async function fetchAndUpdateGitHubData(cognitoUserId: string, githubUsername: string): Promise<string> {
-  const octokit = new Octokit({
-    authStrategy: createOAuthAppAuth,
-    auth: {
-      clientId: process.env.GITHUB_CLIENT_ID,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET,
-      clientType: 'oauth-app',
-    },
+export async function listRepos(
+  userId: string,
+  options: GitHubRepoListOptions = {}
+): Promise<GitHubRepo[]> {
+  const accessToken = await getValidGitHubToken(userId);
+  const Octokit = await getOctokitModule();
+  const octokit = new Octokit({ auth: accessToken });
+
+  const { data: repos } = await octokit.rest.repos.listForAuthenticatedUser({
+    sort: options.sort || 'updated',
+    direction: options.direction || 'desc',
+    per_page: options.per_page || 10
   });
 
-  try {
-    const { data: user } = await octokit.users.getByUsername({ username: githubUsername }) as { data: GitHubUser };
+  return repos;
+}
 
-    console.log('Fetched GitHub user data:', user);
+export async function getRepoTree(
+  userId: string,
+  options: GitHubRepoTreeOptions
+): Promise<GitHubTreeItem[] | GitHubBlobContent> {
+  const accessToken = await getValidGitHubToken(userId);
+  const Octokit = await getOctokitModule();
+  const octokit = new Octokit({ auth: accessToken });
 
-    const now = Math.floor(Date.now() / 1000);
-    const placeholderToken = 'placeholder_token';
-    const placeholderRefreshToken = 'placeholder_refresh_token';
-    const placeholderExpiresAt = now + 3600; // 1 hour from now
-    const placeholderRefreshTokenExpiresAt = now + 30 * 24 * 3600; // 30 days from now
+  const response = await octokit.rest.git.getTree({
+    owner: options.owner,
+    repo: options.repo,
+    tree_sha: options.sha || 'HEAD',
+    recursive: options.recursive ? '1' : undefined,
+  });
 
-    await updateCognitoAttributes(
-      cognitoUserId,
-      placeholderToken,
-      placeholderRefreshToken,
-      placeholderExpiresAt,
-      placeholderRefreshTokenExpiresAt,
-      user.id.toString(),
-      user.login
-    );
+  let filteredTree = response.data.tree;
+  if (options.path) {
+    const pathPrefix = options.path.split('/').join('/');
+    filteredTree = filteredTree.filter((item: GitHubTreeItem) => item.path?.startsWith(pathPrefix));
 
-    console.log('Updated Cognito user attributes with GitHub data');
-    throw new Error('GitHub re-authentication required');
-  } catch (error) {
-    console.error('Error fetching and updating GitHub data:', error);
-    throw new Error('Failed to fetch and update GitHub data');
+    if (filteredTree.length === 1 && filteredTree[0].type === 'blob' && filteredTree[0].sha) {
+      const blobResponse = await octokit.rest.git.getBlob({
+        owner: options.owner,
+        repo: options.repo,
+        file_sha: filteredTree[0].sha,
+      });
+      return blobResponse.data;
+    }
   }
+
+  return filteredTree;
 }
 
 async function updateCognitoAttributes(
   cognitoUserId: string,
   accessToken: string,
-  refreshToken: string,
   expiresAt: number,
-  refreshTokenExpiresAt: number,
-  githubId?: string,
-  githubUsername?: string
+  githubId: string,
+  githubUsername: string
 ): Promise<void> {
   console.log('Updating Cognito attributes:', {
     cognitoUserId,
     accessToken: accessToken.substring(0, 10) + '...',
-    refreshToken: refreshToken.substring(0, 10) + '...',
     expiresAt,
-    refreshTokenExpiresAt,
     githubId,
     githubUsername
   });
 
   const attributes = [
     { Name: 'custom:gh_token', Value: accessToken },
-    { Name: 'custom:gh_refresh_token', Value: refreshToken },
     { Name: 'custom:gh_token_expires', Value: expiresAt.toString() },
-    { Name: 'custom:gh_refresh_expires', Value: refreshTokenExpiresAt.toString() },
+    { Name: 'custom:gh_id', Value: githubId },
+    { Name: 'custom:gh_username', Value: githubUsername },
   ];
-
-  if (githubId) {
-    attributes.push({ Name: 'custom:gh_id', Value: githubId });
-  }
-
-  if (githubUsername) {
-    attributes.push({ Name: 'custom:gh_username', Value: githubUsername });
-  }
 
   await cognito.send(new AdminUpdateUserAttributesCommand({
     UserPoolId: process.env.COGNITO_USER_POOL_ID,
@@ -201,11 +237,3 @@ async function updateCognitoAttributes(
 }
 
 export const CognitoAttribute = ImportedCognitoAttribute;
-export const GitHubToCognitoMap = {
-  access_token: CognitoAttribute.GH_TOKEN,
-  refresh_token: CognitoAttribute.GH_REFRESH_TOKEN,
-  expires_in: CognitoAttribute.GH_TOKEN_EXPIRES,
-  refresh_token_expires_in: CognitoAttribute.GH_REFRESH_EXPIRES,
-  login: CognitoAttribute.GH_USERNAME,
-  id: CognitoAttribute.GH_ID,
-};

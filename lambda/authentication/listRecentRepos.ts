@@ -1,6 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { CognitoIdentityProviderClient, GetUserCommand } from '@aws-sdk/client-cognito-identity-provider';
-import { getValidGitHubToken } from './githubUtils';
+import { listRepos } from './githubUtils';
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     console.log('List recent repos handler invoked');
@@ -29,34 +29,11 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
             };
         }
 
-        const githubToken = await getValidGitHubToken(cognitoUserId);
-
-        // Dynamically import Octokit
-        const { Octokit } = await import('@octokit/rest');
-
-        const octokit = new Octokit({
-            auth: githubToken
-        });
-
-        const { data: repos } = await octokit.repos.listForAuthenticatedUser({
-            sort: 'updated',
-            direction: 'desc',
-            per_page: 10
-        });
+        const repos = await listRepos(cognitoUserId);
 
         return {
             statusCode: 200,
-            body: JSON.stringify(repos.map(repo => ({
-                id: repo.id,
-                name: repo.name,
-                owner: repo.owner,
-                full_name: repo.full_name,
-                description: repo.description,
-                html_url: repo.html_url,
-                updated_at: repo.updated_at,
-                url: repo.url,
-                trees_url: repo.trees_url
-            })))
+            body: JSON.stringify(repos)
         };
     } catch (error) {
         console.error('Error in list recent repos:', error);

@@ -1,74 +1,147 @@
-/**
- * Test Suite for listRecentRepos Lambda Function
- *
- * Context:
- * The Lambda function uses dynamic import for @octokit/rest because it's an ESM module.
- * This has caused issues in the AWS Lambda environment where the bundled code attempts
- * to use require() instead of dynamic import, resulting in ERR_REQUIRE_ESM errors.
- *
- * Test Strategy:
- * 1. We deliberately DO NOT mock @octokit/rest to ensure the dynamic import is actually tested
- * 2. This helps verify that our bundling process correctly handles ESM modules
- * 3. The test environment should match AWS Lambda's environment as closely as possible
- *
- * If this test passes but the Lambda still fails in AWS, it indicates:
- * - Our bundling process might be converting dynamic imports to require()
- * - Or our test environment doesn't match AWS Lambda's environment closely enough
- */
-
 import { handler } from '../listRecentRepos';
+import { APIGatewayProxyEvent } from 'aws-lambda';
 
-// Mock AWS SDK
+// Mock AWS Cognito
+const mockCognitoSend = jest.fn().mockResolvedValue({
+  Username: 'test-user-id'
+});
+
 jest.mock('@aws-sdk/client-cognito-identity-provider', () => ({
-    CognitoIdentityProviderClient: jest.fn().mockImplementation(() => ({
-        send: jest.fn().mockResolvedValue({
-            Username: 'test-user-id'
-        })
-    })),
-    GetUserCommand: jest.fn()
+  CognitoIdentityProviderClient: jest.fn().mockImplementation(() => ({
+    send: mockCognitoSend
+  })),
+  GetUserCommand: jest.fn()
 }));
 
 // Mock githubUtils
-jest.mock('../githubUtils', () => ({
-    getValidGitHubToken: jest.fn().mockResolvedValue('mock-github-token')
-}));
+jest.mock('../githubUtils', () => {
+  return {
+    listRepos: jest.fn().mockResolvedValue([
+      {
+        id: 1,
+        name: 'test-repo',
+        owner: { login: 'testuser' },
+        full_name: 'testuser/test-repo',
+        description: 'A test repository',
+        html_url: 'https://github.com/testuser/test-repo',
+        updated_at: '2023-01-01T00:00:00Z',
+        url: 'https://api.github.com/repos/testuser/test-repo',
+        trees_url: 'https://api.github.com/repos/testuser/test-repo/git/trees{/sha}'
+      }
+    ])
+  };
+});
 
-// Deliberately NOT mocking @octokit/rest to test actual dynamic import behavior
+// Get the mock function for assertions
+const mockListRepos = jest.requireMock('../githubUtils').listRepos;
 
 describe('listRecentRepos Lambda', () => {
-    it('should successfully perform dynamic import of @octokit/rest', async () => {
-        // This test specifically verifies that the dynamic import works
-        // If it fails with ERR_REQUIRE_ESM, our bundling process isn't handling ESM correctly
-        const mockEvent = {
-            headers: {
-                Authorization: 'Bearer test-token'
-            }
-        };
+  const defaultEvent: APIGatewayProxyEvent = {
+    headers: {
+      Authorization: 'Bearer test-token'
+    },
+    body: null,
+    multiValueHeaders: {},
+    httpMethod: 'GET',
+    isBase64Encoded: false,
+    path: '/listRecentRepos',
+    pathParameters: null,
+    queryStringParameters: null,
+    multiValueQueryStringParameters: null,
+    stageVariables: null,
+    requestContext: {
+      accountId: 'test-account-id',
+      apiId: 'test-api-id',
+      authorizer: null,
+      httpMethod: 'GET',
+      identity: {
+        accessKey: null,
+        accountId: null,
+        apiKey: null,
+        apiKeyId: null,
+        caller: null,
+        clientCert: null,
+        cognitoAuthenticationProvider: null,
+        cognitoAuthenticationType: null,
+        cognitoIdentityId: null,
+        cognitoIdentityPoolId: null,
+        principalOrgId: null,
+        sourceIp: 'test-source-ip',
+        user: null,
+        userAgent: 'test-user-agent',
+        userArn: null
+      },
+      path: '/listRecentRepos',
+      protocol: 'HTTP/1.1',
+      requestId: 'test-request-id',
+      requestTimeEpoch: 1234567890,
+      resourceId: 'test-resource-id',
+      resourcePath: '/listRecentRepos',
+      stage: 'test'
+    },
+    resource: '/listRecentRepos'
+  };
 
-        // Execute handler - this will attempt the dynamic import
-        const result = await handler(mockEvent as any);
+  beforeEach(() => {
+    process.env.GITHUB_APP_ID = 'test-app-id';
+    process.env.GITHUB_APP_PRIVATE_KEY = 'test-private-key';
+    process.env.COGNITO_USER_POOL_ID = 'test-user-pool';
+    process.env.AWS_REGION = 'us-east-1';
 
-        // Verify response structure
-        expect(result.statusCode).toBe(200);
-        const body = JSON.parse(result.body);
-        expect(Array.isArray(body)).toBe(true);
-        if (body.length > 0) {
-            expect(body[0]).toHaveProperty('name');
-            expect(body[0]).toHaveProperty('full_name');
-            expect(body[0]).toHaveProperty('html_url');
-            expect(body[0]).toHaveProperty('updated_at');
-        }
+    // Reset all mocks
+    jest.clearAllMocks();
+  });
+
+  it('should successfully retrieve recent repositories', async () => {
+    const result = await handler(defaultEvent);
+    expect(result.statusCode).toBe(200);
+
+    const repos = JSON.parse(result.body);
+    expect(repos.length).toBe(1);
+    expect(repos[0].name).toBe('test-repo');
+    expect(repos[0].owner.login).toBe('testuser');
+  });
+
+  it('should return 401 when no authorization token is provided', async () => {
+    const eventWithoutAuth = {
+      ...defaultEvent,
+      headers: {}
+    };
+
+    const result = await handler(eventWithoutAuth);
+    expect(result.statusCode).toBe(401);
+    expect(JSON.parse(result.body)).toEqual({ error: 'No authorization token provided' });
+  });
+
+  it('should return 401 when user is invalid', async () => {
+    mockCognitoSend.mockResolvedValueOnce({
+      Username: undefined
     });
 
-    it('should handle missing authorization token', async () => {
-        const mockEvent = {
-            headers: {}
-        };
+    const result = await handler(defaultEvent);
+    expect(result.statusCode).toBe(401);
+    expect(JSON.parse(result.body)).toEqual({ error: 'Invalid user' });
+  });
 
-        const result = await handler(mockEvent as any);
-        expect(result.statusCode).toBe(401);
+  it('should return 500 when GitHub API fails', async () => {
+    mockListRepos.mockRejectedValueOnce(new Error('GitHub API error'));
 
-        const body = JSON.parse(result.body);
-        expect(body.error).toBe('No authorization token provided');
+    const result = await handler(defaultEvent);
+    expect(result.statusCode).toBe(500);
+    expect(JSON.parse(result.body)).toEqual({
+      error: 'Failed to retrieve recent repositories',
+      details: 'GitHub API error'
     });
+  });
+
+  it('should return 500 when Cognito API fails', async () => {
+    mockCognitoSend.mockRejectedValueOnce(new Error('Cognito API error'));
+
+    const result = await handler(defaultEvent);
+    expect(result.statusCode).toBe(500);
+    expect(JSON.parse(result.body)).toEqual({
+      error: 'Failed to retrieve recent repositories',
+      details: 'Cognito API error'
+    });
+  });
 });
