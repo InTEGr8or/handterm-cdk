@@ -1,8 +1,38 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { CognitoIdentityProviderClient, AdminUpdateUserAttributesCommand } from '@aws-sdk/client-cognito-identity-provider';
+import {
+  CognitoIdentityProviderClient,
+  AdminUpdateUserAttributesCommand
+} from '@aws-sdk/client-cognito-identity-provider';
 import axios from 'axios';
+import { CognitoAttribute } from './authTypes';
+import * as jwt from 'jsonwebtoken';
 
-const cognitoClient = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
+const cognito = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
+
+async function updateCognitoAttributes(
+  username: string,
+  accessToken: string,
+  refreshToken: string,
+  expiresAt: number,
+  refreshTokenExpiresAt: number,
+  githubId: string,
+  githubUsername: string
+): Promise<void> {
+  const attributes = [
+    { Name: CognitoAttribute.GH_TOKEN, Value: accessToken },
+    { Name: CognitoAttribute.GH_REFRESH_TOKEN, Value: refreshToken },
+    { Name: CognitoAttribute.GH_TOKEN_EXPIRES, Value: expiresAt.toString() },
+    { Name: CognitoAttribute.GH_REFRESH_EXPIRES, Value: refreshTokenExpiresAt.toString() },
+    { Name: CognitoAttribute.GH_ID, Value: githubId },
+    { Name: CognitoAttribute.GH_USERNAME, Value: githubUsername }
+  ];
+
+  await cognito.send(new AdminUpdateUserAttributesCommand({
+    UserPoolId: process.env.COGNITO_USER_POOL_ID,
+    Username: username,
+    UserAttributes: attributes,
+  }));
+}
 
 export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
   try {
@@ -33,14 +63,32 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
     console.log('Decoded state:', decodedState);
 
     // Verify the Cognito token from state
-    if (!decodedState.cognitoToken) {
+    if (!decodedState.cognitoUserId) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ message: 'No Cognito token provided in state' })
+        body: JSON.stringify({ message: 'No Cognito user ID provided in state' })
       };
     }
 
-    // GitHub OAuth token exchange logic
+    // Decode the JWT token to get user info
+    const decodedToken = jwt.decode(decodedState.cognitoUserId);
+    if (!decodedToken || typeof decodedToken === 'string') {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ message: 'Invalid Cognito token' })
+      };
+    }
+
+    // Get username from token
+    const username = decodedToken.sub;
+    if (!username) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ message: 'Could not determine current user' })
+      };
+    }
+
+    // GitHub OAuth token exchange
     const tokenResponse = await axios.post('https://github.com/login/oauth/access_token', {
       client_id: process.env.GITHUB_CLIENT_ID,
       client_secret: process.env.GITHUB_CLIENT_SECRET,
@@ -51,38 +99,32 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
       }
     });
 
-    const { access_token } = tokenResponse.data;
+    const { access_token, refresh_token, expires_in, refresh_token_expires_in } = tokenResponse.data;
 
     // Fetch GitHub user info
-    const userResponse = await axios.get('https://api.github.com/user', {
+    const githubUserResponse = await axios.get('https://api.github.com/user', {
       headers: {
         'Authorization': `token ${access_token}`
       }
     });
 
-    const githubUser = userResponse.data;
+    const githubUser = githubUserResponse.data;
 
-    // Get user info from Cognito token
-    const userInfo = await axios.get(`${process.env.API_BASE_URL}/getUser`, {
-      headers: {
-        'Authorization': `Bearer ${decodedState.cognitoToken}`
-      }
-    });
+    // Calculate token expiration timestamps
+    const now = Math.floor(Date.now() / 1000);
+    const expiresAt = now + parseInt(expires_in);
+    const refreshTokenExpiresAt = now + parseInt(refresh_token_expires_in);
 
-    const username = userInfo.data.Username;
-
-    // Update existing Cognito user with GitHub attributes
-    const updateParams = {
-      UserPoolId: process.env.COGNITO_USER_POOL_ID,
-      Username: username,
-      UserAttributes: [
-        { Name: 'custom:gh_id', Value: githubUser.id.toString() },
-        { Name: 'custom:gh_username', Value: githubUser.login },
-        { Name: 'custom:gh_token', Value: access_token }
-      ]
-    };
-
-    await cognitoClient.send(new AdminUpdateUserAttributesCommand(updateParams));
+    // Update Cognito user attributes with GitHub info
+    await updateCognitoAttributes(
+      username,
+      access_token,
+      refresh_token,
+      expiresAt,
+      refreshTokenExpiresAt,
+      githubUser.id.toString(),
+      githubUser.login
+    );
 
     const refererUrl = decodeURIComponent(decodedState.refererUrl) || 'https://handterm.com';
 
