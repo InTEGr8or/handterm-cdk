@@ -22,6 +22,8 @@ const nodeRuntime = lambda.Runtime.NODEJS_18_X;
 interface HandTermCdkStackProps extends cdk.StackProps {
   githubClientId: string;
   githubClientSecret: string;
+  githubAppId: string;
+  githubAppPrivateKey: string;
   cognitoAppClientId: string;
 }
 
@@ -38,6 +40,8 @@ interface LambdaIntegration {
 export class HandTermCdkStack extends cdk.Stack {
   public readonly githubClientId: string;
   public readonly githubClientSecret: string;
+  public readonly githubAppId: string;
+  public readonly githubAppPrivateKey: string;
   public readonly cognitoAppClientId: string;
   public userPool: cognito.UserPool;
 
@@ -46,6 +50,8 @@ export class HandTermCdkStack extends cdk.Stack {
 
     this.githubClientId = props.githubClientId;
     this.githubClientSecret = props.githubClientSecret;
+    this.githubAppId = props.githubAppId;
+    this.githubAppPrivateKey = props.githubAppPrivateKey;
     this.cognitoAppClientId = props.cognitoAppClientId;
 
     const endpoints = JSON.parse(
@@ -233,7 +239,7 @@ export class HandTermCdkStack extends cdk.Stack {
       description: 'Octokit REST API client',
     });
 
-    const redirectUri = httpApi.url + endpoints.api.OAuthCallback.replace('/','');
+    const redirectUri = httpApi.url + endpoints.api.OAuthCallback.replace('/', '');
     console.log(redirectUri);
 
     // Define common Lambda properties
@@ -246,6 +252,8 @@ export class HandTermCdkStack extends cdk.Stack {
         COGNITO_USER_POOL_CLIENT_ID: userPoolClient.userPoolClientId,
         GITHUB_CLIENT_ID: this.githubClientId,
         GITHUB_CLIENT_SECRET: this.githubClientSecret,
+        GITHUB_APP_ID: this.githubAppId,
+        GITHUB_APP_PRIVATE_KEY: this.githubAppPrivateKey,
         COGNITO_USER_POOL_ID: userPool.userPoolId,
         BUCKET_NAME: endpoints.aws.s3.bucketName,
         API_URL: httpApi.url || '',

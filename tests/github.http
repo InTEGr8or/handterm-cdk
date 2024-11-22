@@ -1,6 +1,6 @@
 @API_URL={{$dotenv API_URL}}
-@CLIENT_ID={{$dotenv GITHUB_CLIENT_ID}}
-@CLIENT_SECRET={{$dotenv GITHUB_CLIENT_SECRET}}
+@CLIENT_ID={{$dotenv GITHUB_APP_ID}}
+@CLIENT_SECRET={{$dotenv GITHUB_APP_PRIVATE_KEY}}
 @REDIRECT_URI={{API_URL}}/oauth_callback
 @code=2469
 

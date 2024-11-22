@@ -1,8 +1,8 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  if(!event.queryStringParameters) {
-    return {statusCode: 401, body: ''};
+  if (!event.queryStringParameters) {
+    return { statusCode: 401, body: '' };
   }
   const state = event.queryStringParameters["state"] || '';
 
@@ -19,7 +19,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     };
   }
 
-  const clientId = process.env.GITHUB_CLIENT_ID;
+  const clientId = process.env.GITHUB_APP_ID;
   const redirectUri = `${process.env.REDIRECT_URI}`;
 
   if (!clientId || !redirectUri) {

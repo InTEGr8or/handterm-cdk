@@ -1,70 +1,62 @@
-import { APIGatewayTokenAuthorizerEvent, APIGatewaySimpleAuthorizerWithContextResult } from 'aws-lambda';
-import { CognitoIdentityProviderClient, GetUserCommand } from '@aws-sdk/client-cognito-identity-provider';
-import { CognitoAttribute } from './authTypes';
+import { APIGatewayTokenAuthorizerEvent, APIGatewayAuthorizerResult } from 'aws-lambda';
+import * as jwt from 'jsonwebtoken';
 
-const cognitoClient = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
-
-interface ExtendedAPIGatewayTokenAuthorizerEvent extends APIGatewayTokenAuthorizerEvent {
-    identitySource?: string[];
-}
-
-export async function handler(event: ExtendedAPIGatewayTokenAuthorizerEvent): Promise<APIGatewaySimpleAuthorizerWithContextResult<{ [key: string]: string }>> {
-    console.log(`Authorizer invoked with event: ${JSON.stringify(event)}`);
-
-    const authToken = event.identitySource?.[0];
-    console.log(`Authorization token: ${authToken}`);
-
-    if (!authToken || !authToken.startsWith('Bearer ')) {
-        console.log('No valid Authorization token found');
-        return generatePolicy('user', 'Deny', event.methodArn);
-    }
-
-    const token = authToken.split(' ')[1];
-
-    const userPoolId = process.env.COGNITO_USER_POOL_ID;
-    if (!userPoolId) {
-        console.error('COGNITO_USER_POOL_ID is not set in environment variables');
-        return generatePolicy('user', 'Deny', event.methodArn);
-    }
-
-    try {
-        const command = new GetUserCommand({ AccessToken: token });
-        const response = await cognitoClient.send(command);
-
-        const userId = response.Username;
-        if (!userId) {
-            throw new Error('UserId not found in Cognito response');
+const generatePolicy = (
+  principalId: string,
+  effect: 'Allow' | 'Deny',
+  methodArn: string,
+  context?: Record<string, string>
+): APIGatewayAuthorizerResult => {
+  return {
+    principalId,
+    policyDocument: {
+      Version: '2012-10-17',
+      Statement: [
+        {
+          Action: 'execute-api:Invoke',
+          Effect: effect,
+          Resource: methodArn
         }
+      ]
+    },
+    context
+  };
+};
 
-        const userAttributes = response.UserAttributes?.reduce((acc, attr) => {
-            if (attr.Name && attr.Value) {
-                acc[attr.Name] = attr.Value;
-            }
-            return acc;
-        }, {} as Record<string, string>) ?? {};
+export async function handler(event: APIGatewayTokenAuthorizerEvent): Promise<APIGatewayAuthorizerResult> {
+  console.log('Authorizer invoked with event:', JSON.stringify(event));
 
-        const githubId = userAttributes[CognitoAttribute.GH_ID] || '';
-        const githubToken = userAttributes[CognitoAttribute.GH_TOKEN] || '';
-        return generatePolicy(userId, 'Allow', event.methodArn, {
-            userId,
-            githubId,
-            githubToken
-        });
-    } catch (error) {
-        console.error(`Error in Cognito getUser: ${error}`);
-        return generatePolicy('user', 'Deny', event.methodArn);
+  // Extract token from Authorization header
+  const authHeader = event.authorizationToken;
+  console.log('Authorization token:', authHeader);
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.log('No valid Authorization token found');
+    return generatePolicy('user', 'Deny', event.methodArn);
+  }
+
+  const token = authHeader.split(' ')[1];
+
+  try {
+    // In test environment, use a simple secret
+    const secret = process.env.NODE_ENV === 'test' ? 'test-secret' : process.env.JWT_SECRET;
+    if (!secret) {
+      throw new Error('JWT_SECRET is not configured');
     }
-}
 
-function generatePolicy(principalId: string, effect: 'Allow' | 'Deny', resource: string, context = {}): APIGatewaySimpleAuthorizerWithContextResult<{ [key: string]: string }> {
-    return {
-        isAuthorized: effect === 'Allow',
-        context: {
-            ...context,
-            principalId,
-            resource
-        }
-    };
+    const decoded = jwt.verify(token, secret);
+
+    if (typeof decoded === 'string' || !decoded.sub) {
+      throw new Error('Invalid token payload');
+    }
+
+    return generatePolicy(decoded.sub, 'Allow', event.methodArn, {
+      userId: decoded.sub
+    });
+  } catch (error) {
+    console.error('Error verifying token:', error);
+    return generatePolicy('user', 'Deny', event.methodArn);
+  }
 }
 
 // For CommonJS compatibility

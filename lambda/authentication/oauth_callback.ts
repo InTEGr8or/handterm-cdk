@@ -58,7 +58,7 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
       decodedState = JSON.parse(Buffer.from(state, 'base64').toString('utf-8'));
     } catch (error) {
       console.error('Error decoding state:', error);
-      return {statusCode: 400, body: JSON.stringify({message: 'Invalid state parameter.'})};
+      return { statusCode: 400, body: JSON.stringify({ message: 'Invalid state parameter.' }) };
     }
     console.log('Decoded state:', decodedState);
 
@@ -92,8 +92,8 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
     // GitHub OAuth token exchange
     const tokenResponse = await axios.post('https://github.com/login/oauth/access_token', {
-      client_id: process.env.GITHUB_CLIENT_ID,
-      client_secret: process.env.GITHUB_CLIENT_SECRET,
+      client_id: process.env.GITHUB_APP_ID,
+      client_secret: process.env.GITHUB_APP_PRIVATE_KEY,
       code
     }, {
       headers: {

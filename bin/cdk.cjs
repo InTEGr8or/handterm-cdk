@@ -24,10 +24,10 @@ async function main() {
     console.log('CDK App created');
 
     const stackName = 'HandTermCdkStack';
-    console.log("GITHUB_CLIENT_ID:", process.env.GITHUB_CLIENT_ID);
+    console.log("GITHUB_APP_ID:", process.env.GITHUB_APP_ID);
 
-    if (!process.env.GITHUB_CLIENT_ID || !process.env.GITHUB_CLIENT_SECRET) {
-      console.error('Error: GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET must be set in the environment');
+    if (!process.env.GITHUB_APP_ID || !process.env.GITHUB_APP_PRIVATE_KEY) {
+      console.error('Error: GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY must be set in the environment');
       console.error('Please ensure you have a .env file in the project root with these variables set');
       process.exit(1);
     }
@@ -37,8 +37,8 @@ async function main() {
         account: process.env.CDK_DEFAULT_ACCOUNT,
         region: process.env.CDK_DEFAULT_REGION
       },
-      githubClientId: process.env.GITHUB_CLIENT_ID,
-      githubClientSecret: process.env.GITHUB_CLIENT_SECRET,
+      githubClientId: process.env.GITHUB_APP_ID,
+      githubClientSecret: process.env.GITHUB_APP_PRIVATE_KEY,
       cognitoAppClientId: process.env.COGNITO_APP_CLIENT_ID || '',
     });
 

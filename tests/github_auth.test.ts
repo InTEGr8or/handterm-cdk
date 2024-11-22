@@ -17,8 +17,8 @@ const API_URL = process.env.NODE_ENV === 'development'
 
 // Enhanced environment variable validation
 const requiredEnvVars = process.env.NODE_ENV === 'development'
-  ? ['GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET']
-  : ['API_ENDPOINT', 'GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET', 'COGNITO_USER_POOL_ID'];
+  ? ['GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET', 'GITHUB_APP_ID', 'GITHUB_APP_PRIVATE_KEY']
+  : ['API_ENDPOINT', 'GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET', 'GITHUB_APP_ID', 'GITHUB_APP_PRIVATE_KEY', 'COGNITO_USER_POOL_ID'];
 
 const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
 if (missingVars.length > 0) {
@@ -36,6 +36,7 @@ console.log('API Endpoint:', API_URL);
 console.log('Frontend URL:', process.env.FRONTEND_URL);
 console.log('Environment:', process.env.NODE_ENV);
 console.log('GitHub Client ID:', process.env.GITHUB_CLIENT_ID ? '✓ Set' : '✗ Not Set');
+console.log('GitHub App ID:', process.env.GITHUB_APP_ID ? '✓ Set' : '✗ Not Set');
 console.log('Cognito User Pool ID:', process.env.COGNITO_USER_POOL_ID ? '✓ Set' : '✗ Not Set');
 console.groupEnd();
 
@@ -55,7 +56,7 @@ describe('GitHub Authentication Flow', () => {
     expect(response.headers.location).toMatch(/^https:\/\/github.com\/login\/oauth\/authorize/);
 
     const locationUrl = new URL(response.headers.location);
-    expect(locationUrl.searchParams.get('client_id')).toBeTruthy();
+    expect(locationUrl.searchParams.get('client_id')).toBe(process.env.GITHUB_CLIENT_ID);
     expect(locationUrl.searchParams.get('redirect_uri')).toBeTruthy();
     expect(locationUrl.searchParams.get('scope')).toBe('read:user,user:email');
     expect(locationUrl.searchParams.get('state')).toBeTruthy();

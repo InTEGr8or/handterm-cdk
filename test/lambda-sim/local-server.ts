@@ -22,22 +22,22 @@ app.use(express.urlencoded({ extended: true }));
 
 // Comprehensive environment variable setup
 const requiredEnvVars = [
-  'NODE_ENV', 'FRONTEND_URL', 'GITHUB_CLIENT_ID',
-  'GITHUB_CLIENT_SECRET', 'COGNITO_USER_POOL_ID'
+  'NODE_ENV', 'FRONTEND_URL', 'GITHUB_APP_ID',
+  'GITHUB_APP_PRIVATE_KEY', 'COGNITO_USER_POOL_ID'
 ];
 
 requiredEnvVars.forEach(varName => {
   process.env[varName] = process.env[varName] ||
     (varName === 'NODE_ENV' ? 'development' :
-     varName === 'FRONTEND_URL' ? 'http://localhost:5173' :
-     `test-${varName.toLowerCase()}`);
+      varName === 'FRONTEND_URL' ? 'http://localhost:5173' :
+        `test-${varName.toLowerCase()}`);
 });
 
 console.log('Local server environment:', {
   NODE_ENV: process.env.NODE_ENV,
   FRONTEND_URL: process.env.FRONTEND_URL,
-  GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID ? 'Set' : 'Not set',
-  GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET ? 'Set' : 'Not set',
+  GITHUB_APP_ID: process.env.GITHUB_APP_ID ? 'Set' : 'Not set',
+  GITHUB_APP_PRIVATE_KEY: process.env.GITHUB_APP_PRIVATE_KEY ? 'Set' : 'Not set',
   COGNITO_USER_POOL_ID: process.env.COGNITO_USER_POOL_ID
 });
 

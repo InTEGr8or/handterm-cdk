@@ -1,29 +1,30 @@
 import { APIGatewayProxyEvent } from 'aws-lambda';
 import { handler } from '../lambda/authentication/oauth_callback';
 import { AdminUpdateUserAttributesCommand } from '@aws-sdk/client-cognito-identity-provider';
+import * as jwt from 'jsonwebtoken';
 
-// Mock the ES modules
-jest.mock('@octokit/rest', () => ({
-  Octokit: jest.fn().mockImplementation(() => ({
-    auth: jest.fn(),
-    users: {
-      getAuthenticated: jest.fn().mockResolvedValue({
-        data: {
-          login: 'mock_user',
-          id: 12345,
-          name: 'Mock User',
-          email: 'mock@example.com',
-          avatar_url: 'https://example.com/avatar.png',
-        }
-      })
+// Mock axios
+jest.mock('axios', () => ({
+  post: jest.fn().mockResolvedValue({
+    data: {
+      access_token: 'mock_access_token',
+      refresh_token: 'mock_refresh_token',
+      expires_in: '3600',
+      refresh_token_expires_in: '7200'
     }
-  }))
+  }),
+  get: jest.fn().mockResolvedValue({
+    data: {
+      id: 12345,
+      login: 'mock_user',
+      name: 'Mock User',
+      email: 'mock@example.com',
+      avatar_url: 'https://example.com/avatar.png'
+    }
+  })
 }));
 
-jest.mock('@octokit/auth-oauth-app', () => ({
-  createOAuthAppAuth: jest.fn()
-}));
-
+// Mock AWS SDK
 jest.mock('@aws-sdk/client-cognito-identity-provider', () => ({
   CognitoIdentityProviderClient: jest.fn().mockImplementation(() => ({
     send: jest.fn().mockResolvedValue({}),
@@ -33,22 +34,28 @@ jest.mock('@aws-sdk/client-cognito-identity-provider', () => ({
 
 describe('OAuth Callback Handler', () => {
   beforeEach(() => {
-    // Set up environment variables
-    process.env.GITHUB_CLIENT_ID = 'test-client-id';
-    process.env.GITHUB_CLIENT_SECRET = 'test-client-secret';
-    process.env.COGNITO_USER_POOL_ID = 'test-pool-id';
-    process.env.FRONTEND_URL = 'http://localhost:5173';
-    process.env.NODE_ENV = 'test';
-    
     // Clear all mocks
     jest.clearAllMocks();
   });
 
   it('should handle successful GitHub OAuth callback', async () => {
+    // Create a mock JWT token
+    const mockToken = jwt.sign({
+      'cognito:username': 'test_user',
+      sub: '123',
+      email: 'test@example.com'
+    }, 'test_secret');
+
+    const mockState = Buffer.from(JSON.stringify({
+      timestamp: Date.now(),
+      refererUrl: 'http://localhost:5173',
+      cognitoUserId: mockToken
+    })).toString('base64');
+
     const mockEvent = {
       queryStringParameters: {
         code: 'test-auth-code',
-        state: 'test-user-id'
+        state: mockState
       },
       body: null,
       headers: {},
@@ -64,35 +71,42 @@ describe('OAuth Callback Handler', () => {
     } as APIGatewayProxyEvent;
 
     const response = await handler(mockEvent);
-    
+
     expect(response.statusCode).toBe(302);
-    expect(response.headers?.Location).toContain('githubAuth=success');
-    expect(response.headers?.Location).toContain('githubUsername=');
-    
+    expect(response.headers?.Location).toContain('githubLogin=success');
+    expect(response.headers?.Location).toContain('githubUsername=mock_user');
+
     // Verify Cognito update was called
     expect(AdminUpdateUserAttributesCommand).toHaveBeenCalled();
   });
 
   it('should handle missing parameters', async () => {
     const mockEvent = {
-      queryStringParameters: {}
+      queryStringParameters: null,
+      body: null,
+      headers: {},
+      multiValueHeaders: {},
+      httpMethod: 'GET',
+      isBase64Encoded: false,
+      path: '/oauth_callback',
+      pathParameters: null,
+      multiValueQueryStringParameters: null,
+      stageVariables: null,
+      requestContext: {} as any,
+      resource: ''
     } as APIGatewayProxyEvent;
 
     const response = await handler(mockEvent);
-    
+
     expect(response.statusCode).toBe(400);
     const body = JSON.parse(response.body);
-    expect(body.error).toBe('Missing required parameters');
+    expect(body.message).toBe('No authorization code provided');
   });
 
-  it('should handle missing environment variables', async () => {
-    // Clear required env var
-    delete process.env.GITHUB_CLIENT_ID;
-    
-    const mockEvent: APIGatewayProxyEvent = {
+  it('should handle missing state parameter', async () => {
+    const mockEvent = {
       queryStringParameters: {
-        code: 'test-auth-code',
-        state: 'test-user-id'
+        code: 'test-auth-code'
       },
       body: null,
       headers: {},
@@ -105,19 +119,20 @@ describe('OAuth Callback Handler', () => {
       stageVariables: null,
       requestContext: {} as any,
       resource: ''
-    };
+    } as APIGatewayProxyEvent;
 
     const response = await handler(mockEvent);
-    
-    expect(response.statusCode).toBe(500);
+
+    expect(response.statusCode).toBe(404);
     const body = JSON.parse(response.body);
-    expect(body.missingEnvVars).toContain('GITHUB_CLIENT_ID');
+    expect(body.message).toBe('No `state` property passed back to callback');
   });
-  it('should handle ES Module import correctly', async () => {
+
+  it('should handle invalid state parameter', async () => {
     const mockEvent = {
       queryStringParameters: {
         code: 'test-auth-code',
-        state: 'test-user-id'
+        state: 'invalid-state'
       },
       body: null,
       headers: {},
@@ -133,11 +148,41 @@ describe('OAuth Callback Handler', () => {
     } as APIGatewayProxyEvent;
 
     const response = await handler(mockEvent);
-    expect(response.statusCode).not.toBe(500);
-    
-    if (response.statusCode === 500) {
-      const body = JSON.parse(response.body);
-      expect(body.error).not.toContain('require() of ES Module');
-    }
+
+    expect(response.statusCode).toBe(400);
+    const body = JSON.parse(response.body);
+    expect(body.message).toBe('Invalid state parameter.');
+  });
+
+  it('should handle missing Cognito user ID', async () => {
+    const mockState = Buffer.from(JSON.stringify({
+      timestamp: Date.now(),
+      refererUrl: 'http://localhost:5173'
+      // No cognitoUserId
+    })).toString('base64');
+
+    const mockEvent = {
+      queryStringParameters: {
+        code: 'test-auth-code',
+        state: mockState
+      },
+      body: null,
+      headers: {},
+      multiValueHeaders: {},
+      httpMethod: 'GET',
+      isBase64Encoded: false,
+      path: '/oauth_callback',
+      pathParameters: null,
+      multiValueQueryStringParameters: null,
+      stageVariables: null,
+      requestContext: {} as any,
+      resource: ''
+    } as APIGatewayProxyEvent;
+
+    const response = await handler(mockEvent);
+
+    expect(response.statusCode).toBe(400);
+    const body = JSON.parse(response.body);
+    expect(body.message).toBe('No Cognito user ID provided in state');
   });
 });
