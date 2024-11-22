@@ -1,5 +1,5 @@
 ```mermaid
-flowchart TD
+flowchart TB
     A[User] -->|1. Initiates GitHub Auth| B(Frontend)
     B -->|2. Redirects to GitHub| C[GitHub OAuth]
     C -->|3. User Authorizes App| D[GitHub Callback]

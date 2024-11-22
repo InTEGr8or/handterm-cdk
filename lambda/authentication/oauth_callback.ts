@@ -1,5 +1,5 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { CognitoIdentityProviderClient, AdminCreateUserCommand } from '@aws-sdk/client-cognito-identity-provider';
+import { CognitoIdentityProviderClient, AdminUpdateUserAttributesCommand } from '@aws-sdk/client-cognito-identity-provider';
 import axios from 'axios';
 
 const cognitoClient = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
@@ -28,9 +28,17 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
       decodedState = JSON.parse(Buffer.from(state, 'base64').toString('utf-8'));
     } catch (error) {
       console.error('Error decoding state:', error);
-      return {statusCode: 400, body:'Invalid state parameter.'};
+      return {statusCode: 400, body: JSON.stringify({message: 'Invalid state parameter.'})};
     }
     console.log('Decoded state:', decodedState);
+
+    // Verify the Cognito token from state
+    if (!decodedState.cognitoToken) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ message: 'No Cognito token provided in state' })
+      };
+    }
 
     // GitHub OAuth token exchange logic
     const tokenResponse = await axios.post('https://github.com/login/oauth/access_token', {
@@ -54,30 +62,27 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
     const githubUser = userResponse.data;
 
-    // Create or update user in Cognito
-    const createUserParams = {
+    // Get user info from Cognito token
+    const userInfo = await axios.get(`${process.env.API_BASE_URL}/getUser`, {
+      headers: {
+        'Authorization': `Bearer ${decodedState.cognitoToken}`
+      }
+    });
+
+    const username = userInfo.data.Username;
+
+    // Update existing Cognito user with GitHub attributes
+    const updateParams = {
       UserPoolId: process.env.COGNITO_USER_POOL_ID,
-      Username: githubUser.login,
+      Username: username,
       UserAttributes: [
-        { Name: 'email', Value: githubUser.email || '' },
-        { Name: 'name', Value: githubUser.name || '' },
         { Name: 'custom:gh_id', Value: githubUser.id.toString() },
         { Name: 'custom:gh_username', Value: githubUser.login },
         { Name: 'custom:gh_token', Value: access_token }
       ]
     };
 
-    try {
-      await cognitoClient.send(new AdminCreateUserCommand(createUserParams));
-    } catch (createError: any) {
-      // If user already exists, update attributes instead
-      if (createError.name === 'UsernameExistsException') {
-        // Update user attributes logic would go here
-        console.log('User already exists, updating attributes');
-      } else {
-        throw createError;
-      }
-    }
+    await cognitoClient.send(new AdminUpdateUserAttributesCommand(updateParams));
 
     const refererUrl = decodeURIComponent(decodedState.refererUrl) || 'https://handterm.com';
 
