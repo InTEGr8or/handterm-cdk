@@ -79,12 +79,14 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
       };
     }
 
-    // Get username from token
-    const username = decodedToken.sub;
+    console.log('Decoded token:', decodedToken);
+
+    // Get username from cognito:username claim
+    const username = (decodedToken as any)['cognito:username'];
     if (!username) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ message: 'Could not determine current user' })
+        body: JSON.stringify({ message: 'Could not determine Cognito username from token' })
       };
     }
 
@@ -141,7 +143,10 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
     console.error('OAuth Callback Error:', error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ message: 'OAuth callback failed' })
+      body: JSON.stringify({
+        message: 'OAuth callback failed',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      })
     };
   }
 }

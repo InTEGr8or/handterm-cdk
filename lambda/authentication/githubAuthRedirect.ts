@@ -1,7 +1,23 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  console.log('githubAuthRedirect Event:', JSON.stringify(event, null, 2));
+  if(!event.queryStringParameters) {
+    return {statusCode: 401, body: ''};
+  }
+  const state = event.queryStringParameters["state"] || '';
+
+  // Use Buffer.from instead of atob
+  let decodedState;
+  try {
+    decodedState = JSON.parse(Buffer.from(state, 'base64').toString('utf-8'));
+    console.log('githubAuthRedirect decoded state:', decodedState);
+  } catch (error) {
+    console.error('Error decoding state:', error);
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ message: 'Invalid state parameter' })
+    };
+  }
 
   const clientId = process.env.GITHUB_CLIENT_ID;
   const redirectUri = `${process.env.REDIRECT_URI}`;
@@ -16,35 +32,11 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     };
   }
 
-  const refererUrl = event.headers.referer || 'https://handterm.com';
-
-  // Extract Cognito user ID from the Authorization header if it exists
-  let cognitoUserId: string | null = null;
-  const authHeader = event.headers.Authorization || event.headers.authorization;
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    // In a real scenario, you'd validate the token and extract the user ID
-    // For now, we'll just set a placeholder value
-    cognitoUserId = 'placeholder-user-id';
-  }
-
-  const state = Buffer.from(JSON.stringify({
-    timestamp: Date.now(),
-    refererUrl: encodeURIComponent(refererUrl),
-    cognitoUserId: cognitoUserId,
-  })).toString('base64');
-
-  console.log('State before encoding:', JSON.stringify({
-    timestamp: Date.now(),
-    refererUrl: encodeURIComponent(refererUrl),
-    redirectUri: redirectUri,
-    cognitoUserId: cognitoUserId,
-  }, null, 2));
-  console.log('Encoded state:', state);
-
+  // Pass through the original state to maintain all user context
   const githubAuthUrl =
-    `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=read:user,user:email&state=${state}`;
+    `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=read:user,user:email&state=${encodeURIComponent(state)}`;
 
-  console.log('Redirecting to:', githubAuthUrl, redirectUri);
+  console.log('Redirecting to:', githubAuthUrl);
 
   return {
     statusCode: 302,
