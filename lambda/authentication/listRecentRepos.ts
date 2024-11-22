@@ -47,11 +47,15 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         return {
             statusCode: 200,
             body: JSON.stringify(repos.map(repo => ({
+                id: repo.id,
                 name: repo.name,
+                owner: repo.owner,
                 full_name: repo.full_name,
                 description: repo.description,
                 html_url: repo.html_url,
-                updated_at: repo.updated_at
+                updated_at: repo.updated_at,
+                url: repo.url,
+                trees_url: repo.trees_url
             })))
         };
     } catch (error) {
