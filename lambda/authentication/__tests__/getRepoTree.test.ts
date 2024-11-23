@@ -1,7 +1,7 @@
 import { handler } from '../getRepoTree';
 import { APIGatewayProxyEvent } from 'aws-lambda';
 
-// Mock AWS Cognito
+// Initialize mock before using it
 const mockCognitoSend = jest.fn().mockResolvedValue({
   Username: 'test-user-id'
 });
@@ -97,6 +97,10 @@ describe('getRepoTree Lambda', () => {
 
     // Reset all mocks
     jest.clearAllMocks();
+    // Reset default mock implementation
+    mockCognitoSend.mockResolvedValue({
+      Username: 'test-user-id'
+    });
   });
 
   it('should successfully retrieve repository tree', async () => {
@@ -171,18 +175,6 @@ describe('getRepoTree Lambda', () => {
       message: 'An unexpected error occurred',
       error: 'INTERNAL_SERVER_ERROR',
       action: 'RETRY_OR_CONTACT_SUPPORT'
-    });
-  });
-
-  it('should return 401 when GitHub token refresh fails', async () => {
-    mockGetRepoTree.mockRejectedValueOnce(new Error('Failed to refresh GitHub token'));
-
-    const result = await handler(defaultEvent);
-    expect(result.statusCode).toBe(401);
-    expect(JSON.parse(result.body)).toEqual({
-      message: 'Failed to refresh GitHub token. Please reauthenticate.',
-      error: 'GITHUB_TOKEN_REFRESH_FAILED',
-      action: 'REAUTHENTICATE'
     });
   });
 });

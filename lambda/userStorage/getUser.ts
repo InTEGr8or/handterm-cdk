@@ -9,7 +9,7 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
 
     try {
         const requestContext = event.requestContext;
-        if(!requestContext) return { statusCode: 401, message: 'No requestContext', body: ''}
+        if (!requestContext) return { statusCode: 401, message: 'No requestContext', body: '' }
         console.log('Lambda:', event?.requestContext?.authorizer?.lambda);
         const accessToken = event.headers?.authorization?.split(' ')[1];
         if (!accessToken) {
@@ -20,9 +20,11 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
             };
         }
 
+        console.log("Getting user command");
         const getUserCommand = new GetUserCommand({ AccessToken: accessToken });
+        console.log("User command:", getUserCommand);
         const response = await cognitoClient.send(getUserCommand);
-
+        console.log("Response:", response);
         const userAttributes = response.UserAttributes?.reduce((acc, attr) => {
             if (attr.Name && attr.Value) {
                 acc[attr.Name] = attr.Value;

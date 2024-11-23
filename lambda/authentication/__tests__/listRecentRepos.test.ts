@@ -52,7 +52,11 @@ describe('listRecentRepos Lambda', () => {
     requestContext: {
       accountId: 'test-account-id',
       apiId: 'test-api-id',
-      authorizer: null,
+      authorizer: {
+        lambda: {
+          userId: 'test-user-id'
+        }
+      },
       httpMethod: 'GET',
       identity: {
         accessKey: null,
@@ -90,6 +94,10 @@ describe('listRecentRepos Lambda', () => {
 
     // Reset all mocks
     jest.clearAllMocks();
+    // Reset default mock implementation
+    mockCognitoSend.mockResolvedValue({
+      Username: 'test-user-id'
+    });
   });
 
   it('should successfully retrieve recent repositories', async () => {
@@ -114,6 +122,7 @@ describe('listRecentRepos Lambda', () => {
   });
 
   it('should return 401 when user is invalid', async () => {
+    // Mock Cognito to return undefined Username
     mockCognitoSend.mockResolvedValueOnce({
       Username: undefined
     });
