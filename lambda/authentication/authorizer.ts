@@ -1,4 +1,4 @@
-import { APIGatewayTokenAuthorizerEvent, APIGatewayAuthorizerResult } from 'aws-lambda';
+import { APIGatewayAuthorizerResult } from 'aws-lambda';
 import { CognitoJwtVerifier } from 'aws-jwt-verify';
 import { CognitoIdentityProviderClient, GetUserCommand } from '@aws-sdk/client-cognito-identity-provider';
 
@@ -12,6 +12,15 @@ interface CognitoVerifyResult {
   iat: number;
   client_id: string;
   username: string;
+}
+
+interface HttpApiAuthorizerEvent {
+  type: string;
+  routeArn: string;
+  identitySource: string[];
+  headers: {
+    authorization?: string;
+  };
 }
 
 const generatePolicy = (principalId: string, effect: 'Allow' | 'Deny', resource: string, context?: Record<string, any>): APIGatewayAuthorizerResult => ({
@@ -29,17 +38,28 @@ const generatePolicy = (principalId: string, effect: 'Allow' | 'Deny', resource:
   context,
 });
 
-export async function handler(event: APIGatewayTokenAuthorizerEvent): Promise<APIGatewayAuthorizerResult> {
-  console.log('Auth token:', event.authorizationToken);
-  console.log('Method ARN:', event.methodArn);
+export async function handler(event: HttpApiAuthorizerEvent): Promise<APIGatewayAuthorizerResult> {
+  // console.log("Event:", event);
 
-  if (!event.authorizationToken) {
+  // Extract token from identitySource or headers
+  const authHeader = event.identitySource?.[0] || event.headers?.authorization;
+  console.log('Auth header:', authHeader);
+  console.log('Route ARN:', event.routeArn);
+
+  if (!authHeader) {
     throw new Error('Unauthorized');
   }
 
-  const token = event.authorizationToken.replace('Bearer ', '');
-
+  const token = authHeader.replace('Bearer ', '');
+  console.log("Token:", token);
   try {
+    const verifierConfig = {
+      userPoolId: process.env.COGNITO_USER_POOL_ID!,
+      tokenUse: 'access',
+      clientId: process.env.COGNITO_APP_CLIENT_ID!,
+    };
+    console.log("verifierConfig:", verifierConfig);
+
     const verifier = CognitoJwtVerifier.create({
       userPoolId: process.env.COGNITO_USER_POOL_ID!,
       tokenUse: 'access',
@@ -57,7 +77,7 @@ export async function handler(event: APIGatewayTokenAuthorizerEvent): Promise<AP
     // Extract GitHub username from Cognito attributes
     const githubUsername = userResponse.UserAttributes?.find(attr => attr.Name === 'custom:gh_username')?.Value;
 
-    return generatePolicy(payload.username, 'Allow', event.methodArn, {
+    return generatePolicy(payload.username, 'Allow', event.routeArn, {
       userId: payload.username,
       githubUsername,
     });

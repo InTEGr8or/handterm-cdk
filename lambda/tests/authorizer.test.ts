@@ -1,5 +1,13 @@
 import { handler } from '../authentication/authorizer';
-import { APIGatewayTokenAuthorizerEvent } from 'aws-lambda';
+
+interface HttpApiAuthorizerEvent {
+  type: string;
+  routeArn: string;
+  identitySource: string[];
+  headers: {
+    authorization?: string;
+  };
+}
 
 // Mock CognitoJwtVerifier
 jest.mock('aws-jwt-verify', () => ({
@@ -43,7 +51,7 @@ jest.mock('@aws-sdk/client-cognito-identity-provider', () => ({
 }));
 
 describe('Authorizer', () => {
-  const methodArn = 'arn:aws:execute-api:us-east-1:123456789012:api-id/stage/method/resourcepath';
+  const routeArn = 'arn:aws:execute-api:us-east-1:123456789012:api-id/stage/method/resourcepath';
 
   beforeEach(() => {
     process.env.COGNITO_USER_POOL_ID = 'test-pool-id';
@@ -59,20 +67,38 @@ describe('Authorizer', () => {
   });
 
   it('should deny access when no token is provided', async () => {
-    const event: APIGatewayTokenAuthorizerEvent = {
-      type: 'TOKEN',
-      methodArn,
-      authorizationToken: ''
+    const event: HttpApiAuthorizerEvent = {
+      type: 'REQUEST',
+      routeArn,
+      identitySource: [],
+      headers: {}
     };
 
     await expect(handler(event)).rejects.toThrow('Unauthorized');
   });
 
-  it('should allow access when a valid token is provided', async () => {
-    const event: APIGatewayTokenAuthorizerEvent = {
-      type: 'TOKEN',
-      methodArn,
-      authorizationToken: 'Bearer valid-token'
+  it('should allow access when a valid token is provided in identitySource', async () => {
+    const event: HttpApiAuthorizerEvent = {
+      type: 'REQUEST',
+      routeArn,
+      identitySource: ['Bearer valid-token'],
+      headers: {}
+    };
+
+    const result = await handler(event);
+    expect(result.policyDocument.Statement[0].Effect).toBe('Allow');
+    expect(result.context).toHaveProperty('userId', 'testuser');
+    expect(result.context).toHaveProperty('githubUsername', 'test-github-user');
+  });
+
+  it('should allow access when a valid token is provided in headers', async () => {
+    const event: HttpApiAuthorizerEvent = {
+      type: 'REQUEST',
+      routeArn,
+      identitySource: [],
+      headers: {
+        authorization: 'Bearer valid-token'
+      }
     };
 
     const result = await handler(event);
@@ -82,10 +108,11 @@ describe('Authorizer', () => {
   });
 
   it('should deny access when an invalid token is provided', async () => {
-    const event: APIGatewayTokenAuthorizerEvent = {
-      type: 'TOKEN',
-      methodArn,
-      authorizationToken: 'Bearer invalid-token'
+    const event: HttpApiAuthorizerEvent = {
+      type: 'REQUEST',
+      routeArn,
+      identitySource: ['Bearer invalid-token'],
+      headers: {}
     };
 
     await expect(handler(event)).rejects.toThrow('Unauthorized');
@@ -94,10 +121,11 @@ describe('Authorizer', () => {
   it('should deny access when Cognito verification fails', async () => {
     mockCognitoSend.mockRejectedValueOnce(new Error('Cognito verification failed'));
 
-    const event: APIGatewayTokenAuthorizerEvent = {
-      type: 'TOKEN',
-      methodArn,
-      authorizationToken: 'Bearer valid-token'
+    const event: HttpApiAuthorizerEvent = {
+      type: 'REQUEST',
+      routeArn,
+      identitySource: ['Bearer valid-token'],
+      headers: {}
     };
 
     await expect(handler(event)).rejects.toThrow('Unauthorized');

@@ -5,13 +5,17 @@ const cognitoClient = new CognitoIdentityProviderClient({ region: process.env.AW
 
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent) => {
     console.log("GetUserFunction invoked");
-    console.log('Full event:', event);
+    // console.log('Full event:', event);
 
     try {
         const requestContext = event.requestContext;
         if (!requestContext) return { statusCode: 401, message: 'No requestContext', body: '' }
         console.log('Lambda:', event?.requestContext?.authorizer?.lambda);
-        const accessToken = event.headers?.authorization?.split(' ')[1];
+        const authorization = event.headers?.authorization?.split(' ');
+        console.log("Authorization:", authorization);
+        const accessToken = authorization && authorization?.length > 1 ? authorization[1] : '';
+        console.log("AccessToken:", accessToken);
+
         if (!accessToken) {
             console.log("accessToken", accessToken);
             return {

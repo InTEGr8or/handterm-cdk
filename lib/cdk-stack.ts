@@ -149,6 +149,7 @@ export class HandTermCdkStack extends cdk.Stack {
       logGroup: authorizerLogGroup,
       environment: {
         COGNITO_USER_POOL_ID: userPool.userPoolId,
+        COGNITO_APP_CLIENT_ID: props.cognitoAppClientId,
       },
     });
 
@@ -237,7 +238,7 @@ export class HandTermCdkStack extends cdk.Stack {
       role: lambdaExecutionRole,
       httpApi: httpApi,
       environment: {
-        COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
+        COGNITO_APP_CLIENT_ID: props.cognitoAppClientId,
         COGNITO_USER_POOL_CLIENT_ID: userPoolClient.userPoolClientId,
         GITHUB_CLIENT_ID: props.githubClientId,
         GITHUB_CLIENT_SECRET: props.githubClientSecret,

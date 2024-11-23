@@ -33,23 +33,26 @@ export async function handler(event: any): Promise<APIGatewayProxyResult> {
     // Sanitize input: remove actual credentials before any logging
     const { username, password } = body;
 
-    const clientId = process.env.COGNITO_APP_CLIENT_ID;
+    // const appClientId = process.env.COGNITO_APP_CLIENT_ID;
+    const userPoolClientId = process.env.COGNITO_USER_POOL_CLIENT_ID;
     const userPoolId = process.env.COGNITO_USER_POOL_ID;
 
-    if (!clientId || !userPoolId) {
+    if (!userPoolClientId || !userPoolId) {
       throw new Error('Missing required environment variables.');
     }
 
     const authCommand = new InitiateAuthCommand({
       AuthFlow: 'USER_PASSWORD_AUTH',
-      ClientId: clientId,
+      ClientId: userPoolClientId,
       AuthParameters: {
         USERNAME: username,
         PASSWORD: password,
       },
     });
 
+    console.log("authCommand:", authCommand);
     const authResponse = await cognito.send(authCommand);
+    console.log('authResponse:', authResponse);
     const { IdToken, AccessToken, RefreshToken } = authResponse.AuthenticationResult ?? {};
 
     if (!IdToken || !AccessToken || !RefreshToken) {
@@ -63,8 +66,9 @@ export async function handler(event: any): Promise<APIGatewayProxyResult> {
       UserPoolId: userPoolId,
       Username: username,
     });
+    console.log('getUserCommand:', getUserCommand);
     const userDetails = await cognito.send(getUserCommand);
-
+    console.log('userDetails:', userDetails);
     const githubUsername = userDetails.UserAttributes?.find((attr: AttributeType) => attr.Name === CognitoAttribute.GH_USERNAME)?.Value;
 
     return {
