@@ -38,21 +38,10 @@ interface LambdaIntegration {
 }
 
 export class HandTermCdkStack extends cdk.Stack {
-  public readonly githubClientId: string;
-  public readonly githubClientSecret: string;
-  public readonly githubAppId: string;
-  public readonly githubAppPrivateKey: string;
-  public readonly cognitoAppClientId: string;
   public userPool: cognito.UserPool;
 
   constructor(scope: Construct, id: string, props: HandTermCdkStackProps) {
     super(scope, id, props);
-
-    this.githubClientId = props.githubClientId;
-    this.githubClientSecret = props.githubClientSecret;
-    this.githubAppId = props.githubAppId;
-    this.githubAppPrivateKey = props.githubAppPrivateKey;
-    this.cognitoAppClientId = props.cognitoAppClientId;
 
     const endpoints = JSON.parse(
       readFileSync(join(__dirname, '../lambda/cdkshared/endpoints.json'), 'utf8')
@@ -182,8 +171,8 @@ export class HandTermCdkStack extends cdk.Stack {
       providerName: 'GitHub',
       providerType: 'OIDC',
       providerDetails: {
-        client_id: this.githubClientId,
-        client_secret: this.githubClientSecret,
+        client_id: props.githubClientId,
+        client_secret: props.githubClientSecret,
         attributes_request_method: 'GET',
         oidc_issuer: 'https://github.com',
         authorize_scopes: 'openid user:email',
@@ -250,10 +239,10 @@ export class HandTermCdkStack extends cdk.Stack {
       environment: {
         COGNITO_APP_CLIENT_ID: userPoolClient.userPoolClientId,
         COGNITO_USER_POOL_CLIENT_ID: userPoolClient.userPoolClientId,
-        GITHUB_CLIENT_ID: this.githubClientId,
-        GITHUB_CLIENT_SECRET: this.githubClientSecret,
-        GITHUB_APP_ID: this.githubAppId,
-        GITHUB_APP_PRIVATE_KEY: this.githubAppPrivateKey,
+        GITHUB_CLIENT_ID: props.githubClientId,
+        GITHUB_CLIENT_SECRET: props.githubClientSecret,
+        GITHUB_APP_ID: props.githubAppId,
+        GITHUB_APP_PRIVATE_KEY: props.githubAppPrivateKey,
         COGNITO_USER_POOL_ID: userPool.userPoolId,
         BUCKET_NAME: endpoints.aws.s3.bucketName,
         API_URL: httpApi.url || '',
