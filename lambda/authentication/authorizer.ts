@@ -60,7 +60,7 @@ export async function handler(event: HttpApiAuthorizerEvent): Promise<APIGateway
     const verifierProperties: CognitoJwtVerifierProperties = {
       userPoolId: process.env.COGNITO_USER_POOL_ID!,
       tokenUse: 'access' as const,
-      clientId: process.env.COGNITO_APP_CLIENT_ID!,
+      clientId: process.env.COGNITO_USER_POOL_CLIENT_ID!,
     };
     console.log('Verifier config:', verifierProperties);
     const verifier = CognitoJwtVerifier.create(verifierProperties);
@@ -68,7 +68,7 @@ export async function handler(event: HttpApiAuthorizerEvent): Promise<APIGateway
     // Verify the token with both arguments and use type assertion
     const verifyProps: CognitoVerifyProperties = {
       tokenUse: 'access',
-      clientId: process.env.COGNITO_APP_CLIENT_ID!,
+      clientId: process.env.COGNITO_USER_POOL_CLIENT_ID!,
     }
     console.log('Verify config:', verifyProps);
     const payload = await verifier.verify(token, verifyProps) as CognitoVerifyResult;

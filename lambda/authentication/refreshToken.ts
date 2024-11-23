@@ -3,10 +3,8 @@ import { CognitoIdentityProviderClient, InitiateAuthCommand } from "@aws-sdk/cli
 const cognitoClient = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
 
 export const handler = async (event: any) => {
-  console.log('RefreshToken event:', JSON.stringify(event, null, 2));
 
   const body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
-  console.log('RefreshToken body:', body);
 
   try {
     const { refreshToken } = body;
@@ -28,7 +26,7 @@ export const handler = async (event: any) => {
     });
 
     const data = await cognitoClient.send(command);
-    console.log('RefreshToken success:', JSON.stringify(data));
+    // console.log('RefreshToken success:', JSON.stringify(data));
 
     const { IdToken, AccessToken } = data.AuthenticationResult ?? {};
 

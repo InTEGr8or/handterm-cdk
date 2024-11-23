@@ -14,6 +14,7 @@ import { Construct } from 'constructs';
 import { HttpMethod, HttpApi, CorsHttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpLambdaAuthorizer, HttpLambdaResponseType } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import { Duration } from 'aws-cdk-lib';
+import { CfnStage } from 'aws-cdk-lib/aws-apigatewayv2';
 
 const stackName = 'HandTermCdkStack';
 const logPrefix = `/${stackName}/`;
@@ -61,6 +62,13 @@ export class HandTermCdkStack extends cdk.Stack {
       console.log(`Created new bucket: ${endpoints.aws.s3.bucketName}`);
     }
 
+    // Create CloudWatch log group for API Gateway
+    const apiLogGroup = new logs.LogGroup(this, 'ApiGatewayLogs', {
+      logGroupName: '/aws/apigateway/HandTermApi',
+      retention: logs.RetentionDays.ONE_WEEK,
+      removalPolicy: RemovalPolicy.DESTROY
+    });
+
     // Create the HTTP API
     const httpApi = new HttpApi(this, 'HandTermApi', {
       apiName: 'HandTermService',
@@ -73,6 +81,27 @@ export class HandTermCdkStack extends cdk.Stack {
       },
       createDefaultStage: true,
     });
+
+    // Enable detailed logging for the default stage
+    const stage = httpApi.defaultStage?.node.defaultChild as CfnStage;
+    stage.accessLogSettings = {
+      destinationArn: apiLogGroup.logGroupArn,
+      format: JSON.stringify({
+        requestId: '$context.requestId',
+        ip: '$context.identity.sourceIp',
+        requestTime: '$context.requestTime',
+        httpMethod: '$context.httpMethod',
+        routeKey: '$context.routeKey',
+        status: '$context.status',
+        protocol: '$context.protocol',
+        responseLength: '$context.responseLength',
+        error: {
+          message: '$context.error.message',
+          messageString: '$context.error.messageString',
+          responseType: '$context.error.responseType'
+        }
+      })
+    };
 
     // Cognito User Pool with custom attributes
     const userPool = new cognito.UserPool(this, 'HandTermUserPool', {
