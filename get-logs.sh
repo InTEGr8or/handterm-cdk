@@ -22,13 +22,14 @@ fi
 
 FUNCTION_NAME=$1
 shift
-LIMIT=30
+STREAM_LIMIT=5
+LOG_LIMIT=8
 TAIL=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
         -l|--limit)
-            LIMIT="$2"
+            STREAM_LIMIT="$2"
             shift 2
             ;;
         -t|--tail)
@@ -64,17 +65,17 @@ if [ "$TAIL" = true ]; then
 else
     # Get the most recent log stream with better error handling
     echo "Checking log streams for group: $LOG_GROUP_NAME for $FUNCTION_NAME in $AWS_REGION"
-    
+
     # First, let's see what streams are actually available
     echo "Available log streams:"
     aws logs describe-log-streams \
         --log-group-name "$LOG_GROUP_NAME" \
         --order-by LastEventTime \
         --descending \
-        --max-items 5 \
+        --max-items $STREAM_LIMIT \
         --region "$AWS_REGION" \
         --output json | jq -r '.logStreams[].logStreamName'
-    
+
     # Now get the latest stream
     LATEST_LOG_STREAM=$(aws logs describe-log-streams \
         --log-group-name "$LOG_GROUP_NAME" \
@@ -87,16 +88,16 @@ else
     # Escape the $ in [$LATEST]
     LATEST_LOG_STREAM=${LATEST_LOG_STREAM//\$/\\$}
 
-    echo "Latest log stream: $LATEST_LOG_STREAM"
-    echo "Fetching last $LIMIT log events..."
+    echo "Latest log stream    echo "Fetching last $LOj
+    echo "Fetching last $LOG_LIMIT log events..."
 
     # Construct the command string
-    CMD="aws logs get-log-events --log-group-name \"$LOG_GROUP_NAME\" --log-stream-name \"$LATEST_LOG_STREAM\" --region \"$AWS_REGION\" --output json"
-    
+    CMD="aws logs get-log-events --log-group-name \"$LOG_GROUP_NAME\" --log-stream-name \"$LATEST_LOG_STREAM\" --limit $LOG_LIMIT --region \"$AWS_REGION\" --output json"
+
     # Echo the command for debugging
     echo "Executing command:"
     echo "$CMD"
-    
+
     # Execute the command and format the output
     eval "$CMD" | jq -r '.events[].message' | while read -r line; do
         if [[ $line =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z ]]; then

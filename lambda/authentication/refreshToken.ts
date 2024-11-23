@@ -10,24 +10,24 @@ export const handler = async (event: any) => {
 
   try {
     const { refreshToken } = body;
-    const clientId = process.env.COGNITO_APP_CLIENT_ID;
-    if (!clientId) {
-      throw new Error('COGNITO_APP_CLIENT_ID environment variable is not set.');
+    const userPoolClientId = process.env.COGNITO_USER_POOL_CLIENT_ID;
+    if (!userPoolClientId) {
+      throw new Error('COGNITO_USER_POOL_CLIENT_ID environment variable is not set.');
     }
     if (!refreshToken) {
       throw new Error('Refresh token is required.');
     }
 
+    console.log('Initiating auth with clientId:', userPoolClientId);
     const command = new InitiateAuthCommand({
       AuthFlow: 'REFRESH_TOKEN_AUTH',
-      ClientId: clientId,
+      ClientId: userPoolClientId,
       AuthParameters: {
         REFRESH_TOKEN: refreshToken,
       },
     });
 
     const data = await cognitoClient.send(command);
-
     console.log('RefreshToken success:', JSON.stringify(data));
 
     const { IdToken, AccessToken } = data.AuthenticationResult ?? {};
@@ -35,12 +35,20 @@ export const handler = async (event: any) => {
     if (!IdToken || !AccessToken) {
       return {
         statusCode: 400,
+        headers: {
+          'Access-Control-Allow-Origin': 'http://localhost:5173',
+          'Access-Control-Allow-Credentials': 'true'
+        },
         body: JSON.stringify({ message: "Token refresh failed or incomplete." }),
       };
     }
-
+    console.log('RefreshToken success: IdToken and AccessToken received.', IdToken)
     return {
       statusCode: 200,
+      headers: {
+        'Access-Control-Allow-Origin': 'http://localhost:5173',
+        'Access-Control-Allow-Credentials': 'true'
+      },
       body: JSON.stringify({
         IdToken,
         AccessToken,
@@ -51,7 +59,14 @@ export const handler = async (event: any) => {
     console.error('RefreshToken error:', err);
     return {
       statusCode: 500,
-      body: JSON.stringify({ message: err.message || 'An error occurred during the token refresh process.', error: err instanceof Error ? err.message : String(err) }),
+      headers: {
+        'Access-Control-Allow-Origin': 'http://localhost:5173',
+        'Access-Control-Allow-Credentials': 'true'
+      },
+      body: JSON.stringify({
+        message: err.message || 'An error occurred during the token refresh process.',
+        error: err instanceof Error ? err.message : String(err)
+      }),
     };
   }
 };

@@ -1,34 +1,36 @@
 import { APIGatewayProxyEvent, APIGatewayProxyHandler } from 'aws-lambda';
-import { CognitoIdentityProviderClient, GetUserCommand } from "@aws-sdk/client-cognito-identity-provider";
+import { CognitoIdentityProviderClient, AdminGetUserCommand } from "@aws-sdk/client-cognito-identity-provider";
 
 const cognitoClient = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
 
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent) => {
     console.log("GetUserFunction invoked");
-    // console.log('Full event:', event);
+    console.log('Event:', JSON.stringify(event, null, 2));
 
     try {
-        const requestContext = event.requestContext;
-        if (!requestContext) return { statusCode: 401, message: 'No requestContext', body: '' }
-        console.log('Lambda:', event?.requestContext?.authorizer?.lambda);
-        const authorization = event.headers?.authorization?.split(' ');
-        console.log("Authorization:", authorization);
-        const accessToken = authorization && authorization?.length > 1 ? authorization[1] : '';
-        console.log("AccessToken:", accessToken);
+        const authorizer = event.requestContext?.authorizer;
+        console.log('Authorizer context:', authorizer);
 
-        if (!accessToken) {
-            console.log("accessToken", accessToken);
+        if (!authorizer?.userId) {
+            console.error('No userId in authorizer context');
             return {
                 statusCode: 401,
-                body: JSON.stringify({ message: 'No access token provided', error: 'Missing Authorization header' }),
+                body: JSON.stringify({ message: 'Unauthorized', error: 'Missing user context' }),
             };
         }
 
-        console.log("Getting user command");
-        const getUserCommand = new GetUserCommand({ AccessToken: accessToken });
-        console.log("User command:", getUserCommand);
+        const userId = authorizer.userId;
+        console.log('UserId from authorizer:', userId);
+
+        const getUserCommand = new AdminGetUserCommand({
+            UserPoolId: process.env.COGNITO_USER_POOL_ID,
+            Username: userId
+        });
+
+        console.log("Getting user details for:", userId);
         const response = await cognitoClient.send(getUserCommand);
-        console.log("Response:", response);
+        console.log("Cognito response:", response);
+
         const userAttributes = response.UserAttributes?.reduce((acc, attr) => {
             if (attr.Name && attr.Value) {
                 acc[attr.Name] = attr.Value;
@@ -38,6 +40,10 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
 
         return {
             statusCode: 200,
+            headers: {
+                'Access-Control-Allow-Origin': 'http://localhost:5173',
+                'Access-Control-Allow-Credentials': 'true'
+            },
             body: JSON.stringify({
                 userId: response.Username,
                 userAttributes,
@@ -50,17 +56,21 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
         let errorMessage = 'Internal server error';
 
         if (err instanceof Error) {
-            if (err.name === 'NotAuthorizedException') {
-                statusCode = 401;
-                errorMessage = 'Invalid or expired access token';
+            if (err.name === 'UserNotFoundException') {
+                statusCode = 404;
+                errorMessage = 'User not found';
             } else if (err.name === 'InvalidParameterException') {
                 statusCode = 400;
-                errorMessage = 'Invalid access token format';
+                errorMessage = 'Invalid parameters';
             }
         }
 
         return {
             statusCode,
+            headers: {
+                'Access-Control-Allow-Origin': 'http://localhost:5173',
+                'Access-Control-Allow-Credentials': 'true'
+            },
             body: JSON.stringify({
                 message: errorMessage,
                 error: err instanceof Error ? err.message : String(err)

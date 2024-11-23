@@ -47,6 +47,33 @@ export class HandTermCdkStack extends cdk.Stack {
       readFileSync(join(__dirname, '../lambda/cdkshared/endpoints.json'), 'utf8')
     );
 
+    // Create or import the Logs Bucket
+    let logsBucket: s3.IBucket;
+    try {
+      logsBucket = s3.Bucket.fromBucketName(this, 'LogsBucket', endpoints.aws.s3.bucketName);
+      console.log(`Using existing bucket: ${endpoints.aws.s3.bucketName}`);
+    } catch {
+      logsBucket = new s3.Bucket(this, 'LogsBucket', {
+        bucketName: endpoints.aws.s3.bucketName,
+        removalPolicy: RemovalPolicy.RETAIN,
+        autoDeleteObjects: false,
+      });
+      console.log(`Created new bucket: ${endpoints.aws.s3.bucketName}`);
+    }
+
+    // Create the HTTP API
+    const httpApi = new HttpApi(this, 'HandTermApi', {
+      apiName: 'HandTermService',
+      description: 'This service serves authentication requests.',
+      corsPreflight: {
+        allowOrigins: ['http://localhost:5173', 'https://handterm.com'],
+        allowMethods: [CorsHttpMethod.GET, CorsHttpMethod.POST, CorsHttpMethod.PUT, CorsHttpMethod.DELETE, CorsHttpMethod.OPTIONS],
+        allowHeaders: ['Content-Type', 'Authorization'],
+        allowCredentials: true,
+      },
+      createDefaultStage: true,
+    });
+
     // Cognito User Pool with custom attributes
     const userPool = new cognito.UserPool(this, 'HandTermUserPool', {
       userPoolName: 'HandTermUserPool',
@@ -80,91 +107,6 @@ export class HandTermCdkStack extends cdk.Stack {
     });
 
     this.userPool = userPool;
-
-    // Create or import the Logs Bucket
-    let logsBucket: s3.IBucket;
-    try {
-      logsBucket = s3.Bucket.fromBucketName(this, 'LogsBucket', endpoints.aws.s3.bucketName);
-      console.log(`Using existing bucket: ${endpoints.aws.s3.bucketName}`);
-    } catch {
-      logsBucket = new s3.Bucket(this, 'LogsBucket', {
-        bucketName: endpoints.aws.s3.bucketName,
-        removalPolicy: RemovalPolicy.RETAIN,
-        autoDeleteObjects: false,
-      });
-      console.log(`Created new bucket: ${endpoints.aws.s3.bucketName}`);
-    }
-
-    // Define the Lambda Execution Role
-    const lambdaExecutionRole = new iam.Role(this, 'LambdaExecutionRole', {
-      assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
-      managedPolicies: [
-        iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')
-      ],
-      inlinePolicies: {
-        CognitoAccess: new iam.PolicyDocument({
-          statements: [
-            new iam.PolicyStatement({
-              actions: [
-                'cognito-idp:AdminCreateUser',
-                'cognito-idp:AdminGetUser',
-                'cognito-idp:AdminUpdateUserAttributes',
-                'cognito-idp:AdminSetUserPassword',
-                'cognito-idp:ListUsers'
-              ],
-              resources: [userPool.userPoolArn]
-            })
-          ]
-        }),
-        S3Access: new iam.PolicyDocument({
-          statements: [
-            new iam.PolicyStatement({
-              actions: [
-                's3:GetObject',
-                's3:PutObject',
-                's3:ListBucket'
-              ],
-              resources: [
-                logsBucket.bucketArn,
-                `${logsBucket.bucketArn}/*`
-              ]
-            })
-          ]
-        })
-      }
-    });
-
-    // Define the Lambda Authorizer
-    const authorizerLogGroup = new logs.LogGroup(this, 'AuthorizerLogGroup', {
-      logGroupName: `${logPrefix}AuthorizerFunction`,
-      retention: logs.RetentionDays.ONE_WEEK,
-      removalPolicy: RemovalPolicy.DESTROY
-    });
-
-    const authorizerFunction = new lambda.Function(this, 'AuthorizerFunction', {
-      runtime: nodeRuntime,
-      handler: 'authorizer.handler',
-      role: lambdaExecutionRole,
-      code: lambda.Code.fromAsset('dist/lambda/authentication'),
-      logGroup: authorizerLogGroup,
-      environment: {
-        COGNITO_USER_POOL_ID: userPool.userPoolId,
-        COGNITO_APP_CLIENT_ID: props.cognitoAppClientId,
-      },
-    });
-
-    // Create the HTTP API
-    const httpApi = new HttpApi(this, 'HandTermApi', {
-      apiName: 'HandTermService',
-      description: 'This service serves authentication requests.',
-      corsPreflight: {
-        allowOrigins: ['http://localhost:5173', 'https://handterm.com'],
-        allowMethods: [CorsHttpMethod.GET, CorsHttpMethod.POST, CorsHttpMethod.PUT, CorsHttpMethod.DELETE, CorsHttpMethod.OPTIONS],
-        allowHeaders: ['Content-Type', 'Authorization'],
-        allowCredentials: true,
-      },
-      createDefaultStage: true,
-    });
 
     // Create the GitHub Identity Provider
     const githubProvider = new cognito.CfnUserPoolIdentityProvider(this, 'GitHubIdentityProvider', {
@@ -212,6 +154,67 @@ export class HandTermCdkStack extends cdk.Stack {
         userPassword: true,
         userSrp: true
       }
+    });
+
+    // Define the Lambda Execution Role after user pool creation
+    const lambdaExecutionRole = new iam.Role(this, 'LambdaExecutionRole', {
+      assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
+      managedPolicies: [
+        iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')
+      ],
+      inlinePolicies: {
+        CognitoAccess: new iam.PolicyDocument({
+          statements: [
+            new iam.PolicyStatement({
+              actions: [
+                'cognito-idp:AdminCreateUser',
+                'cognito-idp:AdminGetUser',
+                'cognito-idp:AdminUpdateUserAttributes',
+                'cognito-idp:AdminSetUserPassword',
+                'cognito-idp:ListUsers',
+                'cognito-idp:GetUser',
+                'cognito-idp:InitiateAuth'
+              ],
+              resources: [userPool.userPoolArn]
+            })
+          ]
+        }),
+        S3Access: new iam.PolicyDocument({
+          statements: [
+            new iam.PolicyStatement({
+              actions: [
+                's3:GetObject',
+                's3:PutObject',
+                's3:ListBucket'
+              ],
+              resources: [
+                logsBucket.bucketArn,
+                `${logsBucket.bucketArn}/*`
+              ]
+            })
+          ]
+        })
+      }
+    });
+
+    // Define the Lambda Authorizer
+    const authorizerLogGroup = new logs.LogGroup(this, 'AuthorizerLogGroup', {
+      logGroupName: `${logPrefix}AuthorizerFunction`,
+      retention: logs.RetentionDays.ONE_WEEK,
+      removalPolicy: RemovalPolicy.DESTROY
+    });
+
+    const authorizerFunction = new lambda.Function(this, 'AuthorizerFunction', {
+      runtime: nodeRuntime,
+      handler: 'authorizer.handler',
+      role: lambdaExecutionRole,
+      code: lambda.Code.fromAsset('dist/lambda/authentication'),
+      logGroup: authorizerLogGroup,
+      environment: {
+        COGNITO_USER_POOL_ID: userPool.userPoolId,
+        COGNITO_USER_POOL_CLIENT_ID: userPoolClient.userPoolClientId,
+        COGNITO_APP_CLIENT_ID: props.cognitoAppClientId
+      },
     });
 
     // Create the Lambda Authorizer

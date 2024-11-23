@@ -1,17 +1,24 @@
 import { APIGatewayAuthorizerResult } from 'aws-lambda';
 import { CognitoJwtVerifier } from 'aws-jwt-verify';
 import { CognitoIdentityProviderClient, GetUserCommand } from '@aws-sdk/client-cognito-identity-provider';
+import { CognitoJwtVerifierProperties, CognitoVerifyProperties } from 'node_modules/aws-jwt-verify/cognito-verifier';
 
+// Adjusted interface to be more explicit and compatible with JSON structure
 interface CognitoVerifyResult {
   sub: string;
+  iss: string;
+  client_id: string;
+  origin_jti: string;
+  event_id: string;
   token_use: string;
   scope: string;
   auth_time: number;
-  iss: string;
   exp: number;
   iat: number;
-  client_id: string;
-  username: string;
+  jti: string;
+  username?: string;
+  'cognito:groups'?: string[];
+  [key: string]: string | string[] | number | undefined;
 }
 
 interface HttpApiAuthorizerEvent {
@@ -39,11 +46,8 @@ const generatePolicy = (principalId: string, effect: 'Allow' | 'Deny', resource:
 });
 
 export async function handler(event: HttpApiAuthorizerEvent): Promise<APIGatewayAuthorizerResult> {
-  // console.log("Event:", event);
-
   // Extract token from identitySource or headers
   const authHeader = event.identitySource?.[0] || event.headers?.authorization;
-  console.log('Auth header:', authHeader);
   console.log('Route ARN:', event.routeArn);
 
   if (!authHeader) {
@@ -51,22 +55,24 @@ export async function handler(event: HttpApiAuthorizerEvent): Promise<APIGateway
   }
 
   const token = authHeader.replace('Bearer ', '');
-  console.log("Token:", token);
+
   try {
-    const verifierConfig = {
+    const verifierProperties: CognitoJwtVerifierProperties = {
       userPoolId: process.env.COGNITO_USER_POOL_ID!,
-      tokenUse: 'access',
+      tokenUse: 'access' as const,
       clientId: process.env.COGNITO_APP_CLIENT_ID!,
     };
-    console.log("verifierConfig:", verifierConfig);
+    console.log('Verifier config:', verifierProperties);
+    const verifier = CognitoJwtVerifier.create(verifierProperties);
 
-    const verifier = CognitoJwtVerifier.create({
-      userPoolId: process.env.COGNITO_USER_POOL_ID!,
+    // Verify the token with both arguments and use type assertion
+    const verifyProps: CognitoVerifyProperties = {
       tokenUse: 'access',
       clientId: process.env.COGNITO_APP_CLIENT_ID!,
-    });
+    }
+    console.log('Verify config:', verifyProps);
+    const payload = await verifier.verify(token, verifyProps) as CognitoVerifyResult;
 
-    const payload = await verifier.verify(token) as CognitoVerifyResult;
     console.log('Token payload:', payload);
 
     // Get user details from Cognito
@@ -77,9 +83,16 @@ export async function handler(event: HttpApiAuthorizerEvent): Promise<APIGateway
     // Extract GitHub username from Cognito attributes
     const githubUsername = userResponse.UserAttributes?.find(attr => attr.Name === 'custom:gh_username')?.Value;
 
-    return generatePolicy(payload.username, 'Allow', event.routeArn, {
-      userId: payload.username,
+    // Determine username, prioritizing different possible sources
+    const username = payload.username || payload.username || 'unknown';
+
+    // Include Cognito groups if available
+    const groups = payload['cognito:groups'];
+
+    return generatePolicy(username, 'Allow', event.routeArn, {
+      userId: username,
       githubUsername,
+      groups,
     });
   } catch (error) {
     console.error('Token verification failed:', error);
