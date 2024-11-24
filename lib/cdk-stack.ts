@@ -23,8 +23,6 @@ const nodeRuntime = lambda.Runtime.NODEJS_18_X;
 interface HandTermCdkStackProps extends cdk.StackProps {
   githubClientId: string;
   githubClientSecret: string;
-  githubAppId: string;
-  githubAppPrivateKey: string;
   cognitoAppClientId: string;
 }
 
@@ -137,7 +135,7 @@ export class HandTermCdkStack extends cdk.Stack {
 
     this.userPool = userPool;
 
-    // Create the GitHub Identity Provider
+    // Create the GitHub Identity Provider with updated scopes
     const githubProvider = new cognito.CfnUserPoolIdentityProvider(this, 'GitHubIdentityProvider', {
       userPoolId: userPool.userPoolId,
       providerName: 'GitHub',
@@ -147,7 +145,7 @@ export class HandTermCdkStack extends cdk.Stack {
         client_secret: props.githubClientSecret,
         attributes_request_method: 'GET',
         oidc_issuer: 'https://github.com',
-        authorize_scopes: 'openid user:email',
+        authorize_scopes: 'openid user:email repo read:user',  // Updated scopes for repo access
         authorize_url: 'https://github.com/login/oauth/authorize',
         token_url: 'https://github.com/login/oauth/access_token',
         attributes_url: 'https://api.github.com/user',
@@ -264,7 +262,7 @@ export class HandTermCdkStack extends cdk.Stack {
     const redirectUri = httpApi.url + endpoints.api.OAuthCallback.replace('/', '');
     console.log(redirectUri);
 
-    // Define common Lambda properties
+    // Define common Lambda properties (removed GitHub App related env vars)
     const defaultLambdaProps = {
       scope: this,
       role: lambdaExecutionRole,
@@ -274,8 +272,6 @@ export class HandTermCdkStack extends cdk.Stack {
         COGNITO_USER_POOL_CLIENT_ID: userPoolClient.userPoolClientId,
         GITHUB_CLIENT_ID: props.githubClientId,
         GITHUB_CLIENT_SECRET: props.githubClientSecret,
-        GITHUB_APP_ID: props.githubAppId,
-        GITHUB_APP_PRIVATE_KEY: props.githubAppPrivateKey,
         COGNITO_USER_POOL_ID: userPool.userPoolId,
         BUCKET_NAME: endpoints.aws.s3.bucketName,
         API_URL: httpApi.url || '',

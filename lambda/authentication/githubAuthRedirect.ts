@@ -19,7 +19,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     };
   }
 
-  const clientId = process.env.GITHUB_APP_ID;
+  const clientId = process.env.GITHUB_CLIENT_ID;  // Use OAuth App client ID, not GitHub App ID
   const redirectUri = `${process.env.REDIRECT_URI}`;
 
   if (!clientId || !redirectUri) {

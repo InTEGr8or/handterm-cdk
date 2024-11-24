@@ -11,18 +11,10 @@ const cognito = new CognitoIdentityProviderClient({ region: process.env.AWS_REGI
 
 async function updateCognitoAttributes(
   username: string,
-  accessToken: string,
-  refreshToken: string,
-  expiresAt: number,
-  refreshTokenExpiresAt: number,
   githubId: string,
   githubUsername: string
 ): Promise<void> {
   const attributes = [
-    { Name: CognitoAttribute.GH_TOKEN, Value: accessToken },
-    { Name: CognitoAttribute.GH_REFRESH_TOKEN, Value: refreshToken },
-    { Name: CognitoAttribute.GH_TOKEN_EXPIRES, Value: expiresAt.toString() },
-    { Name: CognitoAttribute.GH_REFRESH_EXPIRES, Value: refreshTokenExpiresAt.toString() },
     { Name: CognitoAttribute.GH_ID, Value: githubId },
     { Name: CognitoAttribute.GH_USERNAME, Value: githubUsername }
   ];
@@ -91,9 +83,10 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
     }
 
     // GitHub OAuth token exchange
+    console.log('Exchanging code for token with GitHub OAuth...');
     const tokenResponse = await axios.post('https://github.com/login/oauth/access_token', {
-      client_id: process.env.GITHUB_APP_ID,
-      client_secret: process.env.GITHUB_APP_PRIVATE_KEY,
+      client_id: process.env.GITHUB_CLIENT_ID,
+      client_secret: process.env.GITHUB_CLIENT_SECRET,
       code
     }, {
       headers: {
@@ -101,29 +94,38 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
       }
     });
 
-    const { access_token, refresh_token, expires_in, refresh_token_expires_in } = tokenResponse.data;
+    console.log('Token response received');
 
-    // Fetch GitHub user info
+    const { access_token } = tokenResponse.data;
+
+    if (!access_token) {
+      console.error('No access token received from GitHub:', tokenResponse.data);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ message: 'Failed to get access token from GitHub' })
+      };
+    }
+
+    // Fetch GitHub user info to get ID and username
+    console.log('Fetching GitHub user info...');
     const githubUserResponse = await axios.get('https://api.github.com/user', {
       headers: {
-        'Authorization': `token ${access_token}`
+        'Authorization': `Bearer ${access_token}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'User-Agent': 'HandTerm'
       }
     });
 
     const githubUser = githubUserResponse.data;
-
-    // Calculate token expiration timestamps
-    const now = Math.floor(Date.now() / 1000);
-    const expiresAt = now + parseInt(expires_in);
-    const refreshTokenExpiresAt = now + parseInt(refresh_token_expires_in);
+    console.log('GitHub user info:', {
+      id: githubUser.id,
+      login: githubUser.login
+    });
 
     // Update Cognito user attributes with GitHub info
+    // Note: We don't store the OAuth token since we'll use GitHub App installation tokens
     await updateCognitoAttributes(
       username,
-      access_token,
-      refresh_token,
-      expiresAt,
-      refreshTokenExpiresAt,
       githubUser.id.toString(),
       githubUser.login
     );
