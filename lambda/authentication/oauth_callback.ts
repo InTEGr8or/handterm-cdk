@@ -12,11 +12,13 @@ const cognito = new CognitoIdentityProviderClient({ region: process.env.AWS_REGI
 async function updateCognitoAttributes(
   username: string,
   githubId: string,
-  githubUsername: string
+  githubUsername: string,
+  accessToken: string
 ): Promise<void> {
   const attributes = [
     { Name: CognitoAttribute.GH_ID, Value: githubId },
-    { Name: CognitoAttribute.GH_USERNAME, Value: githubUsername }
+    { Name: CognitoAttribute.GH_USERNAME, Value: githubUsername },
+    { Name: CognitoAttribute.GH_TOKEN, Value: accessToken }
   ];
 
   await cognito.send(new AdminUpdateUserAttributesCommand({
@@ -122,12 +124,12 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
       login: githubUser.login
     });
 
-    // Update Cognito user attributes with GitHub info
-    // Note: We don't store the OAuth token since we'll use GitHub App installation tokens
+    // Update Cognito user attributes with GitHub info including OAuth token
     await updateCognitoAttributes(
       username,
       githubUser.id.toString(),
-      githubUser.login
+      githubUser.login,
+      access_token
     );
 
     const refererUrl = decodeURIComponent(decodedState.refererUrl) || 'https://handterm.com';
