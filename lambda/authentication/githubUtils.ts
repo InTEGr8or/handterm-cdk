@@ -6,6 +6,8 @@ import {
   AttributeType
 } from "@aws-sdk/client-cognito-identity-provider";
 import type { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
+import type { Octokit as OctokitType } from '@octokit/rest';
+import type { App as AppType } from '@octokit/app';
 import {
   CognitoAttribute as ImportedCognitoAttribute
 } from './authTypes';
@@ -15,8 +17,20 @@ type GitHubRepo = RestEndpointMethodTypes["repos"]["listForAuthenticatedUser"]["
 type GitHubTreeItem = RestEndpointMethodTypes["git"]["getTree"]["response"]["data"]["tree"][0];
 type GitHubBlobContent = RestEndpointMethodTypes["git"]["getBlob"]["response"]["data"];
 
-// Extended Octokit type with REST methods
-type OctokitWithRest = any;
+type InstallationResponse = {
+  id: number;
+  account: {
+    login: string;
+    id: number;
+    node_id: string;
+    avatar_url: string;
+    gravatar_id: string | null;
+    url: string;
+    html_url: string;
+    type: string;
+    site_admin: boolean;
+  } | null;
+};
 
 interface GitHubRepoTreeOptions {
   owner: string;
@@ -33,7 +47,7 @@ interface GitHubRepoListOptions {
 }
 
 interface GitHubTokenRefreshError extends Error {
-  code?: 'GITHUB_AUTH_REQUIRED' | 'GITHUB_TOKEN_REFRESH_FAILED';
+  code?: 'GITHUB_AUTH_REQUIRED' | 'GITHUB_TOKEN_REFRESH_FAILED' | 'GITHUB_APP_INSTALLATION_REQUIRED';
 }
 
 interface GitHubAuthResponse {
@@ -43,9 +57,14 @@ interface GitHubAuthResponse {
   expiresAt?: string;
 }
 
+interface GitHubAppInfo {
+  html_url: string;
+  name: string;
+}
+
 const cognito = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
 
-async function getOctokitModule() {
+async function getOctokitModule(): Promise<typeof OctokitType> {
   try {
     const { Octokit } = await import('@octokit/rest');
     return Octokit;
@@ -55,7 +74,7 @@ async function getOctokitModule() {
   }
 }
 
-async function getAppModule() {
+async function getAppModule(): Promise<typeof AppType> {
   try {
     const { App } = await import('@octokit/app');
     return App;
@@ -65,15 +84,51 @@ async function getAppModule() {
   }
 }
 
-export async function getValidGitHubToken(cognitoUserId: string): Promise<string> {
-  console.log('githubUtils: Getting valid GitHub token for user:', cognitoUserId);
+function validateGitHubAppConfig() {
+  console.log('Validating GitHub App configuration');
 
-  // Validate required GitHub App environment variables
-  if (!process.env.GITHUB_APP_ID || !process.env.GITHUB_APP_PRIVATE_KEY) {
+  const appId = process.env.GITHUB_APP_ID;
+  const privateKey = process.env.GITHUB_APP_PRIVATE_KEY;
+
+  console.log('GitHub App configuration:', {
+    appId: appId ? `${appId}` : undefined,
+    hasPrivateKey: !!privateKey
+  });
+
+  if (!appId || !privateKey) {
     const error = new Error('GitHub App configuration is missing') as GitHubTokenRefreshError;
     error.code = 'GITHUB_AUTH_REQUIRED';
     throw error;
   }
+
+  // Convert appId to number and validate
+  const numericAppId = Number(appId);
+  if (isNaN(numericAppId)) {
+    console.error('Invalid GitHub App ID:', {
+      rawValue: appId,
+      numericValue: numericAppId,
+      isNaN: isNaN(numericAppId)
+    });
+    const error = new Error('GitHub App ID must be a number') as GitHubTokenRefreshError;
+    error.code = 'GITHUB_AUTH_REQUIRED';
+    throw error;
+  }
+
+  return {
+    appId: numericAppId,
+    privateKey
+  };
+}
+
+export async function getValidGitHubToken(cognitoUserId: string): Promise<string> {
+  console.log('githubUtils: Getting valid GitHub token for user:', cognitoUserId);
+
+  // Validate GitHub App configuration
+  const config = validateGitHubAppConfig();
+  console.log('Using GitHub App config:', {
+    appId: config.appId,
+    hasPrivateKey: !!config.privateKey
+  });
 
   const user = await cognito.send(new AdminGetUserCommand({
     UserPoolId: process.env.COGNITO_USER_POOL_ID,
@@ -110,24 +165,37 @@ export async function getValidGitHubToken(cognitoUserId: string): Promise<string
   try {
     // Create GitHub App instance
     const App = await getAppModule();
+    console.log('Creating GitHub App instance with appId:', config.appId);
+
+    // Create the app instance
     const app = new App({
-      appId: process.env.GITHUB_APP_ID,
-      privateKey: process.env.GITHUB_APP_PRIVATE_KEY,
+      appId: config.appId,
+      privateKey: config.privateKey
     });
 
     // Find the installation for the specific user
-    const { data: installation } = await (app.octokit as OctokitWithRest).rest.apps.getUserInstallation({
-      username: githubUsername
-    });
+    console.log('Finding GitHub App installation for user:', githubUsername);
+    const { data: installations } = await app.octokit.request('GET /app/installations') as { data: InstallationResponse[] };
+    console.log('Found installations:', installations.length);
 
-    if (!installation.id) {
-      const error = new Error(`No GitHub App installation found for user: ${githubUsername}`) as GitHubTokenRefreshError;
-      error.code = 'GITHUB_AUTH_REQUIRED';
+    const userInstallation = installations.find(installation =>
+      installation.account?.login?.toLowerCase() === githubUsername.toLowerCase()
+    );
+
+    if (!userInstallation?.id) {
+      // Get the app's public page URL
+      const { data: appInfo } = await app.octokit.request('GET /app') as { data: GitHubAppInfo };
+      const installUrl = `${appInfo.html_url}/installations/new`;
+
+      const error = new Error(`GitHub App "${appInfo.name}" installation required. Please install the app at: ${installUrl}`) as GitHubTokenRefreshError;
+      error.code = 'GITHUB_APP_INSTALLATION_REQUIRED';
       throw error;
     }
 
+    console.log('Found installation ID:', userInstallation.id);
+
     // Get an installation Octokit instance
-    const octokit = await app.getInstallationOctokit(installation.id);
+    const octokit = await app.getInstallationOctokit(userInstallation.id);
     const auth = await octokit.auth() as GitHubAuthResponse;
 
     if (!auth.token) {
@@ -150,7 +218,19 @@ export async function getValidGitHubToken(cognitoUserId: string): Promise<string
     return newToken;
 
   } catch (error) {
-    console.error('Error refreshing GitHub token:', error);
+    console.error('Error refreshing GitHub token:', {
+      error,
+      errorName: error instanceof Error ? error.name : 'Unknown',
+      errorMessage: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
+
+    // If it's already a GitHubTokenRefreshError, rethrow it
+    if ((error as GitHubTokenRefreshError).code) {
+      throw error;
+    }
+
+    // Otherwise wrap it in our error type
     const refreshError = new Error('Failed to refresh GitHub token') as GitHubTokenRefreshError;
     refreshError.code = 'GITHUB_TOKEN_REFRESH_FAILED';
     throw refreshError;
