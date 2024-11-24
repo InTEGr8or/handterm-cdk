@@ -1,4 +1,3 @@
-import { APIGatewayAuthorizerResult } from 'aws-lambda';
 import { CognitoJwtVerifier } from 'aws-jwt-verify';
 import { CognitoIdentityProviderClient, GetUserCommand } from '@aws-sdk/client-cognito-identity-provider';
 import { CognitoJwtVerifierProperties, CognitoVerifyProperties } from 'node_modules/aws-jwt-verify/cognito-verifier';
@@ -30,28 +29,29 @@ interface HttpApiAuthorizerEvent {
   };
 }
 
-const generatePolicy = (principalId: string, effect: 'Allow' | 'Deny', resource: string, context?: Record<string, any>): APIGatewayAuthorizerResult => ({
-  principalId,
-  policyDocument: {
-    Version: '2012-10-17',
-    Statement: [
-      {
-        Action: 'execute-api:Invoke',
-        Effect: effect,
-        Resource: resource,
-      },
-    ],
-  },
-  context,
-});
+// Simple response format for HTTP API authorizer
+interface SimpleAuthorizerResponse {
+  isAuthorized: boolean;
+  context: AuthorizerContext;
+}
 
-export async function handler(event: HttpApiAuthorizerEvent): Promise<APIGatewayAuthorizerResult> {
+interface AuthorizerContext {
+  userId: string;
+  groups: string[];
+  githubUsername?: string;
+}
+
+export async function handler(event: HttpApiAuthorizerEvent): Promise<SimpleAuthorizerResponse> {
   // Extract token from identitySource or headers
   const authHeader = event.identitySource?.[0] || event.headers?.authorization;
   console.log('Route ARN:', event.routeArn);
 
   if (!authHeader) {
-    throw new Error('Unauthorized');
+    console.log('No authorization header found');
+    return {
+      isAuthorized: false,
+      context: { userId: '', groups: [] }
+    };
   }
 
   const token = authHeader.replace('Bearer ', '');
@@ -75,28 +75,42 @@ export async function handler(event: HttpApiAuthorizerEvent): Promise<APIGateway
 
     console.log('Token payload:', payload);
 
-    // Get user details from Cognito
-    const cognito = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
-    const getUserCommand = new GetUserCommand({ AccessToken: token });
-    const userResponse = await cognito.send(getUserCommand);
+    // Initialize context with data from JWT payload
+    const context: AuthorizerContext = {
+      userId: payload.username || 'unknown',
+      groups: payload['cognito:groups'] || []
+    };
 
-    // Extract GitHub username from Cognito attributes
-    const githubUsername = userResponse.UserAttributes?.find(attr => attr.Name === 'custom:gh_username')?.Value;
+    try {
+      // Try to get additional user details from Cognito
+      const cognito = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
+      const getUserCommand = new GetUserCommand({ AccessToken: token });
+      console.log('Getting user details with token');
+      const userResponse = await cognito.send(getUserCommand);
+      console.log('Cognito GetUser response:', userResponse);
 
-    // Determine username, prioritizing different possible sources
-    const username = payload.username || payload.username || 'unknown';
+      // Add GitHub username if available
+      const githubUsername = userResponse.UserAttributes?.find(attr => attr.Name === 'custom:gh_username')?.Value;
+      if (githubUsername) {
+        context.githubUsername = githubUsername;
+      }
+    } catch (error) {
+      // Log the error but don't fail authorization
+      console.error('Failed to get additional user details:', error);
+      // Continue with basic context from JWT
+    }
 
-    // Include Cognito groups if available
-    const groups = payload['cognito:groups'];
-
-    return generatePolicy(username, 'Allow', event.routeArn, {
-      userId: username,
-      githubUsername,
-      groups,
-    });
+    console.log('Returning authorized response with context:', context);
+    return {
+      isAuthorized: true,
+      context
+    };
   } catch (error) {
     console.error('Token verification failed:', error);
-    throw new Error('Unauthorized');
+    return {
+      isAuthorized: false,
+      context: { userId: '', groups: [] }
+    };
   }
 }
 

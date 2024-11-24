@@ -17,3 +17,5 @@ cdk.out
 .envrc
 .aider.tags.*
 !update-env.js
+
+handterm.github.private-key.pem

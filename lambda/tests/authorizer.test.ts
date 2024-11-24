@@ -74,7 +74,9 @@ describe('Authorizer', () => {
       headers: {}
     };
 
-    await expect(handler(event)).rejects.toThrow('Unauthorized');
+    const result = await handler(event);
+    expect(result.isAuthorized).toBe(false);
+    expect(result.context).toEqual({ userId: '', groups: [] });
   });
 
   it('should allow access when a valid token is provided in identitySource', async () => {
@@ -86,7 +88,7 @@ describe('Authorizer', () => {
     };
 
     const result = await handler(event);
-    expect(result.policyDocument.Statement[0].Effect).toBe('Allow');
+    expect(result.isAuthorized).toBe(true);
     expect(result.context).toHaveProperty('userId', 'testuser');
     expect(result.context).toHaveProperty('githubUsername', 'test-github-user');
   });
@@ -102,7 +104,7 @@ describe('Authorizer', () => {
     };
 
     const result = await handler(event);
-    expect(result.policyDocument.Statement[0].Effect).toBe('Allow');
+    expect(result.isAuthorized).toBe(true);
     expect(result.context).toHaveProperty('userId', 'testuser');
     expect(result.context).toHaveProperty('githubUsername', 'test-github-user');
   });
@@ -115,10 +117,12 @@ describe('Authorizer', () => {
       headers: {}
     };
 
-    await expect(handler(event)).rejects.toThrow('Unauthorized');
+    const result = await handler(event);
+    expect(result.isAuthorized).toBe(false);
+    expect(result.context).toEqual({ userId: '', groups: [] });
   });
 
-  it('should deny access when Cognito verification fails', async () => {
+  it('should still allow access when Cognito GetUser fails but token is valid', async () => {
     mockCognitoSend.mockRejectedValueOnce(new Error('Cognito verification failed'));
 
     const event: HttpApiAuthorizerEvent = {
@@ -128,6 +132,9 @@ describe('Authorizer', () => {
       headers: {}
     };
 
-    await expect(handler(event)).rejects.toThrow('Unauthorized');
+    const result = await handler(event);
+    expect(result.isAuthorized).toBe(true);
+    expect(result.context).toHaveProperty('userId', 'testuser');
+    expect(result.context).not.toHaveProperty('githubUsername');
   });
 });

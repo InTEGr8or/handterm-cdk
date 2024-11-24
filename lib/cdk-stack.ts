@@ -64,7 +64,7 @@ export class HandTermCdkStack extends cdk.Stack {
 
     // Create CloudWatch log group for API Gateway
     const apiLogGroup = new logs.LogGroup(this, 'ApiGatewayLogs', {
-      logGroupName: '/aws/apigateway/HandTermApi',
+      logGroupName: `/${logPrefix}/HandTermApi`,
       retention: logs.RetentionDays.ONE_WEEK,
       removalPolicy: RemovalPolicy.DESTROY
     });

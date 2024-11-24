@@ -29,7 +29,7 @@ TAIL=false
 while [[ $# -gt 0 ]]; do
     case $1 in
         -l|--limit)
-            STREAM_LIMIT="$2"
+            LOG_LIMIT="$2"
             shift 2
             ;;
         -t|--tail)
@@ -54,7 +54,7 @@ LOG_GROUP_NAME=$(aws logs describe-log-groups \
 
 if [ -z "$LOG_GROUP_NAME" ]; then
     echo "No log group found for function: $FUNCTION_NAME"
-    exit 1
+    return
 fi
 
 echo "Log group: $LOG_GROUP_NAME"
@@ -88,7 +88,7 @@ else
     # Escape the $ in [$LATEST]
     LATEST_LOG_STREAM=${LATEST_LOG_STREAM//\$/\\$}
 
-    echo "Latest log stream    echo "Fetching last $LOj
+    echo "Latest log stream: $LATEST_LOG_STREAM"
     echo "Fetching last $LOG_LIMIT log events..."
 
     # Construct the command string
