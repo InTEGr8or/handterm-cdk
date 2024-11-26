@@ -27,4 +27,3 @@ if [ ${#missing_vars[@]} -ne 0 ]; then
 fi
 
 echo "All required environment variables are set."
-return

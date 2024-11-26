@@ -1,9 +1,21 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { getRepoTree } from './githubUtils';
 
+/*
+  LOGICAL OVERVIEW
+  1. If there's no `/` in the repo, use githubUsername as the owner.
+  2. If there's a `/`, split the repo into owner and repoName.
+  3. If there's a path, use it to get the tree.
+  4. If there's no path, use the root to get the tree.
+  5. If the result is a blob content (file), format it for response.
+  6. If the result is a tree, return it.
+*/
+
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+  console.log('authorizer.lambda:', event.requestContext.authorizer?.lambda);
   try {
-    const userId = event.requestContext.authorizer?.lambda?.userId;
+    const { userId, githubUsername } = event.requestContext.authorizer?.lambda;
+    console.log('githubUsername:', githubUsername);
     if (!userId) {
       return { statusCode: 401, body: JSON.stringify({ message: 'Unauthorized' }) };
     }
