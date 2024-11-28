@@ -355,6 +355,13 @@ export class HandTermCdkStack extends cdk.Stack {
         authorizer: lambdaAuthorizer,
       },
       {
+        id: 'SaveRepoFileFunction',
+        handler: 'saveRepoFile.handler',
+        path: endpoints.api.SaveRepoFile,
+        methods: [HttpMethod.POST],
+        authorizer: lambdaAuthorizer,
+      },
+      {
         id: 'GitHubAuthRedirectFunction',
         handler: 'githubAuthRedirect.handler',
         path: endpoints.api.GitHubAuth,

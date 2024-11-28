@@ -28,6 +28,7 @@
         "PutFile": "/putFile",
         "ListRecentRepos": "/list-recent-repos",
         "GetRepoTree": "/get-repo-tree",
+        "SaveRepoFile": "/save-repo-file",
         "GitHubAuth": "/github_auth",
         "OAuthCallback": "/oauth_callback",
         "RequestLogger": "/requestLogger"

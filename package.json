@@ -5,7 +5,7 @@
   "license": "Apache-2.0",
   "type": "commonjs",
   "scripts": {
-    "cpCdk": "cp ../handterm/src/shared/endpoints.json lambda/cdkshared/ && mkdir -p dist/lambda/cdkshared && cp lambda/cdkshared/endpoints.json dist/lambda/cdkshared/ && echo 'endpoints.json copied'",
+    "cpCdk": "cp lambda/cdkshared/endpoints.json ../handterm/src/shared/ && mkdir -p dist/lambda/cdkshared && cp lambda/cdkshared/endpoints.json dist/lambda/cdkshared/ && echo 'endpoints.json copied'",
     "clean": "bash clean.sh",
     "build": "NODE_ENV=production tsc && npm run copy-lambda && npm run bundle-lambda",
     "bundle-lambda": "node -r esbuild-register esbuild.config.js",

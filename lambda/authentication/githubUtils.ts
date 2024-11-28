@@ -14,6 +14,7 @@ import {
 type GitHubRepo = RestEndpointMethodTypes["repos"]["listForAuthenticatedUser"]["response"]["data"][0];
 type GitHubTreeItem = RestEndpointMethodTypes["git"]["getTree"]["response"]["data"]["tree"][0];
 type GitHubBlobContent = RestEndpointMethodTypes["git"]["getBlob"]["response"]["data"];
+type GitHubCommitResponse = RestEndpointMethodTypes["repos"]["createOrUpdateFileContents"]["response"]["data"];
 
 interface GitHubRepoTreeOptions {
   owner: string;
@@ -27,6 +28,14 @@ interface GitHubRepoListOptions {
   sort?: 'created' | 'updated' | 'pushed' | 'full_name';
   direction?: 'asc' | 'desc';
   per_page?: number;
+}
+
+interface GitHubSaveFileOptions {
+  owner: string;
+  repo: string;
+  path: string;
+  content: string;
+  message: string;
 }
 
 interface GitHubTokenError extends Error {
@@ -45,7 +54,12 @@ async function getOctokitModule(): Promise<typeof OctokitType> {
   }
 }
 
-export async function getValidGitHubToken(cognitoUserId: string): Promise<string> {
+type githubTokenResponse = {
+  githubToken: string,
+  githubUsername: string,
+}
+
+export async function getValidGitHubToken(cognitoUserId: string): Promise<githubTokenResponse> {
   console.log('githubUtils: Getting GitHub token for user:', cognitoUserId);
 
   const user = await cognito.send(new AdminGetUserCommand({
@@ -67,7 +81,7 @@ export async function getValidGitHubToken(cognitoUserId: string): Promise<string
     throw error;
   }
 
-  return githubToken;
+  return {githubToken, githubUsername};
 }
 
 export async function listRepos(
@@ -91,9 +105,9 @@ export async function getRepoTree(
   userId: string,
   options: GitHubRepoTreeOptions
 ): Promise<GitHubTreeItem[] | GitHubBlobContent> {
-  const accessToken = await getValidGitHubToken(userId);
+  const accessTokenResponse = await getValidGitHubToken(userId);
   const Octokit = await getOctokitModule();
-  const octokit = new Octokit({ auth: accessToken });
+  const octokit = new Octokit({ auth: accessTokenResponse.githubToken });
 
   const response = await octokit.rest.git.getTree({
     owner: options.owner,
@@ -118,6 +132,51 @@ export async function getRepoTree(
   }
 
   return filteredTree;
+}
+
+export async function saveRepoFile(
+  userId: string,
+  options: GitHubSaveFileOptions
+): Promise<GitHubCommitResponse> {
+  const accessToken = await getValidGitHubToken(userId);
+  const Octokit = await getOctokitModule();
+  const octokit = new Octokit({ auth: accessToken });
+
+  // First get the current file (if it exists) to get its SHA
+  let currentFileSha: string | undefined;
+  try {
+    const { data: currentFile } = await octokit.repos.getContent({
+      owner: options.owner,
+      repo: options.repo,
+      path: options.path,
+    });
+
+    if ('sha' in currentFile) {
+      currentFileSha = currentFile.sha;
+    }
+  } catch (error) {
+    // File doesn't exist yet, which is fine
+    console.log('File does not exist yet, will create new file');
+  }
+
+  // Get the default branch
+  const { data: repoData } = await octokit.repos.get({
+    owner: options.owner,
+    repo: options.repo,
+  });
+
+  // Create or update file
+  const { data } = await octokit.repos.createOrUpdateFileContents({
+    owner: options.owner,
+    repo: options.repo,
+    path: options.path,
+    message: options.message,
+    content: Buffer.from(options.content).toString('base64'),
+    sha: currentFileSha,
+    branch: repoData.default_branch,
+  });
+
+  return data;
 }
 
 export const CognitoAttribute = ImportedCognitoAttribute;
