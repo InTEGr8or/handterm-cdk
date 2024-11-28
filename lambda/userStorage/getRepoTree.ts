@@ -1,5 +1,15 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { saveRepoFile as saveFile } from './githubUtils';
+import { getRepoTree } from '../authentication/githubUtils';
+
+/*
+  LOGICAL OVERVIEW
+  1. If there's no `/` in the repo, use githubUsername as the owner.
+  2. If there's a `/`, split the repo into owner and repoName.
+  3. If there's a path, use it to get the tree.
+  4. If there's no path, use the root to get the tree.
+  5. If the result is a blob content (file), format it for response.
+  6. If the result is a tree, return it.
+*/
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   console.log('authorizer.lambda:', event.requestContext.authorizer?.lambda);
@@ -15,54 +25,43 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       return { statusCode: 401, body: JSON.stringify({ message: 'Unauthorized' }) };
     }
 
-    // Get required parameters
-    const { repo, path, message } = event.queryStringParameters || {};
-    const content = event.body; // File content should be in request body
-
-    if (!repo || !path || !content || !message) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({
-          message: 'Missing required parameters. Need: repo, path, content, and message'
-        })
-      };
+    const { repo, path, sha } = event.queryStringParameters || {};
+    if (!repo) {
+      return { statusCode: 400, body: JSON.stringify({ message: 'Missing required parameter: repo' }) };
     }
 
-    // Parse owner and repo name
-    const [ownerParsed, repoName] = repo.includes('/') ? repo.split('/') : [githubUsername, repo];
-    const owner = ownerParsed === `~` ? githubUsername : ownerParsed
-    // Save the file
-    const result = await saveFile(userId, {
+    // Allow the `~` alias for the current user.
+    const [ownerParsed, repoName] = repo.split('/');
+    const owner = ownerParsed === '~' ? githubUsername : ownerParsed;
+    const result = await getRepoTree(userId, {
       owner,
       repo: repoName,
       path,
-      content,
-      message
+      sha,
+      recursive: path ? true : false
     });
 
-    // Handle possible null content in response
-    if (!result.content || !result.commit) {
-      throw new Error('Invalid response from GitHub API');
+    // If the result is a blob content (file), format it for response
+    if ('content' in result) {
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          content: Buffer.from(result.content, 'base64').toString('utf-8'),
+          encoding: result.encoding,
+          sha: result.sha,
+          size: result.size,
+        }),
+      };
     }
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify({
-        commit: {
-          sha: result.commit.sha,
-          url: result.commit.html_url,
-        },
-        content: {
-          sha: result.content.sha,
-        },
-      }),
-    };
+    // Otherwise, return the tree
+    return { statusCode: 200, body: JSON.stringify(result) };
   } catch (error) {
-    console.error('Error in saveRepoFile:', error);
+    console.error('Error in getRepoTree:', error);
     if (error instanceof Error) {
       if (error.message === 'GitHub tokens not found' ||
-          error.message.includes('GitHub refresh token is invalid or expired') ||
-          error.message === 'GitHub re-authentication required') {
+        error.message.includes('GitHub refresh token is invalid or expired') ||
+        error.message === 'GitHub re-authentication required') {
         return {
           statusCode: 401,
           body: JSON.stringify({
