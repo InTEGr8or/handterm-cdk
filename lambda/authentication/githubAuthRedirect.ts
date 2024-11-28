@@ -32,9 +32,9 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     };
   }
 
-  // Pass through the original state to maintain all user context
+  // Add repo scope to match CDK stack configuration
   const githubAuthUrl =
-    `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=read:user,user:email&state=${encodeURIComponent(state)}`;
+    `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=repo,read:user,user:email&state=${encodeURIComponent(state)}`;
 
   console.log('Redirecting to:', githubAuthUrl);
 

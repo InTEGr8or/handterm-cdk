@@ -60,6 +60,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
   } catch (error) {
     console.error('Error in saveRepoFile:', error);
     if (error instanceof Error) {
+      // Handle GitHub auth errors
       if (error.message === 'GitHub tokens not found' ||
         error.message.includes('GitHub refresh token is invalid or expired') ||
         error.message === 'GitHub re-authentication required') {
@@ -72,12 +73,24 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
           }),
         };
       }
+      // Handle GitHub token refresh errors
       if (error.message === 'Failed to refresh GitHub token') {
         return {
           statusCode: 401,
           body: JSON.stringify({
             message: 'Failed to refresh GitHub token. Please reauthenticate.',
             error: 'GITHUB_TOKEN_REFRESH_FAILED',
+            action: 'REAUTHENTICATE'
+          }),
+        };
+      }
+      // Handle permission errors (404 usually means no write access)
+      if (error.message.includes('Not Found') || error.message.includes('404')) {
+        return {
+          statusCode: 403,
+          body: JSON.stringify({
+            message: 'Missing required GitHub permissions. Please re-authenticate with write access.',
+            error: 'GITHUB_PERMISSION_DENIED',
             action: 'REAUTHENTICATE'
           }),
         };

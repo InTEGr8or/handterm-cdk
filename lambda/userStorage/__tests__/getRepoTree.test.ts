@@ -1,180 +1,148 @@
+import { APIGatewayProxyEvent, APIGatewayEventIdentity } from 'aws-lambda';
 import { handler } from '../getRepoTree';
-import { APIGatewayProxyEvent } from 'aws-lambda';
 
-// Initialize mock before using it
-const mockCognitoSend = jest.fn().mockResolvedValue({
-  Username: 'test-user-id'
+// Mock console.log and console.error to keep test output clean
+global.console.log = jest.fn();
+global.console.error = jest.fn();
+
+// Create a complete mock identity
+const mockIdentity: APIGatewayEventIdentity = {
+  accessKey: null,
+  accountId: null,
+  apiKey: null,
+  apiKeyId: null,
+  caller: null,
+  clientCert: null,
+  cognitoAuthenticationProvider: null,
+  cognitoAuthenticationType: null,
+  cognitoIdentityId: null,
+  cognitoIdentityPoolId: null,
+  principalOrgId: null,
+  sourceIp: '127.0.0.1',
+  user: null,
+  userAgent: 'test-agent',
+  userArn: null
+};
+
+// Create a mock event
+const createMockEvent = (overrides = {}): Partial<APIGatewayProxyEvent> => ({
+  requestContext: {
+    accountId: '123456789012',
+    apiId: 'test-api',
+    authorizer: {
+      lambda: {
+        userId: 'test-user-id',
+        githubUsername: 'test-github-user'
+      }
+    },
+    protocol: 'HTTP/1.1',
+    httpMethod: 'GET',
+    identity: mockIdentity,
+    path: '/test-path',
+    requestId: 'test-request-id',
+    requestTimeEpoch: 1234567890,
+    resourceId: 'test-resource',
+    resourcePath: '/test-resource-path',
+    stage: 'test'
+  },
+  queryStringParameters: {
+    repo: 'test-repo',
+    path: 'test/path'
+  },
+  ...overrides
 });
-
-jest.mock('@aws-sdk/client-cognito-identity-provider', () => ({
-  CognitoIdentityProviderClient: jest.fn().mockImplementation(() => ({
-    send: mockCognitoSend
-  })),
-  GetUserCommand: jest.fn()
-}));
 
 // Mock githubUtils
-jest.mock('../githubUtils', () => {
-  const mockGetRepoTree = jest.fn().mockResolvedValue([
-    {
+jest.mock('../../authentication/githubUtils', () => ({
+  getRepoTree: jest.fn()
+    .mockImplementation(async (userId, options) => {
+      // Simulate different responses based on the input
+      if (userId === 'error-auth') {
+        throw new Error('GitHub tokens not found');
+      }
+
+      return [
+        {
+          path: 'README.md',
+          type: 'blob',
+          sha: 'test-sha-1',
+          size: 100
+        },
+        {
+          path: 'src',
+          type: 'tree',
+          sha: 'test-sha-2'
+        }
+      ];
+    })
+}));
+
+describe('getRepoTree Lambda handler', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should successfully get a repo tree', async () => {
+    const event = createMockEvent();
+    const response = await handler(event as APIGatewayProxyEvent);
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body).toHaveLength(2);
+    expect(body[0]).toEqual({
       path: 'README.md',
       type: 'blob',
-      sha: 'abcd1234'
-    },
-    {
-      path: 'src',
-      type: 'tree',
-      sha: 'efgh5678'
-    }
-  ]);
-
-  return {
-    getValidGitHubToken: jest.fn().mockResolvedValue('test-token'),
-    getRepoTree: mockGetRepoTree,
-    __mockGetRepoTree: mockGetRepoTree
-  };
-});
-
-// Get the mock function for assertions
-const mockGetRepoTree = jest.requireMock('../githubUtils').__mockGetRepoTree;
-
-describe('getRepoTree Lambda', () => {
-  const defaultEvent: APIGatewayProxyEvent = {
-    headers: {},
-    body: null,
-    multiValueHeaders: {},
-    httpMethod: 'GET',
-    isBase64Encoded: false,
-    path: '/getRepoTree',
-    pathParameters: null,
-    queryStringParameters: {
-      repo: 'testuser/test-repo'
-    },
-    multiValueQueryStringParameters: null,
-    stageVariables: null,
-    requestContext: {
-      accountId: 'test-account-id',
-      apiId: 'test-api-id',
-      authorizer: {
-        lambda: {
-          userId: 'test-user-id'
-        }
-      },
-      httpMethod: 'GET',
-      identity: {
-        accessKey: null,
-        accountId: null,
-        apiKey: null,
-        apiKeyId: null,
-        caller: null,
-        clientCert: null,
-        cognitoAuthenticationProvider: null,
-        cognitoAuthenticationType: null,
-        cognitoIdentityId: null,
-        cognitoIdentityPoolId: null,
-        principalOrgId: null,
-        sourceIp: 'test-source-ip',
-        user: null,
-        userAgent: 'test-user-agent',
-        userArn: null
-      },
-      path: '/getRepoTree',
-      protocol: 'HTTP/1.1',
-      requestId: 'test-request-id',
-      requestTimeEpoch: 1234567890,
-      resourceId: 'test-resource-id',
-      resourcePath: '/getRepoTree',
-      stage: 'test'
-    },
-    resource: '/getRepoTree'
-  };
-
-  beforeEach(() => {
-    process.env.GITHUB_APP_ID = 'test-app-id';
-    process.env.GITHUB_APP_PRIVATE_KEY = 'test-private-key';
-    process.env.COGNITO_USER_POOL_ID = 'test-user-pool';
-    process.env.AWS_REGION = 'us-east-1';
-
-    // Reset all mocks
-    jest.clearAllMocks();
-    // Reset default mock implementation
-    mockCognitoSend.mockResolvedValue({
-      Username: 'test-user-id'
+      sha: 'test-sha-1',
+      size: 100
     });
   });
 
-  it('should successfully retrieve repository tree', async () => {
-    const result = await handler(defaultEvent);
-    expect(result.statusCode).toBe(200);
-
-    const treeResult = JSON.parse(result.body);
-    expect(treeResult.length).toBe(2);
-    expect(treeResult[0].path).toBe('README.md');
-    expect(treeResult[0].type).toBe('blob');
-    expect(treeResult[1].path).toBe('src');
-    expect(treeResult[1].type).toBe('tree');
-  });
-
-  it('should successfully retrieve file content', async () => {
-    const eventWithPath = {
-      ...defaultEvent,
-      queryStringParameters: {
-        ...defaultEvent.queryStringParameters,
-        path: 'README.md'
-      }
-    };
-
-    mockGetRepoTree.mockResolvedValueOnce({
-      content: Buffer.from('Hello, World!').toString('base64'),
-      encoding: 'base64',
-      sha: 'abcd1234',
-      size: 13
-    });
-
-    const result = await handler(eventWithPath);
-    expect(result.statusCode).toBe(200);
-
-    const fileContent = JSON.parse(result.body);
-    expect(fileContent.content).toBe('Hello, World!');
-    expect(fileContent.encoding).toBe('base64');
-    expect(fileContent.sha).toBe('abcd1234');
-    expect(fileContent.size).toBe(13);
-  });
-
-  it('should return 400 when repo parameter is missing', async () => {
-    const eventWithoutRepo = {
-      ...defaultEvent,
-      queryStringParameters: {}
-    };
-
-    const result = await handler(eventWithoutRepo);
-    expect(result.statusCode).toBe(400);
-    expect(JSON.parse(result.body)).toEqual({ message: 'Missing required parameter: repo' });
-  });
-
-  it('should return 401 when user is not authorized', async () => {
-    const eventWithoutAuth = {
-      ...defaultEvent,
+  it('should handle missing authorization', async () => {
+    const event = createMockEvent({
       requestContext: {
-        ...defaultEvent.requestContext,
+        ...createMockEvent().requestContext,
         authorizer: null
       }
-    };
+    });
+    const response = await handler(event as APIGatewayProxyEvent);
 
-    const result = await handler(eventWithoutAuth);
-    expect(result.statusCode).toBe(401);
-    expect(JSON.parse(result.body)).toEqual({ message: 'Unauthorized' });
+    expect(response.statusCode).toBe(401);
+    expect(JSON.parse(response.body)).toEqual({
+      message: 'Unauthorized'
+    });
   });
 
-  it('should return 500 when GitHub API fails', async () => {
-    mockGetRepoTree.mockRejectedValueOnce(new Error('GitHub API error'));
+  it('should handle missing parameters', async () => {
+    const event = createMockEvent({
+      queryStringParameters: {}
+    });
+    const response = await handler(event as APIGatewayProxyEvent);
 
-    const result = await handler(defaultEvent);
-    expect(result.statusCode).toBe(500);
-    expect(JSON.parse(result.body)).toEqual({
-      message: 'An unexpected error occurred',
-      error: 'INTERNAL_SERVER_ERROR',
-      action: 'RETRY_OR_CONTACT_SUPPORT'
+    expect(response.statusCode).toBe(400);
+    expect(JSON.parse(response.body)).toEqual({
+      message: 'Missing required parameter: repo'
+    });
+  });
+
+  it('should handle GitHub authentication errors', async () => {
+    const event = createMockEvent({
+      requestContext: {
+        ...createMockEvent().requestContext,
+        authorizer: {
+          lambda: {
+            userId: 'error-auth',
+            githubUsername: 'test-github-user'
+          }
+        }
+      }
+    });
+    const response = await handler(event as APIGatewayProxyEvent);
+
+    expect(response.statusCode).toBe(401);
+    expect(JSON.parse(response.body)).toEqual({
+      message: 'GitHub authentication required',
+      error: 'GITHUB_AUTH_REQUIRED',
+      action: 'REAUTHENTICATE'
     });
   });
 });

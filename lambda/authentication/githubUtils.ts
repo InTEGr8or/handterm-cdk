@@ -138,9 +138,9 @@ export async function saveRepoFile(
   userId: string,
   options: GitHubSaveFileOptions
 ): Promise<GitHubCommitResponse> {
-  const accessToken = await getValidGitHubToken(userId);
+  const githubTokenResponse = await getValidGitHubToken(userId);
   const Octokit = await getOctokitModule();
-  const octokit = new Octokit({ auth: accessToken });
+  const octokit = new Octokit({ auth: githubTokenResponse.githubToken });
 
   // First get the current file (if it exists) to get its SHA
   let currentFileSha: string | undefined;
