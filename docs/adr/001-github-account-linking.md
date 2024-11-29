@@ -1,39 +1,42 @@
 # ADR 001: GitHub Account Linking Strategy
 
 ## Status
-Updated - Simplified to OAuth-only approach
+Updated - Switched to Device Flow for CLI-friendly authentication
 
 ## Context
 HandTerm needs to securely link GitHub accounts to existing Cognito users and provide secure API access to GitHub repositories. The key challenges are:
 
 1. Ensuring secure association between GitHub and Cognito accounts
 2. Managing GitHub OAuth tokens
-3. Maintaining user context through the OAuth flow
-4. Providing secure API access to repositories
+3. Supporting 2FA and modern auth methods (Passkeys)
+4. Providing a CLI-friendly authentication experience
+5. Maintaining security while improving usability
 
 ## Decision
-We will implement GitHub integration using OAuth only, with appropriate scopes for repository access:
+We will implement GitHub integration using GitHub's Device Flow, which is specifically designed for CLI applications:
 
-### OAuth Flow
-Uses GitHub OAuth App for both account linking and API access:
+### Device Flow
+Uses GitHub's OAuth Device Flow for account linking:
 - Environment Variables:
   - GITHUB_CLIENT_ID: OAuth App client ID
   - GITHUB_CLIENT_SECRET: OAuth App client secret
 - OAuth Scopes:
-  - `openid` - OpenID Connect authentication
   - `user:email` - Access user email addresses
   - `repo` - Full control of private repositories
   - `read:user` - Read user profile data
 - Flow:
-  1. User initiates GitHub sign-in
-  2. OAuth redirect to GitHub with client_id and scopes
-  3. GitHub redirects back with code
-  4. Backend exchanges code for access token
-  5. Store GitHub user ID, username, and access token in Cognito attributes
+  1. User runs `github -l` in HandTerm
+  2. HandTerm gets device code from GitHub
+  3. HandTerm opens browser to verification URL and copies code to clipboard
+  4. User completes auth (with 2FA if enabled)
+  5. HandTerm polls for completion
+  6. Store GitHub tokens in Cognito attributes
 
 ### Implementation Details
-1. OAuth Flow:
-   - Uses oauth_callback.ts for handling GitHub OAuth
+1. Device Flow:
+   - Uses GitHub's Device Flow API endpoints
+   - Automatically opens browser and copies code
+   - Handles 2FA/Passkey authentication seamlessly
    - Stores GitHub info in Cognito:
      - custom:gh_id: GitHub user ID
      - custom:gh_username: GitHub username
@@ -47,16 +50,18 @@ Uses GitHub OAuth App for both account linking and API access:
 ## Consequences
 
 ### Positive
-- Simpler implementation with single authentication method
-- Direct repository access through OAuth token
-- No need for additional installation steps
-- Standard OAuth flow that users are familiar with
-- Follows GitHub's recommended practices for web applications
+- Better CLI user experience
+- Proper support for 2FA and Passkeys
+- No need to manually copy/paste URLs
+- Can authenticate from any device
+- More secure than storing PATs
+- Works well with terminal-based workflows
 
 ### Negative
+- Requires polling for auth completion
+- Still needs browser for initial auth
 - OAuth tokens need to be managed and stored
 - Need to handle token expiration and refresh
-- Broader repository access scope than might be needed
 
 ## Implementation Notes
 1. Environment Variables:
@@ -67,14 +72,18 @@ Uses GitHub OAuth App for both account linking and API access:
    ```
 
 2. Key Files:
-   - oauth_callback.ts: Handles OAuth flow and token management
+   - githubAuthDevice.ts: Handles Device Flow authentication
    - githubUtils.ts: Handles all API access using OAuth token
 
-3. Documentation:
-   - Updated grant_flow.md with OAuth flow diagram
-   - Added security considerations
-   - Documented token management strategy
+3. User Experience:
+   ```bash
+   $ github -l
+   Opening browser for GitHub authentication...
+   Device code copied to clipboard!
+   Waiting for authentication...
+   Successfully linked GitHub account!
+   ```
 
 ## Source Documents
-- [GitHub OAuth Apps](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps)
+- [GitHub Device Flow](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps#device-flow)
 - [GitHub OAuth Scopes](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps)

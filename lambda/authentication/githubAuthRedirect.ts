@@ -32,9 +32,9 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     };
   }
 
-  // Add repo scope to match CDK stack configuration
+  // Use space-separated scopes as per GitHub OAuth documentation
   const githubAuthUrl =
-    `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=repo,read:user,user:email&state=${encodeURIComponent(state)}`;
+    `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=repo%20read:user%20user:email&state=${encodeURIComponent(state)}`;
 
   console.log('Redirecting to:', githubAuthUrl);
 

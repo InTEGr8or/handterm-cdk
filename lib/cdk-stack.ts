@@ -362,6 +362,13 @@ export class HandTermCdkStack extends cdk.Stack {
         authorizer: lambdaAuthorizer,
       },
       {
+        id: 'UnlinkGitHubFunction',
+        handler: 'unlinkGitHub.handler',
+        path: endpoints.api.UnlinkGitHub,
+        methods: [HttpMethod.POST],
+        authorizer: lambdaAuthorizer,
+      },
+      {
         id: 'GitHubAuthRedirectFunction',
         handler: 'githubAuthRedirect.handler',
         path: endpoints.api.GitHubAuth,
@@ -373,6 +380,20 @@ export class HandTermCdkStack extends cdk.Stack {
         path: endpoints.api.OAuthCallback,
         methods: [HttpMethod.GET, HttpMethod.POST],
       },
+      {
+        id: 'GitHubDeviceCodeFunction',
+        handler: 'githubAuthDevice.handler',
+        path: endpoints.api.GitHubDeviceCode,
+        methods: [HttpMethod.POST],
+        authorizer: lambdaAuthorizer,
+      },
+      {
+        id: 'GitHubDevicePollFunction',
+        handler: 'githubDevicePoll.handler',
+        path: endpoints.api.GitHubDevicePoll,
+        methods: [HttpMethod.POST],
+        authorizer: lambdaAuthorizer,
+      },
     ];
 
     // Create all Lambda integrations
@@ -381,9 +402,13 @@ export class HandTermCdkStack extends cdk.Stack {
         ...defaultLambdaProps,
         id: integration.id,
         handler: integration.handler,
-        codePath: integration.id.includes('User') || integration.id.includes('Log') || integration.id.includes('File')
-          ? 'dist/lambda/userStorage'
-          : 'dist/lambda/authentication',
+        codePath:
+          integration.id.includes('User')
+            || integration.id.includes('Log')
+            || integration.id.includes('File')
+            || (integration.id.includes('GitHub') && !integration.id.includes('Auth'))
+            ? 'dist/lambda/userStorage'
+            : 'dist/lambda/authentication',
         path: integration.path,
         methods: integration.methods,
         authorizer: integration.authorizer,

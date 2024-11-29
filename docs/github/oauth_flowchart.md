@@ -1,40 +1,57 @@
-```mermaid
 flowchart TB
-    A[User] -->|1. Initiates GitHub Auth| B(Frontend)
-    B -->|2. Redirects to GitHub| C[GitHub OAuth]
-    C -->|3. User Authorizes App| D[GitHub Callback]
-    D -->|4. Returns Code| E[Backend OAuth Callback]
-    E -->|5. Exchanges Code for Tokens| F[GitHub API]
-    F -->|6. Returns Access & Refresh Tokens| E
-    E -->|7. Stores Tokens in Cognito| G[Cognito User Pool]
-    G -->|8. Confirms Storage| E
-    E -->|9. Redirects with Success| B
-    B -->|10. Requests GitHub Data| H[Backend API]
-    H -->|11. Retrieves Tokens| G
-    H -->|12. Checks Token Expiry| I{Token Expired?}
-    I -->|No| J[Use Access Token]
-    I -->|Yes| K[Refresh Token Flow]
-    K -->|13. Requests New Tokens| F
-    F -->|14. Returns New Tokens| K
-    K -->|15. Updates Tokens| G
-    K --> J
-    J -->|16. Makes API Request| L[GitHub API]
-    L -->|17. Returns Data| H
-    H -->|18. Sends Data| B
-    B -->|19. Displays Data| A
+    A[User] -->|1. Runs github -l| B(HandTerm)
+    B -->|2. Requests Device Code| C[Backend API]
+    C -->|3. Gets Device Code| D[GitHub API]
+    D -->|4. Returns Codes & URL| C
+    C -->|5. Returns Auth Info| B
+    B -->|6. Opens Browser| E[Browser]
+    B -->|7. Copies Code| F[Clipboard]
+    E -->|8. User Enters Code| G[GitHub OAuth]
+    G -->|9. User Completes 2FA| H[GitHub Auth]
 
-subgraph "Data Elements"
-    DE1[Access Token]
-    DE2[Refresh Token]
-    DE3[Token Expiry]
-    DE4[GitHub Username]
-    DE5[GitHub User ID]
-end
+    subgraph "Polling Loop"
+        I[HandTerm] -->|10. Check Status| J[Backend API]
+        J -->|11. Check Token| K[GitHub API]
+        K -->|12. Return Status| J
+        J -->|13. Return Status| I
+    end
 
-subgraph "Refresh Process"
-    RP1[Check Token Expiry]
-    RP2[Use Refresh Token]
-    RP3[Update Tokens in Cognito]
-    RP4[Use New Access Token]
-end
-```
+    H -->|14. Auth Complete| K
+    K -->|15. Returns Access Token| J
+    J -->|16. Stores Token| L[Cognito User Pool]
+    L -->|17. Confirms Storage| J
+    J -->|18. Returns Success| I
+    I -->|19. Shows Success| A
+
+    subgraph "Subsequent API Calls"
+        M[HandTerm] -->|20. Request Data| N[Backend API]
+        N -->|21. Get Token| L
+        N -->|22. Use Token| O[GitHub API]
+        O -->|23. Return Data| N
+        N -->|24. Return Data| M
+        M -->|25. Display Data| A
+    end
+
+    subgraph "Data Elements"
+        DE1[Device Code]
+        DE2[User Code]
+        DE3[Verification URI]
+        DE4[Access Token]
+        DE5[GitHub Username]
+        DE6[GitHub User ID]
+    end
+
+    subgraph "Token Management"
+        TM1[Check Token Expiry]
+        TM2[Request New Token]
+        TM3[Update Token in Cognito]
+        TM4[Use New Token]
+    end
+
+    subgraph "User Experience"
+        UX1[Single Command]
+        UX2[Auto Browser Launch]
+        UX3[Code in Clipboard]
+        UX4[2FA Support]
+        UX5[Status Updates]
+    end

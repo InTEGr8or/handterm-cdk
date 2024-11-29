@@ -2,6 +2,7 @@
 import {
   CognitoIdentityProviderClient,
   AdminGetUserCommand,
+  AdminUpdateUserAttributesCommand,
   AttributeType
 } from "@aws-sdk/client-cognito-identity-provider";
 import type { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
@@ -82,6 +83,26 @@ export async function getValidGitHubToken(cognitoUserId: string): Promise<github
   }
 
   return {githubToken, githubUsername};
+}
+
+export async function unlinkGitHub(cognitoUserId: string): Promise<void> {
+  console.log('githubUtils: Unlinking GitHub for user:', cognitoUserId);
+
+  // Clear GitHub-related attributes
+  const attributes = [
+    { Name: ImportedCognitoAttribute.GH_TOKEN, Value: '' },
+    { Name: ImportedCognitoAttribute.GH_REFRESH_TOKEN, Value: '' },
+    { Name: ImportedCognitoAttribute.GH_TOKEN_EXPIRES, Value: '0' },
+    { Name: ImportedCognitoAttribute.GH_REFRESH_EXPIRES, Value: '0' },
+    { Name: ImportedCognitoAttribute.GH_USERNAME, Value: '' },
+    { Name: ImportedCognitoAttribute.GH_ID, Value: '' }
+  ];
+
+  await cognito.send(new AdminUpdateUserAttributesCommand({
+    UserPoolId: process.env.COGNITO_USER_POOL_ID,
+    Username: cognitoUserId,
+    UserAttributes: attributes
+  }));
 }
 
 export async function listRepos(

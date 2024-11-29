@@ -29,7 +29,10 @@
         "ListRecentRepos": "/list-recent-repos",
         "GetRepoTree": "/get-repo-tree",
         "SaveRepoFile": "/save-repo-file",
+        "UnlinkGitHub": "/unlink-github",
         "GitHubAuth": "/github_auth",
+        "GitHubDeviceCode": "/github-device-code",
+        "GitHubDevicePoll": "/github-device-poll",
         "OAuthCallback": "/oauth_callback",
         "RequestLogger": "/requestLogger"
     }
