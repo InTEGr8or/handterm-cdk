@@ -16,7 +16,7 @@ interface LambdaIntegrationProps {
   codePath: string;
   environment: { [key: string]: string };
   httpApi: HttpApi;
-  path: string;
+  apiPath: string;
   methods: HttpMethod[];
   authorizer?: HttpLambdaAuthorizer;
   layers?: LayerVersion[];
@@ -32,13 +32,14 @@ export function createLambdaIntegration(props: LambdaIntegrationProps) {
   });
 
   const lambdaFunction = new LambdaFunction(props.scope, props.id, {
-    runtime: Runtime.NODEJS_18_X,
+    runtime: Runtime.NODEJS_20_X,
     handler: props.handler,
     role: props.role,
     code: Code.fromAsset(props.codePath),
     environment: {
       ...props.environment,
     },
+    description: props.codePath,
     layers: props.layers,
     logGroup: logGroup,
     timeout: props.timeout || Duration.seconds(5),
@@ -56,7 +57,7 @@ export function createLambdaIntegration(props: LambdaIntegrationProps) {
   const integration = new HttpLambdaIntegration(`${props.id}-integration`, lambdaFunction);
 
   props.httpApi.addRoutes({
-    path: props.path,
+    path: props.apiPath,
     methods: props.methods,
     integration: integration,
     authorizer: props.authorizer,

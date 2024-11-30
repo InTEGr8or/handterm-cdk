@@ -32,6 +32,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
     // If we got an access token, auth is complete
     if (tokenData.access_token) {
+      console.log("TokenData:", tokenData);
       return {
         statusCode: 200,
         body: JSON.stringify({

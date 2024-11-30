@@ -12,6 +12,14 @@ HandTerm needs to securely link GitHub accounts to existing Cognito users and pr
 4. Providing a CLI-friendly authentication experience
 5. Maintaining security while improving usability
 
+## Relevant Files
+
+* [The CDK stack](/home/mstouffer/repos/handterm-proj/handterm-cdk/lib/cdk-stack.ts)
+* [GitHub utility functions](/home/mstouffer/repos/handterm-proj/handterm-cdk/lambda/authentication/githubUtils.ts)
+* [client-side call to the function](/home/mstouffer/repos/handterm-proj/handterm/src/commands/GitHubCommand.ts)
+* [Device Auth](/home/mstouffer/repos/handterm-proj/handterm-cdk/lambda/authentication/githubAuthDevice.ts)
+* [Device Polling](/home/mstouffer/repos/handterm-proj/handterm-cdk/lambda/authentication/githubDevicePoll.ts)
+
 ## Decision
 We will implement GitHub integration using GitHub's Device Flow, which is specifically designed for CLI applications:
 

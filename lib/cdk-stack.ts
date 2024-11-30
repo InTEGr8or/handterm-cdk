@@ -18,7 +18,7 @@ import { CfnStage } from 'aws-cdk-lib/aws-apigatewayv2';
 
 const stackName = 'HandTermCdkStack';
 const logPrefix = `/${stackName}/`;
-const nodeRuntime = lambda.Runtime.NODEJS_18_X;
+const nodeRuntime = lambda.Runtime.NODEJS_20_X;
 
 interface HandTermCdkStackProps extends cdk.StackProps {
   githubClientId: string;
@@ -26,15 +26,6 @@ interface HandTermCdkStackProps extends cdk.StackProps {
   cognitoAppClientId: string;
 }
 
-// Define the structure for Lambda integrations
-interface LambdaIntegration {
-  id: string;
-  handler: string;
-  path: string;
-  methods: HttpMethod[];
-  authorizer?: HttpLambdaAuthorizer;
-  timeout?: Duration;
-}
 
 export class HandTermCdkStack extends cdk.Stack {
   public userPool: cognito.UserPool;
@@ -255,7 +246,7 @@ export class HandTermCdkStack extends cdk.Stack {
     // Create the Octokit Layer
     const octokitLayer = new lambda.LayerVersion(this, 'OctokitLayer', {
       code: lambda.Code.fromAsset('lambdaLayer'),
-      compatibleRuntimes: [lambda.Runtime.NODEJS_18_X],
+      compatibleRuntimes: [nodeRuntime],
       description: 'Octokit REST API client',
     });
 
@@ -280,69 +271,81 @@ export class HandTermCdkStack extends cdk.Stack {
       layers: [octokitLayer],
     };
 
+    // Define the structure for Lambda integrations
+    interface LambdaIntegration {
+      id: string;
+      handler: string;
+      apiPath: string;
+      codePath?: string;
+      methods: HttpMethod[];
+      authorizer?: HttpLambdaAuthorizer;
+      timeout?: Duration;
+    }
+
     // Create Lambda integrations for each endpoint
     const lambdaIntegrations: LambdaIntegration[] = [
       {
         id: 'SignUpFunction',
         handler: 'signUp.handler',
-        path: endpoints.api.SignUp,
+        apiPath: endpoints.api.SignUp,
         methods: [HttpMethod.POST],
       },
       {
         id: 'ConfirmSignUpFunction',
         handler: 'confirmSignUp.handler',
-        path: endpoints.api.ConfirmSignUp,
+        apiPath: endpoints.api.ConfirmSignUp,
         methods: [HttpMethod.POST],
       },
       {
         id: 'SignInFunction',
         handler: 'signIn.handler',
-        path: endpoints.api.SignIn,
+        apiPath: endpoints.api.SignIn,
         methods: [HttpMethod.POST],
       },
       {
         id: 'SignOutFunction',
         handler: 'signOut.handler',
-        path: endpoints.api.SignOut,
+        apiPath: endpoints.api.SignOut,
         methods: [HttpMethod.GET, HttpMethod.POST],
       },
       {
         id: 'ChangePasswordFunction',
         handler: 'changePassword.handler',
-        path: endpoints.api.ChangePassword,
+        apiPath: endpoints.api.ChangePassword,
         methods: [HttpMethod.POST],
         authorizer: lambdaAuthorizer,
       },
       {
         id: 'RefreshTokenFunction',
         handler: 'refreshToken.handler',
-        path: endpoints.api.RefreshToken,
+        apiPath: endpoints.api.RefreshToken,
         methods: [HttpMethod.POST],
       },
       {
         id: 'CheckSessionFunction',
         handler: 'checkSession.handler',
-        path: endpoints.api.CheckSession,
+        apiPath: endpoints.api.CheckSession,
         methods: [HttpMethod.GET],
       },
       {
         id: 'GetUserFunction',
         handler: 'getUser.handler',
-        path: endpoints.api.GetUser,
+        apiPath: endpoints.api.GetUser,
         methods: [HttpMethod.GET],
         authorizer: lambdaAuthorizer,
       },
       {
         id: 'SetUserFunction',
         handler: 'setUser.handler',
-        path: endpoints.api.SetUser,
+        apiPath: endpoints.api.SetUser,
         methods: [HttpMethod.POST],
         authorizer: lambdaAuthorizer,
       },
       {
         id: 'ListRecentReposFunction',
         handler: 'listRecentRepos.handler',
-        path: endpoints.api.ListRecentRepos,
+        
+        apiPath: endpoints.api.ListRecentRepos,
         methods: [HttpMethod.GET],
         authorizer: lambdaAuthorizer,
         timeout: Duration.seconds(10),
@@ -350,47 +353,50 @@ export class HandTermCdkStack extends cdk.Stack {
       {
         id: 'GetRepoTreeFunction',
         handler: 'getRepoTree.handler',
-        path: endpoints.api.GetRepoTree,
+        apiPath: endpoints.api.GetRepoTree,
         methods: [HttpMethod.GET],
         authorizer: lambdaAuthorizer,
       },
       {
         id: 'SaveRepoFileFunction',
         handler: 'saveRepoFile.handler',
-        path: endpoints.api.SaveRepoFile,
+        apiPath: endpoints.api.SaveRepoFile,
         methods: [HttpMethod.POST],
         authorizer: lambdaAuthorizer,
       },
       {
         id: 'UnlinkGitHubFunction',
         handler: 'unlinkGitHub.handler',
-        path: endpoints.api.UnlinkGitHub,
+
+        apiPath: endpoints.api.UnlinkGitHub,
         methods: [HttpMethod.POST],
         authorizer: lambdaAuthorizer,
       },
       {
         id: 'GitHubAuthRedirectFunction',
         handler: 'githubAuthRedirect.handler',
-        path: endpoints.api.GitHubAuth,
+        apiPath: endpoints.api.GitHubAuth,
         methods: [HttpMethod.GET],
       },
       {
         id: 'OAuthCallbackFunction',
         handler: 'oauth_callback.handler',
-        path: endpoints.api.OAuthCallback,
+        apiPath: endpoints.api.OAuthCallback,
         methods: [HttpMethod.GET, HttpMethod.POST],
       },
       {
         id: 'GitHubDeviceCodeFunction',
         handler: 'githubAuthDevice.handler',
-        path: endpoints.api.GitHubDeviceCode,
+        codePath: 'dist/lambda/authentication',
+        apiPath: endpoints.api.GitHubDeviceCode,
         methods: [HttpMethod.POST],
         authorizer: lambdaAuthorizer,
       },
       {
         id: 'GitHubDevicePollFunction',
         handler: 'githubDevicePoll.handler',
-        path: endpoints.api.GitHubDevicePoll,
+        codePath: 'dist/lambda/authentication',
+        apiPath: endpoints.api.GitHubDevicePoll,
         methods: [HttpMethod.POST],
         authorizer: lambdaAuthorizer,
       },
@@ -402,14 +408,16 @@ export class HandTermCdkStack extends cdk.Stack {
         ...defaultLambdaProps,
         id: integration.id,
         handler: integration.handler,
-        codePath:
-          integration.id.includes('User')
-            || integration.id.includes('Log')
-            || integration.id.includes('File')
-            || (integration.id.includes('GitHub') && !integration.id.includes('Auth'))
-            ? 'dist/lambda/userStorage'
-            : 'dist/lambda/authentication',
-        path: integration.path,
+        codePath: integration.codePath ??
+          (
+            integration.id.includes('User')
+              || integration.id.includes('Log')
+              || integration.id.includes('File')
+              || integration.id.includes('Repo')
+              ? 'dist/lambda/userStorage'
+              : 'dist/lambda/authentication'
+          ),
+        apiPath: integration.apiPath,
         methods: integration.methods,
         authorizer: integration.authorizer,
         timeout: integration.timeout,
@@ -417,10 +425,14 @@ export class HandTermCdkStack extends cdk.Stack {
     });
 
     // Add outputs
+    new cdk.CfnOutput(this, 'ApiId', { value: httpApi.apiId || '' });
     new cdk.CfnOutput(this, 'ApiEndpoint', { value: httpApi.url || '' });
     new cdk.CfnOutput(this, 'RedirectUri', { value: defaultLambdaProps.environment.REDIRECT_URI })
     new cdk.CfnOutput(this, 'UserPoolId', { value: userPool.userPoolId });
     new cdk.CfnOutput(this, 'UserPoolClientId', { value: userPoolClient.userPoolClientId });
     new cdk.CfnOutput(this, 'BucketName', { value: logsBucket.bucketName });
+    lambdaIntegrations.forEach((lambda, index) => {
+      new cdk.CfnOutput(this, lambda.apiPath, { value: lambda.id })
+    })
   }
 }
