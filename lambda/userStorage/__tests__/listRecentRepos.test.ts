@@ -3,17 +3,19 @@ import { APIGatewayProxyEvent } from 'aws-lambda';
 import * as githubUtils from '../../authentication/githubUtils';
 import type { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
 
-// Mock AWS Cognito
-const mockCognitoSend = jest.fn().mockResolvedValue({
-  Username: 'test-user-id'
-});
+jest.mock('@aws-sdk/client-cognito-identity-provider', () => {
+  const mockSend = jest.fn().mockResolvedValue({
+    Username: 'test-user-id'
+  });
 
-jest.mock('@aws-sdk/client-cognito-identity-provider', () => ({
-  CognitoIdentityProviderClient: jest.fn().mockImplementation(() => ({
-    send: mockCognitoSend
-  })),
-  GetUserCommand: jest.fn()
-}));
+  return {
+    CognitoIdentityProviderClient: jest.fn().mockImplementation(() => ({
+      send: mockSend
+    })),
+    GetUserCommand: jest.fn(),
+    mockSend
+  };
+});
 
 // Mock githubUtils
 jest.mock('../../authentication/githubUtils', () => ({
@@ -22,6 +24,7 @@ jest.mock('../../authentication/githubUtils', () => ({
 }));
 
 // Get the mock function for assertions
+const { mockSend } = jest.requireMock('@aws-sdk/client-cognito-identity-provider');
 const mockListRepos = githubUtils.listRepos as jest.MockedFunction<typeof githubUtils.listRepos>;
 
 // Create a fully typed mock repository that matches Octokit's type
@@ -192,7 +195,7 @@ describe('listRecentRepos Lambda', () => {
     // Reset all mocks
     jest.clearAllMocks();
     // Reset default mock implementation
-    mockCognitoSend.mockResolvedValue({
+    mockSend.mockResolvedValue({
       Username: 'test-user-id'
     });
     mockListRepos.mockResolvedValue([createMockRepo()]);
@@ -221,7 +224,7 @@ describe('listRecentRepos Lambda', () => {
 
   it('should return 401 when user is invalid', async () => {
     // Mock Cognito to return undefined Username
-    mockCognitoSend.mockResolvedValueOnce({
+    mockSend.mockResolvedValueOnce({
       Username: undefined
     });
 
@@ -242,7 +245,7 @@ describe('listRecentRepos Lambda', () => {
   });
 
   it('should return 500 when Cognito API fails', async () => {
-    mockCognitoSend.mockRejectedValueOnce(new Error('Cognito API error'));
+    mockSend.mockRejectedValueOnce(new Error('Cognito API error'));
 
     const result = await handler(defaultEvent);
     expect(result.statusCode).toBe(500);

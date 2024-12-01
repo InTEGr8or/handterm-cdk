@@ -28,8 +28,8 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "outDir": "./dist",
     "rootDir": ".",
+    "outDir": "./dist",
     "baseUrl": ".",
     "paths": {
       "*": ["*", "dist/*"]

@@ -344,7 +344,7 @@ export class HandTermCdkStack extends cdk.Stack {
       {
         id: 'ListRecentReposFunction',
         handler: 'listRecentRepos.handler',
-        
+
         apiPath: endpoints.api.ListRecentRepos,
         methods: [HttpMethod.GET],
         authorizer: lambdaAuthorizer,
@@ -397,6 +397,14 @@ export class HandTermCdkStack extends cdk.Stack {
         handler: 'githubDevicePoll.handler',
         codePath: 'dist/lambda/authentication',
         apiPath: endpoints.api.GitHubDevicePoll,
+        methods: [HttpMethod.POST],
+        authorizer: lambdaAuthorizer,
+      },
+      {
+        id: 'GithubSaveTokenFunction',
+        handler: 'githubSaveToken.handler',
+        codePath: 'dist/lambda/authentication',
+        apiPath: endpoints.api.SaveGitHubToken,
         methods: [HttpMethod.POST],
         authorizer: lambdaAuthorizer,
       },

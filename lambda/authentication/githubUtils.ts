@@ -9,7 +9,7 @@ import type { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-meth
 import type { Octokit as OctokitType } from '@octokit/rest';
 import {
   CognitoAttribute as ImportedCognitoAttribute
-} from './authTypes';
+} from '../authentication/authTypes';
 
 // Precise type definitions using Octokit's types
 type GitHubRepo = RestEndpointMethodTypes["repos"]["listForAuthenticatedUser"]["response"]["data"][0];

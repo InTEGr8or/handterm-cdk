@@ -33,6 +33,7 @@
         "GitHubAuth": "/github_auth",
         "GitHubDeviceCode": "/github-device-code",
         "GitHubDevicePoll": "/github-device-poll",
+        "SaveGitHubToken": "/save-github-token",
         "OAuthCallback": "/oauth_callback",
         "RequestLogger": "/requestLogger"
     }
