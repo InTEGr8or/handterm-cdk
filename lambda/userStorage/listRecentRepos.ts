@@ -1,34 +1,23 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { CognitoIdentityProviderClient, GetUserCommand } from '@aws-sdk/client-cognito-identity-provider';
 import { listRepos } from '../authentication/githubUtils';
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     console.log('List recent repos handler invoked');
-
+    console.log('authorizer.lambda:', event.requestContext.authorizer?.lambda);
     try {
-        const authToken = event.headers?.Authorization || event.headers?.authorization;
-        if (!authToken) {
-            return {
-                statusCode: 401,
-                body: JSON.stringify({ error: 'No authorization token provided' })
-            };
+
+        // Check for authorizer first
+        if (!event.requestContext.authorizer?.lambda) {
+            return { statusCode: 401, body: JSON.stringify({ message: 'Unauthorized' }) };
         }
 
-        const token = authToken.startsWith('Bearer ') ? authToken.split(' ')[1] : authToken;
-
-        // Initialize the client inside the handler
-        const cognito = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
-        const getUserCommand = new GetUserCommand({ AccessToken: token });
-        const userResponse = await cognito.send(getUserCommand);
-        const cognitoUserId = userResponse.Username;
-
-        if (!cognitoUserId) {
-            return {
-                statusCode: 401,
-                body: JSON.stringify({ error: 'Invalid user' })
-            };
+        const { userId, githubUsername } = event.requestContext.authorizer.lambda;
+        console.log('githubUsername:', githubUsername);
+        if (!userId) {
+            return { statusCode: 401, body: JSON.stringify({ message: 'Unauthorized' }) };
         }
 
+        const cognitoUserId = userId;
         const repos = await listRepos(cognitoUserId);
 
         return {

@@ -109,9 +109,9 @@ export async function listRepos(
   userId: string,
   options: GitHubRepoListOptions = {}
 ): Promise<GitHubRepo[]> {
-  const accessToken = await getValidGitHubToken(userId);
+  const accessTokenResponse:githubTokenResponse = await getValidGitHubToken(userId);
   const Octokit = await getOctokitModule();
-  const octokit = new Octokit({ auth: accessToken });
+  const octokit = new Octokit({ auth: accessTokenResponse.githubToken });
 
   const { data: repos } = await octokit.rest.repos.listForAuthenticatedUser({
     sort: options.sort || 'updated',
@@ -126,7 +126,7 @@ export async function getRepoTree(
   userId: string,
   options: GitHubRepoTreeOptions
 ): Promise<GitHubTreeItem[] | GitHubBlobContent> {
-  const accessTokenResponse = await getValidGitHubToken(userId);
+  const accessTokenResponse:githubTokenResponse = await getValidGitHubToken(userId);
   const Octokit = await getOctokitModule();
   const octokit = new Octokit({ auth: accessTokenResponse.githubToken });
 
@@ -159,7 +159,7 @@ export async function saveRepoFile(
   userId: string,
   options: GitHubSaveFileOptions
 ): Promise<GitHubCommitResponse> {
-  const githubTokenResponse = await getValidGitHubToken(userId);
+  const githubTokenResponse:githubTokenResponse = await getValidGitHubToken(userId);
   const Octokit = await getOctokitModule();
   const octokit = new Octokit({ auth: githubTokenResponse.githubToken });
 
@@ -186,13 +186,16 @@ export async function saveRepoFile(
     repo: options.repo,
   });
 
+  // Ensure line breaks are preserved by using Buffer.from with UTF-8 encoding
+  const base64Content = Buffer.from(options.content, 'utf8').toString('base64');
+
   // Create or update file
   const { data } = await octokit.repos.createOrUpdateFileContents({
     owner: options.owner,
     repo: options.repo,
     path: options.path,
     message: options.message,
-    content: Buffer.from(options.content).toString('base64'),
+    content: base64Content,
     sha: currentFileSha,
     branch: repoData.default_branch,
   });

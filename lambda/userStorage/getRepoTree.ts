@@ -33,6 +33,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     // Allow the `~` alias for the current user.
     const [ownerParsed, repoName] = repo.split('/');
     const owner = ownerParsed === '~' ? githubUsername : ownerParsed;
+    
     const result = await getRepoTree(userId, {
       owner,
       repo: repoName,

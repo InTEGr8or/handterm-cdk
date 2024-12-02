@@ -400,14 +400,6 @@ export class HandTermCdkStack extends cdk.Stack {
         methods: [HttpMethod.POST],
         authorizer: lambdaAuthorizer,
       },
-      {
-        id: 'GithubSaveTokenFunction',
-        handler: 'githubSaveToken.handler',
-        codePath: 'dist/lambda/authentication',
-        apiPath: endpoints.api.SaveGitHubToken,
-        methods: [HttpMethod.POST],
-        authorizer: lambdaAuthorizer,
-      },
     ];
 
     // Create all Lambda integrations
